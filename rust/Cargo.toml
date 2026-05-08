@@ -1,0 +1,27 @@
+[package]
+name = "exercises-web"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+description = "Local cargo-nextest dashboard (Axum + Tera)"
+default-run = "exercises-web"
+
+[[bin]]
+name = "exercises-web"
+path = "src/main.rs"
+
+[lib]
+name = "exercises_web"
+path = "src/lib.rs"
+
+[dependencies]
+axum = "0.7"
+regex = "1"
+roxmltree = "0.20"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tera = "1.20"
+tokio = { version = "1", features = ["full"] }
+tower-http = { version = "0.5", features = ["fs", "trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

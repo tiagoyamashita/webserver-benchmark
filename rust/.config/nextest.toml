@@ -1,0 +1,5 @@
+[profile.dashboard]
+# Human-friendly output in the UI log; JUnit goes to reports/ (see junit section).
+
+[profile.dashboard.junit]
+path = "reports/junit.xml"

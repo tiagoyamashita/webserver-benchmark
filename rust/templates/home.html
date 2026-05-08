@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8"/>
+    <meta name="color-scheme" content="dark light"/>
+    <title>Rust tests (nextest)</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #121212;
+        --text: #e8e8ea;
+        --muted: #a3a3a8;
+        --border: #3f3f46;
+        --th-bg: #27272a;
+        --td-detail: #c4c4c8;
+        --code-bg: #27272a;
+        --code-text: #e4e4e7;
+        --passed: #4ade80;
+        --failed: #f87171;
+        --skipped: #fbbf24;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          color-scheme: light;
+          --bg: #fafafa;
+          --text: #1a1a1a;
+          --muted: #555;
+          --border: #ccc;
+          --th-bg: #ececec;
+          --td-detail: #333;
+          --code-bg: #eee;
+          --code-text: #222;
+          --passed: #0d6d0d;
+          --failed: #a30f0f;
+          --skipped: #7a5b00;
+        }
+      }
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        margin: 1.5rem;
+        max-width: min(90rem, calc(100vw - 3rem));
+        background: var(--bg);
+        color: var(--text);
+      }
+      body.source-modal-open { overflow: hidden; }
+      h2 { color: var(--text); font-weight: 600; margin-top: 0; }
+      table { border-collapse: collapse; width: 100%; margin-top: 0.75rem; }
+      th, td { border: 1px solid var(--border); padding: 0.5rem 0.75rem; text-align: left; }
+      th { background: var(--th-bg); color: var(--text); }
+      tbody tr:nth-child(even) { background: rgba(128, 128, 128, 0.075); }
+      .passed { color: var(--passed); font-weight: 600; }
+      .failed { color: var(--failed); font-weight: 600; }
+      .skipped { color: var(--skipped); font-weight: 600; }
+      .hint { color: var(--muted); font-size: 0.9rem; margin-top: 0.75rem; line-height: 1.45; }
+      td.detail { font-size: 0.85rem; color: var(--td-detail); max-width: 28rem; word-break: break-word; }
+      code {
+        font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", monospace;
+        font-size: 0.88em;
+        padding: 0.12rem 0.35rem;
+        border-radius: 4px;
+        background: var(--code-bg);
+        color: var(--code-text);
+      }
+      em { color: var(--muted); }
+      .results-table-wrap {
+        overflow-x: auto;
+        margin-top: 0.5rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+      }
+      .results-table { margin-top: 0; }
+      .cell-pkg, .cell-class {
+        font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", monospace;
+        font-size: 0.8rem;
+        white-space: nowrap;
+      }
+      .cell-pkg { color: var(--muted); }
+      .flash-ok { color: var(--passed); font-size: 0.95rem; margin: 0.5rem 0; }
+      .flash-err { color: var(--failed); font-size: 0.95rem; margin: 0.5rem 0; }
+      .log-tail {
+        font-family: ui-monospace, monospace;
+        font-size: 0.75rem;
+        background: var(--code-bg);
+        color: var(--code-text);
+        padding: 0.75rem;
+        border-radius: 6px;
+        overflow-x: auto;
+        max-height: 16rem;
+        white-space: pre-wrap;
+        word-break: break-word;
+        border: 1px solid var(--border);
+      }
+      .run-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75rem 1rem;
+        margin: 0.75rem 0 1rem;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--th-bg);
+      }
+      .run-bar button {
+        cursor: pointer;
+        padding: 0.45rem 1rem;
+        font-size: 0.95rem;
+        font-weight: 600;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--code-bg);
+        color: var(--text);
+      }
+      .run-bar button:hover { filter: brightness(1.08); }
+      .run-bar .hint { margin: 0; max-width: 40rem; }
+      th.rerun-col, td.rerun-col {
+        width: 5.5rem;
+        text-align: center;
+        vertical-align: middle;
+        white-space: nowrap;
+      }
+      td.rerun-col .rerun-one-btn {
+        cursor: pointer;
+        padding: 0.2rem 0.5rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+        border-radius: 5px;
+        border: 1px solid var(--border);
+        background: var(--code-bg);
+        color: var(--text);
+      }
+      td.rerun-col .rerun-one-btn:hover:not(:disabled) { filter: brightness(1.08); }
+      .test-method-source-btn {
+        cursor: pointer;
+        font: inherit;
+        color: var(--text);
+        background: none;
+        border: none;
+        padding: 0;
+        text-decoration: underline dotted;
+        text-underline-offset: 0.2em;
+        text-align: left;
+      }
+      .test-method-source-btn:hover { color: var(--passed); }
+      .source-modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-start; justify-content: center; padding: 1.5rem; box-sizing: border-box; }
+      .source-modal[hidden] { display: none; }
+      .source-modal-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.55); }
+      .source-modal-panel {
+        position: relative;
+        z-index: 1;
+        width: min(52rem, calc(100vw - 3rem));
+        max-height: calc(100vh - 2.5rem);
+        margin-top: 0;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--bg);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+        overflow: hidden;
+      }
+      .source-modal-panel header { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); background: var(--th-bg); border-radius: 10px 10px 0 0; }
+      .source-modal-panel h3 { margin: 0; font-size: 1rem; font-weight: 600; }
+      .source-modal-close {
+        cursor: pointer; border: none; background: transparent; color: var(--text);
+        font-size: 1.35rem; line-height: 1; padding: 0.2rem 0.45rem; border-radius: 4px;
+      }
+      .source-modal-close:hover { background: var(--code-bg); }
+      .source-modal-path { margin: 0; padding: 0.5rem 1rem 0; font-size: 0.8rem; color: var(--muted); word-break: break-all; }
+      .source-modal-path code { font-size: inherit; }
+      .source-modal-pre {
+        margin: 0;
+        padding: 0.75rem 1rem 1rem;
+        overflow: auto;
+        flex: 1 1 auto;
+        min-height: 12rem;
+        font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", monospace;
+        font-size: 0.78rem;
+        line-height: 1.45;
+        white-space: pre;
+        tab-size: 4;
+        border-top: 1px solid var(--border);
+        background: var(--code-bg);
+        color: var(--code-text);
+      }
+    </style>
+  </head>
+  <body>
+    <h2>cargo nextest results</h2>
+    {% if test_run_message %}<p class="flash-ok">{{ test_run_message }}</p>{% endif %}
+    {% if test_run_error %}<p class="flash-err">{{ test_run_error }}</p>{% endif %}
+    {% if test_run_log_tail %}<pre class="log-tail">{{ test_run_log_tail }}</pre>{% endif %}
+
+    <form method="post" action="/tests/run" class="run-bar">
+      <button type="submit">Run all tests</button>
+      <p class="hint"><strong>Local use:</strong> runs <code>cargo nextest run --profile dashboard</code> in <code>{{ project_root }}</code>. JUnit report: <code>reports/junit.xml</code> (see <code>.config/nextest.toml</code>). Requires <code>cargo install cargo-nextest</code>.</p>
+    </form>
+
+    {% if test_results | length == 0 %}
+    <p class="hint">
+      {% if not has_report_file %}
+      No XML report yet at <code>{{ report_xml_resolved }}</code> (project <code>{{ project_root }}</code>).
+      Click <strong>Run all tests</strong>, or run from this directory:
+      <code>cargo nextest run --profile dashboard</code>.
+      {% else %}
+      Report file exists but no test cases were loaded from <code>{{ report_xml_resolved }}</code>.
+      {% endif %}
+    </p>
+    {% endif %}
+
+    {% if test_results | length > 0 %}
+    <p class="hint">
+      Report file:
+      {% for src in report_sources %}<code>{{ src }}</code>{% if not loop.last %} · {% endif %}{% endfor %}
+    </p>
+    <div class="results-table-wrap">
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th class="cell-pkg">Crate path</th>
+            <th class="cell-class">Module / item</th>
+            <th>Test name</th>
+            <th class="rerun-col">Re-run</th>
+            <th>Result</th>
+            <th>Time</th>
+            <th>Failure / skip detail</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in test_results %}
+          <tr>
+            <td class="cell-pkg">{{ row.pkg }}</td>
+            <td class="cell-class" title="{{ row.class_name }}">{{ row.simple_class }}</td>
+            <td>
+              <button
+                  type="button"
+                  class="test-method-source-btn"
+                  data-class-name="{{ row.class_name }}"
+                  data-method-name="{{ row.method_name }}"
+                  title="View Rust source (heuristic)">{{ row.method_name }}</button>
+            </td>
+            <td class="rerun-col">
+              <form method="post" action="/tests/run" style="display:inline;">
+                <input type="hidden" name="nodeid" value="{{ row.node_id }}"/>
+                <button type="submit" class="rerun-one-btn" title="{{ row.node_id }}">Re-run</button>
+              </form>
+            </td>
+            <td>
+              {% if row.status == "PASSED" %}<span class="passed">PASSED</span>{% endif %}
+              {% if row.status == "FAILED" %}<span class="failed">FAILED</span>{% endif %}
+              {% if row.status == "SKIPPED" %}<span class="skipped">SKIPPED</span>{% endif %}
+            </td>
+            <td>{{ row.duration_label }}</td>
+            <td class="detail">{% if row.detail %}{{ row.detail }}{% else %}—{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    <div id="source-modal" class="source-modal" hidden>
+      <div class="source-modal-backdrop" data-close-modal="true"></div>
+      <div class="source-modal-panel" role="dialog" aria-modal="true" aria-labelledby="source-modal-title">
+        <header>
+          <h3 id="source-modal-title">Test source</h3>
+          <button type="button" class="source-modal-close" data-close-modal="true" aria-label="Close">×</button>
+        </header>
+        <p class="source-modal-path"><code id="source-modal-path"></code></p>
+        <pre id="source-modal-pre" class="source-modal-pre"></pre>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        var modal = document.getElementById('source-modal');
+        var pathEl = document.getElementById('source-modal-path');
+        var preEl = document.getElementById('source-modal-pre');
+        var titleEl = document.getElementById('source-modal-title');
+        var sourceUrl = "/tests/source";
+        if (!modal || !pathEl || !preEl || !titleEl || !window.fetch) return;
+        function openModal(methodName, className) {
+          titleEl.textContent = methodName ? methodName + ' — source' : 'Test source';
+          pathEl.textContent = 'Loading…';
+          preEl.textContent = '';
+          modal.hidden = false;
+          document.body.classList.add('source-modal-open');
+          var url = sourceUrl + '?className=' + encodeURIComponent(className);
+          fetch(url, { credentials: 'same-origin' })
+            .then(function (res) {
+              if (!res.ok) throw new Error(res.status === 404 ? 'Source file not found for this class.' : 'HTTP ' + res.status);
+              return res.json();
+            })
+            .then(function (data) {
+              pathEl.textContent = data.path || '';
+              preEl.textContent = data.content || '';
+            })
+            .catch(function (err) {
+              pathEl.textContent = '';
+              preEl.textContent = String(err.message || err);
+            });
+        }
+        function closeModal() {
+          modal.hidden = true;
+          document.body.classList.remove('source-modal-open');
+        }
+        modal.addEventListener('click', function (ev) {
+          if (ev.target.getAttribute('data-close-modal') != null) closeModal();
+        });
+        document.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Escape' && !modal.hidden) closeModal();
+        });
+        document.addEventListener('click', function (ev) {
+          var t = ev.target;
+          if (!t.classList || !t.classList.contains('test-method-source-btn')) return;
+          var cn = t.getAttribute('data-class-name');
+          var mn = t.getAttribute('data-method-name');
+          if (!cn) return;
+          openModal(mn || '', cn);
+        });
+      })();
+    </script>
+  </body>
+</html>

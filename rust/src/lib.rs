@@ -1,0 +1,25 @@
+//! Library crate: Axum app + JUnit parsing for the local test dashboard.
+
+pub mod app;
+pub mod flash;
+pub mod junit;
+pub mod runner;
+pub mod source;
+
+pub fn add(left: i32, right: i32) -> i32 {
+    left + right
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn adds() {
+        assert_eq!(add(2, 3), 5);
+    }
+}
+
+pub async fn run_server() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    app::serve().await
+}
