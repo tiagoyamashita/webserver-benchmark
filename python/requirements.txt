@@ -1,0 +1,2 @@
+# No third-party runtime dependencies yet.
+# Dev venv: run scripts/init_venv.ps1 or scripts/init_venv.sh (uses requirements-dev.txt).

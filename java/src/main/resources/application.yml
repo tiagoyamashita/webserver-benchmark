@@ -23,11 +23,9 @@ server:
   port: 8080
 
 app:
-  test-runner:
-    # Set false in untrusted environments (POST /tests/run runs Maven on the server).
-    enabled: true
-    # Leave blank to auto-pick ./java or the current directory holding pom.xml
-    project-dir: ""
+  maven:
+    # Optional: absolute path to the directory that contains pom.xml (otherwise auto-detected).
+    module-dir: ""
 
 ---
 # Optional: spring.profiles.active=postgres

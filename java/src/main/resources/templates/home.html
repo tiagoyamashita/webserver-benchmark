@@ -75,28 +75,6 @@
         white-space: nowrap;
       }
       .cell-pkg { color: var(--muted); }
-      .run-bar {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 0.75rem 1rem;
-        margin: 0.75rem 0 1rem;
-        padding: 0.75rem 1rem;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        background: var(--th-bg);
-      }
-      .run-bar button {
-        cursor: pointer;
-        padding: 0.45rem 1rem;
-        font-size: 0.95rem;
-        font-weight: 600;
-        border-radius: 6px;
-        border: 1px solid var(--border);
-        background: var(--code-bg);
-        color: var(--text);
-      }
-      .run-bar button:hover { filter: brightness(1.08); }
       .flash-ok { color: var(--passed); font-size: 0.95rem; margin: 0.5rem 0; }
       .flash-err { color: var(--failed); font-size: 0.95rem; margin: 0.5rem 0; }
       .log-tail {
@@ -112,37 +90,7 @@
         word-break: break-word;
         border: 1px solid var(--border);
       }
-      .log-live {
-        max-height: 28rem;
-        min-height: 3rem;
-        margin-top: 0.75rem;
-      }
-      th.skip-col, td.skip-col {
-        width: 3rem;
-        text-align: center;
-        vertical-align: middle;
-      }
-      td.skip-col input { width: 1.1rem; height: 1.1rem; cursor: pointer; }
-      .skip-hint { font-size: 0.85rem; color: var(--muted); max-width: 36rem; line-height: 1.4; }
-      th.rerun-col, td.rerun-col {
-        width: 5.25rem;
-        text-align: center;
-        vertical-align: middle;
-        white-space: nowrap;
-      }
-      td.rerun-col .rerun-one-btn {
-        cursor: pointer;
-        padding: 0.2rem 0.5rem;
-        font-size: 0.82rem;
-        font-weight: 600;
-        border-radius: 5px;
-        border: 1px solid var(--border);
-        background: var(--code-bg);
-        color: var(--text);
-      }
-      td.rerun-col .rerun-one-btn:hover:not(:disabled) { filter: brightness(1.08); }
-      td.rerun-col .rerun-one-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-      .test-method-source-btn {
+      .source-modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-start; justify-content: center; padding: 1.5rem; box-sizing: border-box; }
         cursor: pointer;
         font: inherit;
         color: var(--text);
@@ -203,25 +151,6 @@
     <p th:if="${testRunError}" class="flash-err" th:text="${testRunError}"></p>
     <pre th:if="${testRunLogTail}" class="log-tail" th:text="${testRunLogTail}"></pre>
 
-    <form
-        th:if="${testRunnerEnabled}"
-        method="post"
-        th:action="@{/tests/run}"
-        id="tests-run-form">
-      <div class="run-bar">
-        <button type="submit">Run tests again</button>
-        <p id="test-run-status" class="skip-hint" hidden>Connecting to Maven…</p>
-        <span th:if="${!testResults.isEmpty()}" class="skip-hint">
-          <strong>Omit next run:</strong> when checked, that method is <em>not executed</em> on the next run
-          (Maven only receives unchecked cases in <code>-Dtest=…</code>). Uncheck all boxes to run the full suite.
-        </span>
-        <span th:if="${testResults.isEmpty()}" class="skip-hint">
-          No report loaded yet — submit runs the full test suite.
-        </span>
-      </div>
-    </form>
-    <pre th:if="${testRunnerEnabled}" id="test-run-live-log" class="log-tail log-live" hidden aria-live="polite"></pre>
-
     <p th:if="${testResults.isEmpty()}" class="hint">
       No Surefire <code>TEST-*.xml</code> files found. Checked:
       <th:block th:if="${reportSources.isEmpty()}"><em>(no existing report folders — run <code>mvn test</code> first)</em></th:block>
@@ -244,9 +173,7 @@
           <tr>
             <th class="cell-pkg">Package</th>
             <th class="cell-class">Class</th>
-            <th th:if="${testRunnerEnabled}" class="skip-col" title="Do not run this test method on the next Maven invocation">Omit</th>
             <th>Method</th>
-            <th th:if="${testRunnerEnabled}" class="rerun-col" title="Run only this test method">Re-run</th>
             <th>Result</th>
             <th>Time</th>
             <th>Failure / skip detail</th>
@@ -256,15 +183,6 @@
           <tr th:each="row : ${testResults}">
             <td class="cell-pkg" th:text="${row.javaPackage()}">pkg</td>
             <td class="cell-class" th:title="${row.className()}" th:text="${row.simpleClassName()}">Class</td>
-            <td th:if="${testRunnerEnabled}" class="skip-col">
-              <input
-                  type="checkbox"
-                  name="skip"
-                  form="tests-run-form"
-                  th:value="${row.caseId()}"
-                  th:checked="${skippedTestKeys.contains(row.caseId())}"
-                  th:title="|Do not run ${row.methodName} on the next Maven run|"/>
-            </td>
             <td>
               <button
                   type="button"
@@ -273,15 +191,6 @@
                   th:title="|View test class source (${row.className()})|"
                   th:text="${row.methodName}">
                 method
-              </button>
-            </td>
-            <td th:if="${testRunnerEnabled}" class="rerun-col">
-              <button
-                  type="button"
-                  class="rerun-one-btn"
-                  th:attr="data-case-id=${row.caseId()}"
-                  th:title="|Maven: -Dtest=${row.caseId()}|">
-                Re-run
               </button>
             </td>
             <td>
@@ -366,97 +275,6 @@
           if (!cn) return;
           openModal(mn || '', cn);
         });
-      })();
-      /*]]>*/
-    </script>
-
-    <script th:inline="javascript" th:if="${testRunnerEnabled}">
-      /*<![CDATA[*/
-      (function () {
-        var streamUrl = /*[[@{/tests/run-stream}]]*/ '/tests/run-stream';
-        var form = document.getElementById('tests-run-form');
-        if (!form || !window.fetch || !window.ReadableStream) {
-          return;
-        }
-        var btnMain = form.querySelector('button[type=submit]');
-        var status = document.getElementById('test-run-status');
-        var live = document.getElementById('test-run-live-log');
-
-        function setRunning(running) {
-          if (btnMain) btnMain.disabled = running;
-          document.querySelectorAll('.rerun-one-btn').forEach(function (b) {
-            b.disabled = running;
-          });
-        }
-
-        function startStream(formData, statusText) {
-          setRunning(true);
-          if (status) {
-            status.hidden = false;
-            status.textContent = statusText || 'Streaming Maven output…';
-          }
-          if (live) {
-            live.hidden = false;
-            live.textContent = '';
-          }
-          fetch(streamUrl, { method: 'POST', body: formData, credentials: 'same-origin' })
-            .then(function (res) {
-              if (!res.ok) {
-                return res.text().then(function (t) {
-                  if (live) live.textContent = (t && t.length ? t : 'HTTP ' + res.status) + '\n';
-                  setRunning(false);
-                  if (status) status.hidden = true;
-                });
-              }
-              var reader = res.body.getReader();
-              var dec = new TextDecoder();
-              function pump() {
-                return reader.read().then(function (result) {
-                  if (result.done) {
-                    setRunning(false);
-                    if (status) status.hidden = true;
-                    setTimeout(function () {
-                      var u = window.location.pathname + '?_=' + Date.now();
-                      window.location.replace(u);
-                    }, 200);
-                    return;
-                  }
-                  if (live) {
-                    live.textContent += dec.decode(result.value, { stream: true });
-                    live.scrollTop = live.scrollHeight;
-                  }
-                  return pump();
-                });
-              }
-              return pump();
-            })
-            .catch(function (e) {
-              if (live) live.textContent += '\n' + e + '\n';
-              setRunning(false);
-              if (status) status.hidden = true;
-            });
-        }
-
-        form.addEventListener('submit', function (ev) {
-          ev.preventDefault();
-          startStream(new FormData(form), 'Streaming Maven output…');
-        });
-
-        var tableWrap = document.querySelector('.results-table-wrap');
-        if (tableWrap) {
-          tableWrap.addEventListener('click', function (ev) {
-            var t = ev.target;
-            if (!t.classList || !t.classList.contains('rerun-one-btn')) {
-              return;
-            }
-            ev.preventDefault();
-            var id = t.getAttribute('data-case-id');
-            if (!id) return;
-            var fd = new FormData();
-            fd.append('only', id);
-            startStream(fd, 'Re-running one test…');
-          });
-        }
       })();
       /*]]>*/
     </script>

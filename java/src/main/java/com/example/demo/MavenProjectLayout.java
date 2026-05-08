@@ -14,16 +14,16 @@ import org.springframework.stereotype.Component;
 @Component
 public class MavenProjectLayout {
 
-  @Value("${app.test-runner.project-dir:}")
-  private String configuredProjectDir;
+  @Value("${app.maven.module-dir:}")
+  private String configuredModuleDir;
 
   /**
-   * Directory containing {@code pom.xml} for running Maven. Walks up from the process working
-   * directory when needed so launching the app from an unexpected folder still finds the module.
+   * Directory containing {@code pom.xml} (Surefire reports and test sources live under it). Walks
+   * up from the process working directory when no explicit {@code app.maven.module-dir} is set.
    */
   public Path resolveMavenProjectRoot() {
-    if (configuredProjectDir != null && !configuredProjectDir.isBlank()) {
-      Path p = Path.of(configuredProjectDir).toAbsolutePath().normalize();
+    if (configuredModuleDir != null && !configuredModuleDir.isBlank()) {
+      Path p = Path.of(configuredModuleDir).toAbsolutePath().normalize();
       if (Files.isRegularFile(p.resolve("pom.xml"))) {
         return p;
       }

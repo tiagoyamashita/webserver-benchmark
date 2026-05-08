@@ -1,0 +1,22 @@
+[project]
+name = "exercises"
+version = "0.1.0"
+description = "Python exercises"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "flask>=3.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.scripts]
+exercises-web = "exercises.web.cli:main"
