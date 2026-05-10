@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "exercises.fullname" . }}-java
+  labels:
+    {{- include "exercises.labels" . | nindent 4 }}
+    app.kubernetes.io/component: java
+spec:
+  type: {{ .Values.java.service.type }}
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: java
+  ports:
+    - name: http
+      port: {{ .Values.java.service.port }}
+      targetPort: http

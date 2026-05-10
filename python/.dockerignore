@@ -1,0 +1,6 @@
+exercises
+__pycache__
+*.py[cod]
+.pytest_cache
+.git
+.mypy_cache

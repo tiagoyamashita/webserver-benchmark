@@ -1,0 +1,77 @@
+# Default Helm values — override per region/cluster via additional -f files or --set.
+# See ../../README.md and ../../values/
+
+global:
+  # Shown as labels on pods (observability / placement hints). Not a cloud API by itself.
+  region: ""
+  platform: ""
+  cluster: ""
+  # Optional: all images use registry.example.com/exercises/... if set (no trailing slash).
+  imageRegistry: ""
+
+nameOverride: ""
+fullnameOverride: ""
+
+java:
+  replicaCount: 1
+  image:
+    repository: exercises-java
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8080
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+python:
+  replicaCount: 1
+  image:
+    repository: exercises-python
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 5000
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+rust:
+  replicaCount: 1
+  image:
+    repository: exercises-rust
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8082
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+postgres:
+  replicaCount: 1
+  image:
+    repository: library/postgres
+    tag: "16"
+    registry: docker.io
+    pullPolicy: IfNotPresent
+  auth:
+    username: postgres
+    password: postgres
+    database: demo
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+imagePullSecrets: []

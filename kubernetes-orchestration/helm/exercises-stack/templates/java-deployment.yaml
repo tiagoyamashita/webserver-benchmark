@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "exercises.fullname" . }}-java
+  labels:
+    {{- include "exercises.labels" . | nindent 4 }}
+    app.kubernetes.io/component: java
+spec:
+  replicas: {{ .Values.java.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: java
+  template:
+    metadata:
+      labels:
+        {{- include "exercises.labels" . | nindent 8 }}
+        app.kubernetes.io/component: java
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.java.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.java.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.java.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: java
+          {{- if .Values.global.imageRegistry }}
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.java.image.repository }}:{{ .Values.java.image.tag }}"
+          {{- else }}
+          image: "{{ .Values.java.image.repository }}:{{ .Values.java.image.tag }}"
+          {{- end }}
+          imagePullPolicy: {{ .Values.java.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.java.service.port }}
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: postgres
+            - name: DB_HOST
+              value: {{ include "exercises.fullname" . }}-postgres
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: {{ .Values.postgres.auth.database | quote }}
+            - name: DB_USERNAME
+              value: {{ .Values.postgres.auth.username | quote }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "exercises.fullname" . }}-postgres
+                  key: DB_PASSWORD
+          {{- with .Values.java.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}

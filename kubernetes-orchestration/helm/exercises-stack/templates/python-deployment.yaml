@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "exercises.fullname" . }}-python
+  labels:
+    {{- include "exercises.labels" . | nindent 4 }}
+    app.kubernetes.io/component: python
+spec:
+  replicas: {{ .Values.python.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: python
+  template:
+    metadata:
+      labels:
+        {{- include "exercises.labels" . | nindent 8 }}
+        app.kubernetes.io/component: python
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.python.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.python.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.python.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: python
+          {{- if .Values.global.imageRegistry }}
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.python.image.repository }}:{{ .Values.python.image.tag }}"
+          {{- else }}
+          image: "{{ .Values.python.image.repository }}:{{ .Values.python.image.tag }}"
+          {{- end }}
+          imagePullPolicy: {{ .Values.python.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.python.service.port }}
+          env:
+            - name: FLASK_RUN_HOST
+              value: "0.0.0.0"
+            - name: FLASK_RUN_PORT
+              value: {{ .Values.python.service.port | quote }}
+            - name: EXERCISES_PROJECT_ROOT
+              value: /app
+          {{- with .Values.python.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}

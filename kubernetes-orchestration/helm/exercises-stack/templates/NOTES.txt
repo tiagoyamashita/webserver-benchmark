@@ -1,0 +1,19 @@
+Installed {{ .Chart.Name }} (release {{ .Release.Name }}, namespace {{ .Release.Namespace }}).
+
+Replica counts (how many pods):
+  Java:    {{ .Values.java.replicaCount }}
+  Python:  {{ .Values.python.replicaCount }}
+  Rust:    {{ .Values.rust.replicaCount }}
+  Postgres: {{ .Values.postgres.replicaCount }}
+
+Optional labels for “where” (region / platform / cluster):
+  global.region={{ .Values.global.region | default "(unset)" }}
+  global.platform={{ .Values.global.platform | default "(unset)" }}
+
+Port-forward (ClusterIP defaults):
+
+  kubectl port-forward svc/{{ include "exercises.fullname" . }}-java 8080:8080 -n {{ .Release.Namespace }}
+  kubectl port-forward svc/{{ include "exercises.fullname" . }}-python 5000:5000 -n {{ .Release.Namespace }}
+  kubectl port-forward svc/{{ include "exercises.fullname" . }}-rust 8082:8082 -n {{ .Release.Namespace }}
+
+Or set java.service.type / python.service.type / rust.service.type to LoadBalancer in values.

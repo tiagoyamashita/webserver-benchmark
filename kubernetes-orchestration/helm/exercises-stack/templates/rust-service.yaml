@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "exercises.fullname" . }}-rust
+  labels:
+    {{- include "exercises.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rust
+spec:
+  type: {{ .Values.rust.service.type }}
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: rust
+  ports:
+    - name: http
+      port: {{ .Values.rust.service.port }}
+      targetPort: http

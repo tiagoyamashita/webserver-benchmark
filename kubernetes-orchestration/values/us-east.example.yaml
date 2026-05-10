@@ -1,0 +1,29 @@
+# Example overrides for one region / cluster. Copy to my-prod-us-east.yaml and adjust.
+# Install: helm upgrade --install exercises ../helm/exercises-stack -n exercises --create-namespace \
+#   -f ../helm/exercises-stack/values.yaml -f my-prod-us-east.yaml
+
+global:
+  region: us-east-1
+  platform: eks
+  cluster: prod-us-east
+  # Prefix for private registry images (matches docker-compose build tags when pushed):
+  # imageRegistry: 123456789012.dkr.ecr.us-east-1.amazonaws.com/myorg
+
+java:
+  replicaCount: 2
+  # Pin workloads to a zone or node group when needed:
+  # nodeSelector:
+  #   topology.kubernetes.io/zone: us-east-1a
+
+python:
+  replicaCount: 1
+
+rust:
+  replicaCount: 1
+
+postgres:
+  replicaCount: 1
+  persistence:
+    enabled: true
+    size: 20Gi
+    # storageClass: gp3
