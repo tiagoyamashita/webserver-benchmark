@@ -1,13 +1,12 @@
 package com.example.demo.web;
 
 import com.example.demo.exercises.DashboardNotesPayload;
+import com.example.demo.exercises.ExerciseHelpProperties;
 import com.example.demo.exercises.ExerciseNotesService;
-import com.example.demo.exercises.TestCurriculumService;
 import com.example.demo.maven.DiscoveredTestClass;
 import com.example.demo.maven.MavenTestRunService;
+import com.example.demo.maven.TestCategoryClassifier;
 import com.example.demo.maven.TestDiscoveryService;
-import com.example.demo.testreports.SurefireReportService;
-import com.example.demo.testreports.TestResultRow;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -25,23 +24,20 @@ import org.springframework.web.servlet.support.RequestContextUtils;
 @Controller
 public class HomeController {
 
-  private final SurefireReportService surefireReportService;
   private final TestDiscoveryService testDiscoveryService;
   private final MavenTestRunService mavenTestRunService;
   private final ExerciseNotesService exerciseNotesService;
-  private final TestCurriculumService testCurriculumService;
+  private final ExerciseHelpProperties exerciseHelp;
 
   public HomeController(
-      SurefireReportService surefireReportService,
       TestDiscoveryService testDiscoveryService,
       MavenTestRunService mavenTestRunService,
       ExerciseNotesService exerciseNotesService,
-      TestCurriculumService testCurriculumService) {
-    this.surefireReportService = surefireReportService;
+      ExerciseHelpProperties exerciseHelp) {
     this.testDiscoveryService = testDiscoveryService;
     this.mavenTestRunService = mavenTestRunService;
     this.exerciseNotesService = exerciseNotesService;
-    this.testCurriculumService = testCurriculumService;
+    this.exerciseHelp = exerciseHelp;
   }
 
   @GetMapping("/")
@@ -54,7 +50,6 @@ public class HomeController {
     if (flashMap != null) {
       model.addAllAttributes(flashMap);
     }
-    List<TestResultRow> testResults = surefireReportService.loadLatestResults();
     List<DiscoveredTestClass> discoveredTests;
     try {
       discoveredTests = testDiscoveryService.listTestClasses();
@@ -62,20 +57,33 @@ public class HomeController {
       discoveredTests = List.of();
       model.addAttribute("discoveryError", e.getMessage());
     }
-
-    DashboardNotesPayload notes = exerciseNotesService.load();
-    model.addAttribute("exerciseNotes", notes);
-    model.addAttribute("requiredRows", testCurriculumService.buildRows(notes));
-    model.addAttribute("dashboardNotesPath", exerciseNotesService.notesFilePath().toString());
-
-    model.addAttribute("testResults", testResults);
     model.addAttribute("discoveredTests", discoveredTests);
-    model.addAttribute(
-        "reportSources",
-        testResults.isEmpty()
-            ? surefireReportService.getExistingReportDirectoryPaths()
-            : surefireReportService.getResolvedReportDirectoryPaths());
+    model.addAttribute("testCategoryGroups", TestCategoryClassifier.groupByCategory(discoveredTests));
+    model.addAttribute("helpCloneUrl", exerciseHelp.cloneUrl());
+    model.addAttribute("helpReadmeUrl", exerciseHelp.readmeUrl());
+    model.addAttribute("offlineFetchHint", offlineFetchHint(exerciseHelp));
     return "home";
+  }
+
+  private static String offlineFetchHint(ExerciseHelpProperties help) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(
+        " If this keeps happening, start the Spring Boot app from the java/ directory: ");
+    sb.append("./mvnw spring-boot:run");
+    sb.append(" (Windows from repo root: ");
+    sb.append(".\\java\\mvnw.cmd spring-boot:run");
+    sb.append(").");
+    if (!help.cloneUrl().isEmpty()) {
+      sb.append(" Clone the repo: ");
+      sb.append(help.cloneUrl());
+      sb.append(".");
+    }
+    if (!help.readmeUrl().isEmpty()) {
+      sb.append(" Docs: ");
+      sb.append(help.readmeUrl());
+      sb.append(".");
+    }
+    return sb.toString();
   }
 
   @PostMapping("/dashboard/notes")

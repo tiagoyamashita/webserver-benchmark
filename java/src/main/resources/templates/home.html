@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8"/>
     <meta name="color-scheme" content="dark light"/>
-    <title>Test dashboard</title>
+    <title>Tests</title>
     <style>
       :root {
         color-scheme: dark;
@@ -12,12 +12,9 @@
         --muted: #a3a3a8;
         --border: #3f3f46;
         --th-bg: #27272a;
-        --td-detail: #c4c4c8;
         --code-bg: #27272a;
         --code-text: #e4e4e7;
-        --passed: #4ade80;
-        --failed: #f87171;
-        --skipped: #fbbf24;
+        --accent: #4ade80;
       }
       @media (prefers-color-scheme: light) {
         :root {
@@ -27,85 +24,105 @@
           --muted: #555;
           --border: #ccc;
           --th-bg: #ececec;
-          --td-detail: #333;
           --code-bg: #eee;
           --code-text: #222;
-          --passed: #0d6d0d;
-          --failed: #a30f0f;
-          --skipped: #7a5b00;
+          --accent: #0d6d0d;
         }
       }
       body {
         font-family: system-ui, -apple-system, sans-serif;
         margin: 1.5rem;
-        max-width: min(90rem, calc(100vw - 3rem));
+        max-width: min(48rem, calc(100vw - 3rem));
         background: var(--bg);
         color: var(--text);
       }
       body.source-modal-open { overflow: hidden; }
-      h2 { color: var(--text); font-weight: 600; margin-top: 1.75rem; }
-      h2:first-of-type { margin-top: 0; }
-      table { border-collapse: collapse; width: 100%; margin-top: 0.75rem; }
-      th, td { border: 1px solid var(--border); padding: 0.5rem 0.75rem; text-align: left; }
-      th { background: var(--th-bg); color: var(--text); }
-      tbody tr:nth-child(even) { background: rgba(128, 128, 128, 0.075); }
-      .passed { color: var(--passed); font-weight: 600; }
-      .failed { color: var(--failed); font-weight: 600; }
-      .skipped { color: var(--skipped); font-weight: 600; }
-      .hint { color: var(--muted); font-size: 0.9rem; margin-top: 0.75rem; line-height: 1.45; }
-      td.detail { font-size: 0.85rem; color: var(--td-detail); max-width: 28rem; word-break: break-word; }
-      code {
-        font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", monospace;
-        font-size: 0.88em;
-        padding: 0.12rem 0.35rem;
-        border-radius: 4px;
-        background: var(--code-bg);
-        color: var(--code-text);
+      h1 {
+        font-size: 1.35rem;
+        font-weight: 650;
+        margin: 0 0 0.35rem;
       }
-      em { color: var(--muted); }
-      .results-table-wrap {
-        overflow-x: auto;
-        margin-top: 0.5rem;
+      .hint {
+        color: var(--muted);
+        font-size: 0.9rem;
+        margin: 0 0 1rem;
+        line-height: 1.45;
+      }
+      .flash-err { color: #f87171; font-size: 0.95rem; margin: 0 0 0.75rem; }
+      ul.test-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
         border: 1px solid var(--border);
-        border-radius: 8px;
+        border-radius: 10px;
+        overflow: hidden;
       }
-      .results-table { margin-top: 0; }
-      .cell-pkg, .cell-class {
-        font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", monospace;
-        font-size: 0.8rem;
-        white-space: nowrap;
+      ul.test-list li {
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+        padding: 0.65rem 0.85rem;
+        background: var(--bg);
       }
-      .cell-pkg { color: var(--muted); }
-      .flash-ok { color: var(--passed); font-size: 0.95rem; margin: 0.5rem 0; }
-      .flash-err { color: var(--failed); font-size: 0.95rem; margin: 0.5rem 0; }
-      .log-tail {
-        font-family: ui-monospace, monospace;
-        font-size: 0.75rem;
-        background: var(--code-bg);
-        color: var(--code-text);
-        padding: 0.75rem;
-        border-radius: 6px;
-        overflow-x: auto;
-        max-height: 16rem;
-        white-space: pre-wrap;
-        word-break: break-word;
-        border: 1px solid var(--border);
+      ul.test-list li:last-child { border-bottom: none; }
+      ul.test-list li:nth-child(even) { background: rgba(128, 128, 128, 0.06); }
+      button.test-open-btn {
+        cursor: pointer;
+        font: inherit;
+        font-weight: 600;
+        text-align: left;
+        padding: 0;
+        border: none;
+        background: none;
+        color: var(--text);
+        text-decoration: underline;
+        text-decoration-style: dotted;
+        text-underline-offset: 0.2em;
       }
-      .test-run-bar {
+      button.test-open-btn:hover { color: var(--accent); }
+      .test-actions {
+        margin-top: 0.45rem;
         display: flex;
         flex-wrap: wrap;
+        gap: 0.35rem;
         align-items: center;
-        gap: 0.5rem 0.75rem;
-        margin: 0.5rem 0 0.75rem;
-        padding: 0.65rem 0.85rem;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        background: var(--th-bg);
+      }
+      .test-run-status {
+        margin: 0.35rem 0 0;
+        font-size: 0.82rem;
+        line-height: 1.35;
+      }
+      .test-run-status.run-pass { color: var(--accent); font-weight: 600; }
+      .test-run-status.run-fail { color: #f87171; font-weight: 600; }
+      .test-run-status.run-busy { color: var(--muted); }
+      details.test-run-log {
+        margin: 0.35rem 0 0;
+        font-size: 0.8rem;
+        max-width: 100%;
+      }
+      details.test-run-log summary {
+        cursor: pointer;
+        color: var(--muted);
+        user-select: none;
+      }
+      .test-run-log-pre {
+        margin: 0.35rem 0 0;
+        padding: 0.5rem 0.65rem;
+        max-height: 14rem;
+        overflow: auto;
+        font-size: 0.72rem;
+        line-height: 1.3;
+        border-radius: 6px;
+        background: var(--code-bg);
+        color: var(--code-text);
+        white-space: pre-wrap;
+        word-break: break-word;
       }
       .btn {
         cursor: pointer;
-        padding: 0.4rem 0.85rem;
-        font-size: 0.9rem;
+        padding: 0.28rem 0.65rem;
+        font-size: 0.82rem;
         font-weight: 600;
         border-radius: 6px;
         border: 1px solid var(--border);
@@ -113,24 +130,72 @@
         color: var(--text);
       }
       .btn:hover { filter: brightness(1.08); }
-      .btn.primary { border-color: var(--passed); color: var(--passed); }
-      .btn.small { padding: 0.25rem 0.55rem; font-size: 0.82rem; }
-      .col-check { width: 3rem; text-align: center; }
-      .test-method-source-btn {
-        cursor: pointer;
-        font: inherit;
-        color: var(--text);
-        background: none;
-        border: none;
-        padding: 0;
-        text-decoration: underline dotted;
-        text-underline-offset: 0.2em;
-        text-align: left;
+      .btn.primary {
+        border-color: var(--accent);
+        color: var(--accent);
       }
-      .test-method-source-btn:hover { color: var(--passed); }
-      .source-modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-start; justify-content: center; padding: 1.5rem; box-sizing: border-box; }
+      .pkg-line {
+        font-family: ui-monospace, "Cascadia Code", monospace;
+        font-size: 0.78rem;
+        color: var(--muted);
+        word-break: break-all;
+      }
+      .empty {
+        color: var(--muted);
+        font-size: 0.9rem;
+        padding: 1rem;
+        border: 1px dashed var(--border);
+        border-radius: 8px;
+      }
+      .run-local-banner {
+        padding: 0.85rem 1rem;
+        margin: 0 0 1rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: rgba(248, 113, 113, 0.08);
+        line-height: 1.45;
+      }
+      .run-local-banner .banner-title {
+        margin: 0 0 0.35rem;
+        font-size: 0.95rem;
+      }
+      .run-local-details {
+        margin: 0 0 1rem;
+        padding: 0.5rem 0.65rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: rgba(128, 128, 128, 0.06);
+      }
+      .run-local-details summary {
+        cursor: pointer;
+        font-weight: 600;
+        color: var(--text);
+      }
+      .run-local-details pre {
+        margin: 0.5rem 0 0;
+        padding: 0.5rem 0.65rem;
+        font-size: 0.8rem;
+        border-radius: 6px;
+        background: var(--code-bg);
+        color: var(--code-text);
+        overflow-x: auto;
+      }
+      .source-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 1.5rem;
+        box-sizing: border-box;
+      }
       .source-modal[hidden] { display: none; }
-      .source-modal-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.55); }
+      .source-modal-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+      }
       .source-modal-panel {
         position: relative;
         z-index: 1;
@@ -145,22 +210,47 @@
         box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
         overflow: hidden;
       }
-      .source-modal-panel header { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); background: var(--th-bg); border-radius: 10px 10px 0 0; }
-      .source-modal-panel h3 { margin: 0; font-size: 1rem; font-weight: 600; }
+      .source-modal-panel header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.65rem 1rem;
+        border-bottom: 1px solid var(--border);
+        background: var(--th-bg);
+        border-radius: 10px 10px 0 0;
+      }
+      .source-modal-panel h2 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+      }
       .source-modal-close {
-        cursor: pointer; border: none; background: transparent; color: var(--text);
-        font-size: 1.35rem; line-height: 1; padding: 0.2rem 0.45rem; border-radius: 4px;
+        cursor: pointer;
+        border: none;
+        background: transparent;
+        color: var(--text);
+        font-size: 1.35rem;
+        line-height: 1;
+        padding: 0.2rem 0.45rem;
+        border-radius: 4px;
       }
       .source-modal-close:hover { background: var(--code-bg); }
-      .source-modal-path { margin: 0; padding: 0.5rem 1rem 0; font-size: 0.8rem; color: var(--muted); word-break: break-all; }
+      .source-modal-path {
+        margin: 0;
+        padding: 0.5rem 1rem 0;
+        font-size: 0.8rem;
+        color: var(--muted);
+        word-break: break-all;
+      }
       .source-modal-path code { font-size: inherit; }
       .source-modal-pre {
         margin: 0;
         padding: 0.75rem 1rem 1rem;
         overflow: auto;
         flex: 1 1 auto;
-        min-height: 12rem;
-        font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", monospace;
+        min-height: 14rem;
+        font-family: ui-monospace, "Cascadia Code", monospace;
         font-size: 0.78rem;
         line-height: 1.45;
         white-space: pre;
@@ -169,197 +259,204 @@
         background: var(--code-bg);
         color: var(--code-text);
       }
-      .status-present { color: var(--passed); font-weight: 600; }
-      .status-missing { color: var(--skipped); font-weight: 600; }
-      .notes-textarea {
-        width: 100%;
-        min-height: 3.25rem;
-        font-family: inherit;
+      #exercise-modal { z-index: 60; }
+      #source-modal { z-index: 50; }
+      .exercise-modal-subtitle {
+        margin: 0;
+        padding: 0 1rem 0.35rem;
         font-size: 0.85rem;
-        padding: 0.35rem 0.5rem;
-        border-radius: 6px;
-        border: 1px solid var(--border);
-        background: var(--bg);
+        font-weight: 600;
         color: var(--text);
-        resize: vertical;
-        box-sizing: border-box;
       }
-      .global-notes-block { margin-top: 1rem; max-width: 52rem; }
-      .global-notes-block label { display: block; margin-bottom: 0.35rem; font-size: 0.9rem; color: var(--muted); }
+      .exercise-editor-wrap {
+        border-top: 1px solid var(--border);
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .exercise-editor {
+        width: 100%;
+        flex: 1 1 auto;
+        min-height: 16rem;
+        margin: 0;
+        padding: 0.75rem 1rem;
+        box-sizing: border-box;
+        font-family: ui-monospace, "Cascadia Code", monospace;
+        font-size: 0.78rem;
+        line-height: 1.45;
+        tab-size: 4;
+        border: none;
+        background: var(--code-bg);
+        color: var(--code-text);
+        resize: vertical;
+      }
+      .exercise-modal-footer {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem 1rem;
+        border-top: 1px solid var(--border);
+        background: var(--th-bg);
+      }
+      .exercise-modal-footer .hint {
+        margin: 0;
+        font-size: 0.78rem;
+        color: var(--muted);
+      }
+      #exercise-save-status { flex: 1 1 12rem; min-width: 0; }
+      .test-category {
+        margin-top: 1.35rem;
+      }
+      .test-category:first-of-type {
+        margin-top: 0;
+      }
+      .category-heading {
+        font-size: 1.08rem;
+        font-weight: 650;
+        margin: 0 0 0.25rem;
+        letter-spacing: 0.02em;
+      }
+      .category-desc {
+        margin: 0 0 0.6rem;
+        font-size: 0.85rem;
+        color: var(--muted);
+        line-height: 1.4;
+      }
     </style>
   </head>
   <body>
-    <h2>Tests to create (curriculum)</h2>
+    <h1>Tests</h1>
+    <details class="run-local-details hint">
+      <summary>Clone repo &amp; run this dashboard locally</summary>
+      <p style="margin: 0.5rem 0 0.35rem; font-size: 0.88rem;">
+        From the repository root, start Spring Boot (default URL <code>http://localhost:8080</code>):
+      </p>
+      <pre>cd java
+./mvnw spring-boot:run</pre>
+      <p style="margin: 0.35rem 0; font-size: 0.88rem;">Windows (PowerShell), from repo root:</p>
+      <pre>cd java
+.\mvnw.cmd spring-boot:run</pre>
+      <p style="margin: 0.35rem 0 0; font-size: 0.88rem;" th:if="${helpCloneUrl != null && !helpCloneUrl.isEmpty()}">
+        <a th:href="${helpCloneUrl}">Clone URL</a>
+        <th:block th:if="${helpReadmeUrl != null && !helpReadmeUrl.isEmpty()}">
+          · <a th:href="${helpReadmeUrl}">README</a>
+        </th:block>
+      </p>
+      <p style="margin: 0.35rem 0 0; font-size: 0.88rem;">
+        If nothing responds on localhost, clone the repo and use the checklist at
+        <a href="/run-dashboard.html"><code>/run-dashboard.html</code></a> after the app is up, or open
+        <code>java/src/main/resources/static/run-dashboard.html</code> from your clone in a browser (works offline).
+        See also <code>README.md</code> at the repo root.
+      </p>
+    </details>
+
+    <div th:if="${discoveryError}" class="run-local-banner">
+      <p class="banner-title"><strong>Could not discover tests on the server.</strong></p>
+      <p class="flash-err" style="margin: 0 0 0.5rem;" th:text="${discoveryError}">Error</p>
+      <p class="hint" style="margin: 0;">
+        Fix Maven layout / paths, or run the app from the <code>java/</code> directory:
+        <code>./mvnw spring-boot:run</code> (Windows: <code>.\mvnw.cmd spring-boot:run</code>).
+        <th:block th:if="${helpCloneUrl != null && !helpCloneUrl.isEmpty()}">
+          <a th:href="${helpCloneUrl}">Clone this repository</a>.
+        </th:block>
+        <th:block th:if="${helpReadmeUrl != null && !helpReadmeUrl.isEmpty()}">
+          <a th:href="${helpReadmeUrl}">README</a>.
+        </th:block>
+      </p>
+    </div>
+
     <p class="hint">
-      Compare each row to your tree under <code>src/test/java</code>. <strong>Missing</strong> means there is no
-      <code>*Test.java</code> with that fully qualified name yet. Edit notes below and click <strong>Save notes</strong>
-      — they are stored in <code th:text="${dashboardNotesPath}">reports/…</code> (JSON, safe to commit or gitignore).
-      Curriculum list is defined in <code>src/main/resources/exercises/required-tests.json</code>.
-    </p>
-    <p th:if="${notesSaved}" class="flash-ok" th:text="${notesSaved}"></p>
-    <p th:if="${notesSaveError}" class="flash-err" th:text="${notesSaveError}"></p>
-
-    <form th:action="@{/dashboard/notes}" method="post" id="curriculum-notes-form">
-      <div class="results-table-wrap">
-        <table class="results-table">
-          <thead>
-            <tr>
-              <th>Exercise</th>
-              <th>Status</th>
-              <th>Expected test class</th>
-              <th>Target file (under Maven root)</th>
-              <th>Your notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr th:each="row : ${requiredRows}">
-              <td>
-                <strong th:text="${row.spec.title}">Title</strong>
-                <div class="hint" style="margin-top:0.35rem;" th:text="${row.spec.hint}">hint</div>
-              </td>
-              <td>
-                <span th:if="${row.filePresent}" class="status-present">Present</span>
-                <span th:if="${!row.filePresent}" class="status-missing">Missing — create file</span>
-              </td>
-              <td><code th:text="${row.spec.targetFqcn}">fqcn</code></td>
-              <td><code th:text="${row.suggestedPath}">path</code></td>
-              <td>
-                <textarea
-                    class="notes-textarea"
-                    th:name="'note_' + ${row.spec.id}"
-                    th:text="${row.noteDraft}"
-                    th:attr="aria-label=${'Notes for ' + row.spec.title}"
-                    placeholder="Scratchpad for this exercise…"></textarea>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="global-notes-block">
-        <label for="globalNotes">Workspace notes (everything else)</label>
-        <textarea class="notes-textarea" id="globalNotes" name="globalNotes" rows="5" th:text="${exerciseNotes.globalNotes}" placeholder="Ideas, commands, links…"></textarea>
-      </div>
-      <div class="test-run-bar" style="margin-top: 0.75rem;">
-        <button type="submit" class="btn primary">Save notes</button>
-      </div>
-    </form>
-
-    <h2>Tests in project</h2>
-    <p class="hint">
-      Every <code>*Test.java</code> under <code>src/test/java</code> is listed. Choose rows and <strong>Run selected</strong>,
-      or use <strong>Run</strong> on one class. This runs <code>mvn test -Dtest=…</code> on the Maven module (requires
-      <code>mvn</code> or <code>mvnw</code> on the server <code>PATH</code>).
+      Tests are grouped by <strong>category</strong> (controller / database / log / other) from the Java package name.
+      <code>*Test.java</code> under <code>src/test/java</code>. Use <strong>Run test</strong> for that class only (Maven), then read-only source via the test name.
+      <strong>Complete exercise</strong> loads a curriculum starter when listed in <code>required-tests.json</code>.
+      <strong>Save to project</strong> writes the editor next to the test: <code>…/FooTestResponse.java</code> (test simple
+      name + <code>Response</code>) under <code>src/test/java</code>. Non-test FQCNs save as
+      <code>src/main/java/…</code>.
     </p>
     <p th:if="${discoveryError}" class="flash-err" th:text="${discoveryError}"></p>
 
-    <div th:if="${discoveredTests.isEmpty()}" class="hint">
-      No test classes discovered. Expected tree: <code>…/src/test/java/**/*Test.java</code> relative to the Maven root.
+    <div th:if="${discoveredTests.isEmpty()}" class="empty">
+      No tests found. Expected: <code>…/src/test/java/**/*Test.java</code> relative to the Maven project root.
     </div>
 
     <th:block th:if="${!discoveredTests.isEmpty()}">
-      <form id="bulk-test-form" th:action="@{/tests/run}" method="post">
-        <div class="test-run-bar">
-          <button type="submit" class="btn primary">Run selected</button>
-          <button type="button" class="btn" id="test-select-all" title="Check every row">Select all</button>
-          <button type="button" class="btn" id="test-select-none" title="Uncheck every row">Clear selection</button>
-        </div>
-      </form>
-      <div class="results-table-wrap">
-        <table class="results-table">
-          <thead>
-            <tr>
-              <th class="col-check">Mark</th>
-              <th class="cell-pkg">Package</th>
-              <th class="cell-class">Class</th>
-              <th>Fully qualified name</th>
-              <th>Run one</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr th:each="t : ${discoveredTests}">
-              <td class="col-check">
-                <input type="checkbox" name="testClass" th:value="${t.fqcn}" form="bulk-test-form" th:attr="aria-label=${'Select ' + t.fqcn}"/>
-              </td>
-              <td class="cell-pkg" th:text="${t.javaPackage}">pkg</td>
-              <td class="cell-class" th:text="${t.simpleName}">Test</td>
-              <td><code th:text="${t.fqcn}">fqcn</code></td>
-              <td>
-                <form th:action="@{/tests/run}" method="post" style="display: inline;">
-                  <input type="hidden" name="testClass" th:value="${t.fqcn}"/>
-                  <button type="submit" class="btn small">Run</button>
-                </form>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </th:block>
-
-    <h2>Last Surefire results</h2>
-    <p th:if="${testRunMessage}" class="flash-ok" th:text="${testRunMessage}"></p>
-    <p th:if="${testRunError}" class="flash-err" th:text="${testRunError}"></p>
-    <pre th:if="${testRunLogTail}" class="log-tail" th:text="${testRunLogTail}"></pre>
-
-    <p th:if="${testResults.isEmpty()}" class="hint">
-      No Surefire <code>TEST-*.xml</code> files found. Checked:
-      <th:block th:if="${reportSources.isEmpty()}"><em>(no existing report folders — run tests above or <code>mvn test</code>)</em></th:block>
-      <th:block th:each="src, it : ${reportSources}">
-        <code th:text="${src}"></code><span th:if="${!it.last}"> · </span>
-      </th:block>
-      Tip: reports live under <code>java/target/surefire-reports</code> when you build the module;
-      this page looks there even if the app’s working directory is the repo root.
-    </p>
-    <p th:if="${!testResults.isEmpty()}" class="hint">
-      Report folders:
-      <th:block th:each="src, it : ${reportSources}">
-        <code th:text="${src}"></code><span th:if="${!it.last}"> · </span>
-      </th:block>
-    </p>
-
-    <div th:if="${!testResults.isEmpty()}" class="results-table-wrap">
-      <table class="results-table">
-        <thead>
-          <tr>
-            <th class="cell-pkg">Package</th>
-            <th class="cell-class">Class</th>
-            <th>Method</th>
-            <th>Result</th>
-            <th>Time</th>
-            <th>Failure / skip detail</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr th:each="row : ${testResults}">
-            <td class="cell-pkg" th:text="${row.javaPackage()}">pkg</td>
-            <td class="cell-class" th:title="${row.className()}" th:text="${row.simpleClassName()}">Class</td>
-            <td>
+      <section th:each="group : ${testCategoryGroups}" class="test-category">
+        <h2 class="category-heading" th:text="${group.category.title}">Category</h2>
+        <p class="category-desc" th:text="${group.category.description}">Description</p>
+        <ul class="test-list">
+          <li th:each="t : ${group.tests}">
+            <button
+                type="button"
+                class="test-open-btn"
+                th:attr="data-class-name=${t.fqcn}, data-display-title=${t.simpleName}"
+                th:text="${t.simpleName}">
+              Name
+            </button>
+            <span class="pkg-line" th:text="${t.javaPackage}">pkg</span>
+            <div class="test-actions">
               <button
                   type="button"
-                  class="test-method-source-btn"
-                  th:attr="data-class-name=${row.className()}, data-method-name=${row.methodName}"
-                  th:title="|View test class source (${row.className()})|"
-                  th:text="${row.methodName}">
-                method
+                  class="btn run-test-btn"
+                  th:attr="data-fqcn=${t.fqcn}, data-simple-name=${t.simpleName}">
+                Run test
               </button>
-            </td>
-            <td>
-              <span th:if="${row.status.name() == 'PASSED'}" class="passed">PASSED</span>
-              <span th:if="${row.status.name() == 'FAILED'}" class="failed">FAILED</span>
-              <span th:if="${row.status.name() == 'SKIPPED'}" class="skipped">SKIPPED</span>
-            </td>
-            <td th:text="${row.durationLabel()}">0.000 s</td>
-            <td class="detail" th:text="${#strings.isEmpty(row.detail)} ? '—' : row.detail">—</td>
-          </tr>
-        </tbody>
-      </table>
+              <button
+                  type="button"
+                  class="btn primary complete-exercise-btn"
+                  th:attr="data-fqcn=${t.fqcn}, data-simple-name=${t.simpleName}">
+                Complete exercise
+              </button>
+            </div>
+            <p class="test-run-status" hidden aria-live="polite"></p>
+            <details class="test-run-log" hidden>
+              <summary>Maven output</summary>
+              <pre class="test-run-log-pre"></pre>
+            </details>
+          </li>
+        </ul>
+      </section>
+    </th:block>
+
+    <div id="exercise-modal" class="source-modal" hidden>
+      <div class="source-modal-backdrop" data-close-exercise="true"></div>
+      <div
+          class="source-modal-panel"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="exercise-modal-title"
+          style="max-height: calc(100vh - 2rem);">
+        <header>
+          <h2 id="exercise-modal-title">Exercise</h2>
+          <button type="button" class="source-modal-close" data-close-exercise="true" aria-label="Close">×</button>
+        </header>
+        <p id="exercise-modal-subtitle" class="exercise-modal-subtitle" hidden></p>
+        <p class="source-modal-path"><code id="exercise-modal-path"></code></p>
+        <div class="exercise-editor-wrap">
+          <textarea id="exercise-editor" class="exercise-editor" spellcheck="false" aria-label="Exercise answer editor"></textarea>
+        </div>
+        <div class="exercise-modal-footer">
+          <button
+              type="button"
+              class="btn primary"
+              id="exercise-save-btn"
+              title="Test classes: saves as NameTestResponse.java under src/test/java. Main types: src/main/java.">
+            Save to project
+          </button>
+          <button type="button" class="btn primary" id="exercise-copy-btn">Copy</button>
+          <button type="button" class="btn" data-close-exercise="true">Close</button>
+          <span id="exercise-save-status" class="hint" role="status"></span>
+          <span id="exercise-copy-status" class="hint" role="status"></span>
+        </div>
+      </div>
     </div>
 
     <div id="source-modal" class="source-modal" hidden>
       <div class="source-modal-backdrop" data-close-modal="true"></div>
       <div class="source-modal-panel" role="dialog" aria-modal="true" aria-labelledby="source-modal-title">
         <header>
-          <h3 id="source-modal-title">Test method source</h3>
+          <h2 id="source-modal-title">Source</h2>
           <button type="button" class="source-modal-close" data-close-modal="true" aria-label="Close">×</button>
         </header>
         <p class="source-modal-path"><code id="source-modal-path"></code></p>
@@ -370,40 +467,106 @@
     <script th:inline="javascript">
       /*<![CDATA[*/
       (function () {
-        var form = document.getElementById('bulk-test-form');
-        var selAll = document.getElementById('test-select-all');
-        var selNone = document.getElementById('test-select-none');
-        if (form && selAll && selNone) {
-          selAll.addEventListener('click', function () {
-            document.querySelectorAll('input[type="checkbox"][name="testClass"][form="bulk-test-form"]').forEach(function (c) {
-              c.checked = true;
-            });
-          });
-          selNone.addEventListener('click', function () {
-            document.querySelectorAll('input[type="checkbox"][name="testClass"][form="bulk-test-form"]').forEach(function (c) {
-              c.checked = false;
-            });
-          });
-        }
         var modal = document.getElementById('source-modal');
         var pathEl = document.getElementById('source-modal-path');
         var preEl = document.getElementById('source-modal-pre');
         var titleEl = document.getElementById('source-modal-title');
         var sourceUrl = /*[[@{/tests/source}]]*/ '/tests/source';
+        var templateUrl = /*[[@{/dashboard/test-template}]]*/ '/dashboard/test-template';
+        var saveTargetUrl = /*[[@{/dashboard/exercise-save-target}]]*/ '/dashboard/exercise-save-target';
+        var saveExerciseUrl = /*[[@{/dashboard/exercise-file}]]*/ '/dashboard/exercise-file';
+        var testRunApiUrl = /*[[@{/tests/api/run}]]*/ '/tests/api/run';
+        var exerciseSaveFqcn = '';
+        var exerciseModal = document.getElementById('exercise-modal');
+        var exerciseTitleEl = document.getElementById('exercise-modal-title');
+        var exerciseSubtitleEl = document.getElementById('exercise-modal-subtitle');
+        var exercisePathEl = document.getElementById('exercise-modal-path');
+        var exerciseTa = document.getElementById('exercise-editor');
+        var exerciseCopyBtn = document.getElementById('exercise-copy-btn');
+        var exerciseSaveBtn = document.getElementById('exercise-save-btn');
+        var exerciseSaveStatus = document.getElementById('exercise-save-status');
+        var exerciseCopyStatus = document.getElementById('exercise-copy-status');
+        var OFFLINE_FETCH_HINT = /*[[${offlineFetchHint}]]*/ '';
+        function appendOfflineHint(message) {
+          if (!OFFLINE_FETCH_HINT) return message;
+          return message + '\n\n' + OFFLINE_FETCH_HINT;
+        }
+        function isLikelyNetworkFailure(err) {
+          var s = String(err && err.message != null ? err.message : err);
+          return /fetch|network|load failed|failed to fetch|connection/i.test(s);
+        }
+        if (window.fetch && testRunApiUrl) {
+          document.addEventListener('click', function (ev) {
+            var runBtn = ev.target.closest ? ev.target.closest('.run-test-btn') : null;
+            if (!runBtn) return;
+            var fqcn = runBtn.getAttribute('data-fqcn');
+            var simple = runBtn.getAttribute('data-simple-name') || '';
+            if (!fqcn) return;
+            var li = runBtn.closest ? runBtn.closest('li') : null;
+            var statusEl = li ? li.querySelector('.test-run-status') : null;
+            var logDetails = li ? li.querySelector('details.test-run-log') : null;
+            var logPre = li ? li.querySelector('.test-run-log-pre') : null;
+            if (!statusEl) return;
+            runBtn.disabled = true;
+            statusEl.hidden = false;
+            statusEl.className = 'test-run-status run-busy';
+            statusEl.textContent = 'Running ' + simple + '…';
+            if (logDetails) logDetails.hidden = true;
+            if (logPre) logPre.textContent = '';
+            fetch(testRunApiUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+              credentials: 'same-origin',
+              body: JSON.stringify({ fqcn: fqcn }),
+            })
+              .then(function (res) {
+                return res.json().then(function (data) {
+                  return { ok: res.ok, data: data };
+                }, function () {
+                  return { ok: res.ok, data: { passed: false, output: 'Could not parse server response.' } };
+                });
+              })
+              .then(function (r) {
+                runBtn.disabled = false;
+                var data = r.data || {};
+                var out = typeof data.output === 'string' ? data.output : '';
+                if (logPre) logPre.textContent = out;
+                if (logDetails && out) logDetails.hidden = false;
+                var passed = data.passed === true;
+                var exitCode = data.exitCode;
+                if (r.ok && passed) {
+                  statusEl.className = 'test-run-status run-pass';
+                  statusEl.textContent = 'Passed (exit ' + exitCode + '). Refresh the page to update Surefire.';
+                  return;
+                }
+                statusEl.className = 'test-run-status run-fail';
+                var reason =
+                  data.output && (!data.allowedSelection || !r.ok)
+                    ? String(data.output)
+                    : 'Failed (exit ' + exitCode + '). Expand Maven output below.';
+                statusEl.textContent = reason.length > 220 ? reason.slice(0, 217) + '…' : reason;
+              })
+              .catch(function (err) {
+                runBtn.disabled = false;
+                statusEl.className = 'test-run-status run-fail';
+                var msg = String(err.message || err);
+                statusEl.textContent = isLikelyNetworkFailure(err) ? appendOfflineHint(msg) : msg;
+              });
+          });
+        }
         if (!modal || !pathEl || !preEl || !titleEl || !window.fetch) {
           return;
         }
-        function openModal(methodName, className) {
-          titleEl.textContent = methodName ? methodName + ' — source' : 'Test source';
+        function openSource(displayTitle, className) {
+          titleEl.textContent = displayTitle ? displayTitle + ' — source' : 'Source';
           pathEl.textContent = 'Loading…';
           preEl.textContent = '';
           modal.hidden = false;
           document.body.classList.add('source-modal-open');
-          var url = sourceUrl + '?className=' + encodeURIComponent(className);
-          fetch(url, { credentials: 'same-origin' })
+          fetch(sourceUrl + '?className=' + encodeURIComponent(className), { credentials: 'same-origin' })
             .then(function (res) {
               if (!res.ok) {
-                throw new Error(res.status === 404 ? 'Source file not found for this class.' : 'HTTP ' + res.status);
+                throw new Error(res.status === 404 ? 'Source file not found.' : 'HTTP ' + res.status);
               }
               return res.json();
             })
@@ -413,32 +576,191 @@
             })
             .catch(function (err) {
               pathEl.textContent = '';
-              preEl.textContent = String(err.message || err);
+              var msg = String(err.message || err);
+              preEl.textContent = isLikelyNetworkFailure(err) ? appendOfflineHint(msg) : msg;
             });
         }
         function closeModal() {
           modal.hidden = true;
-          document.body.classList.remove('source-modal-open');
+          if (!exerciseModal || exerciseModal.hidden) {
+            document.body.classList.remove('source-modal-open');
+          }
+        }
+        function closeExerciseModal() {
+          if (!exerciseModal) return;
+          exerciseModal.hidden = true;
+          if (modal.hidden) {
+            document.body.classList.remove('source-modal-open');
+          }
+          if (exerciseCopyStatus) exerciseCopyStatus.textContent = '';
+          if (exerciseSaveStatus) exerciseSaveStatus.textContent = '';
+        }
+        function openExerciseModal(fqcn, simpleName) {
+          if (!exerciseModal || !exerciseTitleEl || !exercisePathEl || !exerciseTa) return;
+          exerciseSaveFqcn = fqcn || '';
+          if (exerciseSaveStatus) exerciseSaveStatus.textContent = '';
+          exerciseTitleEl.textContent = 'Loading…';
+          if (exerciseSubtitleEl) {
+            exerciseSubtitleEl.textContent = '';
+            exerciseSubtitleEl.hidden = true;
+          }
+          exercisePathEl.textContent = '';
+          exerciseTa.value = 'Loading…';
+          exerciseModal.hidden = false;
+          document.body.classList.add('source-modal-open');
+          var sn = simpleName || '';
+          fetch(templateUrl + '?fqcn=' + encodeURIComponent(fqcn), { credentials: 'same-origin' })
+            .then(function (res) {
+              if (res.ok) return res.json();
+              if (res.status === 404) return null;
+              throw new Error('Template HTTP ' + res.status);
+            })
+            .then(function (tpl) {
+              if (tpl && tpl.javaSource) {
+                exerciseTitleEl.textContent = tpl.exerciseTitle || sn || 'Exercise';
+                if (exerciseSubtitleEl) {
+                  exerciseSubtitleEl.textContent =
+                    'Answer file (not the test source). Save to project writes the path below.';
+                  exerciseSubtitleEl.hidden = false;
+                }
+                exercisePathEl.textContent = tpl.relativePath
+                  ? 'Save as ' + tpl.relativePath + ' under your Maven module (e.g. java/).'
+                  : '';
+                exerciseTa.value = tpl.javaSource;
+                exerciseTa.focus();
+                return;
+              }
+              return fetch(saveTargetUrl + '?fqcn=' + encodeURIComponent(fqcn), {
+                credentials: 'same-origin',
+              })
+                .then(function (res) {
+                  return res.json().then(function (data) {
+                    return { ok: res.ok, data: data };
+                  });
+                })
+                .then(function (r) {
+                  exerciseTitleEl.textContent = sn ? sn + ' — complete exercise' : 'Complete exercise';
+                  if (exerciseSubtitleEl) {
+                    exerciseSubtitleEl.textContent = r.ok
+                      ? 'No curriculum hints — minimal stub for your answer file (same path Save to project uses).'
+                      : (r.data && r.data.error ? String(r.data.error) : 'Could not resolve save path.');
+                    exerciseSubtitleEl.hidden = false;
+                  }
+                  if (r.ok && r.data && r.data.relativePath) {
+                    exercisePathEl.textContent =
+                      'Save as ' +
+                      r.data.relativePath +
+                      ' under your Maven module (e.g. java/).';
+                    exerciseTa.value = r.data.minimalJavaStub || '';
+                  } else {
+                    exercisePathEl.textContent =
+                      'Add this test to src/main/resources/exercises/required-tests.json for a richer starter.';
+                    exerciseTa.value = '// Could not build a stub — fix FQCN or see error above.\n';
+                  }
+                  exerciseTa.focus();
+                });
+            })
+            .catch(function (err) {
+              exerciseTitleEl.textContent = sn ? sn + ' — complete exercise' : 'Complete exercise';
+              if (exerciseSubtitleEl) {
+                exerciseSubtitleEl.textContent = 'Edit mode';
+                exerciseSubtitleEl.hidden = false;
+              }
+              var msg = String(err.message || err);
+              exercisePathEl.textContent = isLikelyNetworkFailure(err) ? appendOfflineHint(msg) : msg;
+              exerciseTa.value = isLikelyNetworkFailure(err)
+                ? appendOfflineHint('// Could not load template from server.')
+                : '';
+              exerciseTa.focus();
+            });
         }
         modal.addEventListener('click', function (ev) {
           if (ev.target.getAttribute('data-close-modal') != null) {
             closeModal();
           }
         });
+        if (exerciseModal) {
+          exerciseModal.addEventListener('click', function (ev) {
+            if (ev.target.getAttribute('data-close-exercise') != null) {
+              closeExerciseModal();
+            }
+          });
+        }
+        if (exerciseSaveBtn && exerciseTa && saveExerciseUrl) {
+          exerciseSaveBtn.addEventListener('click', function () {
+            if (!exerciseSaveStatus) return;
+            exerciseSaveStatus.textContent = '';
+            if (!exerciseSaveFqcn) {
+              exerciseSaveStatus.textContent = 'No class selected.';
+              return;
+            }
+            exerciseSaveStatus.textContent = 'Saving…';
+            fetch(saveExerciseUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'same-origin',
+              body: JSON.stringify({ fqcn: exerciseSaveFqcn, content: exerciseTa.value }),
+            })
+              .then(function (res) {
+                return res.json().then(function (data) {
+                  return { ok: res.ok, data: data };
+                });
+              })
+              .then(function (r) {
+                if (r.ok && r.data && r.data.relativePath) {
+                  exerciseSaveStatus.textContent = 'Saved: ' + r.data.relativePath;
+                  window.setTimeout(function () { exerciseSaveStatus.textContent = ''; }, 4500);
+                  return;
+                }
+                var err = r.data && r.data.error ? r.data.error : 'Save failed';
+                exerciseSaveStatus.textContent = err;
+              })
+              .catch(function (err) {
+                var msg = String(err.message || err);
+                exerciseSaveStatus.textContent = isLikelyNetworkFailure(err)
+                  ? appendOfflineHint(msg)
+                  : msg;
+              });
+          });
+        }
+        if (exerciseCopyBtn && exerciseTa) {
+          exerciseCopyBtn.addEventListener('click', function () {
+            if (!exerciseCopyStatus) return;
+            exerciseCopyStatus.textContent = '';
+            navigator.clipboard.writeText(exerciseTa.value).then(function () {
+              exerciseCopyStatus.textContent = 'Copied.';
+              window.setTimeout(function () { exerciseCopyStatus.textContent = ''; }, 2000);
+            }).catch(function () {
+              exerciseTa.select();
+              exerciseCopyStatus.textContent = 'Select text and press Ctrl+C.';
+            });
+          });
+        }
         document.addEventListener('keydown', function (ev) {
-          if (ev.key === 'Escape' && !modal.hidden) {
+          if (ev.key !== 'Escape') return;
+          if (exerciseModal && !exerciseModal.hidden) {
+            closeExerciseModal();
+            return;
+          }
+          if (!modal.hidden) {
             closeModal();
           }
         });
         document.addEventListener('click', function (ev) {
-          var t = ev.target;
-          if (!t.classList || !t.classList.contains('test-method-source-btn')) {
-            return;
-          }
-          var cn = t.getAttribute('data-class-name');
-          var mn = t.getAttribute('data-method-name');
+          var btn = ev.target.closest ? ev.target.closest('.test-open-btn') : null;
+          if (!btn) return;
+          var cn = btn.getAttribute('data-class-name');
+          var dt = btn.getAttribute('data-display-title');
           if (!cn) return;
-          openModal(mn || '', cn);
+          openSource(dt || '', cn);
+        });
+        document.addEventListener('click', function (ev) {
+          var ex = ev.target.closest ? ev.target.closest('.complete-exercise-btn') : null;
+          if (!ex) return;
+          var fqcn = ex.getAttribute('data-fqcn');
+          var sn = ex.getAttribute('data-simple-name');
+          if (!fqcn) return;
+          openExerciseModal(fqcn, sn || '');
         });
       })();
       /*]]>*/

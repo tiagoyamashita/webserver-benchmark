@@ -27,6 +27,13 @@ app:
     # Optional: absolute path to the directory that contains pom.xml (otherwise auto-detected).
     module-dir: ""
 
+# Optional: shown when the dashboard cannot load tests or when API calls fail (e.g. server stopped).
+# Override with env EXERCISES_REPO_CLONE_URL / EXERCISES_README_URL for your fork.
+exercises:
+  help:
+    clone-url: "${EXERCISES_REPO_CLONE_URL:}"
+    readme-url: "${EXERCISES_README_URL:}"
+
 ---
 # Optional: spring.profiles.active=postgres
 spring:

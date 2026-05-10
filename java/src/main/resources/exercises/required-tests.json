@@ -2,72 +2,84 @@
   "tests": [
     {
       "id": "items-get-collection",
-      "targetFqcn": "com.example.demo.web.ItemController.GetCollectionRestTest",
+      "subject": "Items REST API",
+      "targetFqcn": "com.example.demo.exercises.controller.item.GetCollectionRestTest",
       "title": "GET collection",
       "hint": "List all items via GET /api/items"
     },
     {
       "id": "items-post-create",
-      "targetFqcn": "com.example.demo.web.ItemController.PostCreateRestTest",
+      "subject": "Items REST API",
+      "targetFqcn": "com.example.demo.exercises.controller.item.PostCreateRestTest",
       "title": "POST create item",
       "hint": "Create an item with POST /api/items"
     },
     {
       "id": "items-get-one-exists",
-      "targetFqcn": "com.example.demo.web.ItemController.GetOneExistsRestTest",
+      "subject": "Items REST API",
+      "targetFqcn": "com.example.demo.exercises.controller.item.GetOneExistsRestTest",
       "title": "GET one — exists",
       "hint": "GET /api/items/{id} when the item exists"
     },
     {
       "id": "items-get-one-missing",
-      "targetFqcn": "com.example.demo.web.ItemController.GetOneMissingRestTest",
+      "subject": "Items REST API",
+      "targetFqcn": "com.example.demo.exercises.controller.item.GetOneMissingRestTest",
       "title": "GET one — 404",
       "hint": "GET /api/items/{id} when missing returns 404"
     },
     {
       "id": "items-delete-exists",
-      "targetFqcn": "com.example.demo.web.ItemController.DeleteRestTest",
+      "subject": "Items REST API",
+      "targetFqcn": "com.example.demo.exercises.controller.item.DeleteRestTest",
       "title": "DELETE existing",
       "hint": "DELETE /api/items/{id}"
     },
     {
       "id": "items-delete-missing",
-      "targetFqcn": "com.example.demo.web.ItemController.DeleteMissingRestTest",
+      "subject": "Items REST API",
+      "targetFqcn": "com.example.demo.exercises.controller.item.DeleteMissingRestTest",
       "title": "DELETE missing — 404",
       "hint": "DELETE when id does not exist"
     },
     {
       "id": "items-patch-update",
-      "targetFqcn": "com.example.demo.web.ItemController.PatchUpdateRestTest",
+      "subject": "Items REST API",
+      "targetFqcn": "com.example.demo.exercises.controller.item.PatchUpdateRestTest",
       "title": "PATCH update",
       "hint": "Partial update via PATCH"
     },
     {
       "id": "items-patch-missing",
-      "targetFqcn": "com.example.demo.web.ItemController.PatchMissingRestTest",
+      "subject": "Items REST API",
+      "targetFqcn": "com.example.demo.exercises.controller.item.PatchMissingRestTest",
       "title": "PATCH missing — 404",
       "hint": "PATCH when item missing"
     },
     {
       "id": "items-put-replace",
-      "targetFqcn": "com.example.demo.web.ItemController.PutReplaceRestTest",
+      "subject": "Items REST API",
+      "targetFqcn": "com.example.demo.exercises.controller.item.PutReplaceRestTest",
       "title": "PUT replace",
       "hint": "Full replace via PUT"
     },
     {
       "id": "items-put-missing",
-      "targetFqcn": "com.example.demo.web.ItemController.PutMissingRestTest",
+      "subject": "Items REST API",
+      "targetFqcn": "com.example.demo.exercises.controller.item.PutMissingRestTest",
       "title": "PUT missing — 404",
       "hint": "PUT when item missing"
     },
     {
       "id": "testing-endpoint",
-      "targetFqcn": "com.example.demo.web.TestingEndpointAvailabilityTest",
+      "subject": "Testing endpoint",
+      "targetFqcn": "com.example.demo.exercises.controller.TestingEndpointAvailabilityTest",
       "title": "/testingendpoint verbs",
       "hint": "Smoke OPTIONS + GET/POST/PUT/PATCH/DELETE on TestingEndpointController"
     },
     {
       "id": "intentional-failure-demo",
+      "subject": "Demo & playground",
       "targetFqcn": "com.example.demo.IntentionalFailureTest",
       "title": "Intentional failure (demo)",
       "hint": "Optional demo failing test — remove or fix for green CI"

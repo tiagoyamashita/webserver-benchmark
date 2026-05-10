@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Run the exercises dashboard</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 40rem;
+        margin: 2rem auto;
+        padding: 0 1rem;
+        line-height: 1.5;
+      }
+      code, pre { font-size: 0.9rem; }
+      pre {
+        background: #f4f4f5;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        overflow-x: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>If the dashboard does not load</h1>
+    <p>
+      The HTML UI is served by the Spring Boot app in this repository’s <code>java/</code> module.
+      Clone or download the repo, then start the server:
+    </p>
+    <pre>cd java
+./mvnw spring-boot:run</pre>
+    <p>Windows (PowerShell), from the repository root:</p>
+    <pre>cd java
+.\mvnw.cmd spring-boot:run</pre>
+    <p>Then open <a href="http://localhost:8080/">http://localhost:8080/</a> (default port; see <code>application.yml</code>).</p>
+    <p>
+      You can open this file directly from disk (<code>java/src/main/resources/static/run-dashboard.html</code>
+      in your clone) without starting Java — it is the same checklist.
+    </p>
+  </body>
+</html>

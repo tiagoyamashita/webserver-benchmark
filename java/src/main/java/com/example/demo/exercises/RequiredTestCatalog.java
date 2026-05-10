@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
@@ -20,6 +20,13 @@ public class RequiredTestCatalog {
 
   public List<RequiredTestEntry> entries() {
     return entries;
+  }
+
+  public Optional<RequiredTestEntry> findByTargetFqcn(String fqcn) {
+    if (fqcn == null || fqcn.isBlank()) {
+      return Optional.empty();
+    }
+    return entries.stream().filter(e -> e.targetFqcn().equals(fqcn)).findFirst();
   }
 
   private static List<RequiredTestEntry> loadOrEmpty(ObjectMapper objectMapper) {
