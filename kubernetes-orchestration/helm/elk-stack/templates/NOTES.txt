@@ -1,0 +1,13 @@
+1. Elasticsearch, Logstash, and Kibana are ClusterIP services. From your machine:
+
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "elk.fullname" . }}-kibana {{ .Values.kibana.service.port }}:{{ .Values.kibana.service.port }}
+
+  Then open http://localhost:{{ .Values.kibana.service.port }}/
+
+2. Send Beats to Logstash from inside the cluster:
+
+  {{ include "elk.fullname" . }}-logstash.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.logstash.service.beatsPort }}
+
+3. This chart uses **dev-only** Elasticsearch settings (security disabled). Do not expose to the internet.
+
+4. Nodes may need vm.max_map_count for Elasticsearch — see https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html

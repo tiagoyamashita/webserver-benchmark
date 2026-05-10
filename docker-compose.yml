@@ -1,5 +1,5 @@
-# Podman: use `podman-compose` or `podman compose` (Compose v2).
-# Run from repository root: docker compose up --build
+# Podman: from repo root — podman compose up --build   (or: docker compose up --build)
+# Starts postgres + java + python + rust. ELK/Grafana live under elk/ and grafana/.
 services:
   postgres:
     image: docker.io/library/postgres:16

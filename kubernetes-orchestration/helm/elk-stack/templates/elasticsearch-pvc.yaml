@@ -1,0 +1,18 @@
+{{- if .Values.elasticsearch.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "elk.fullname" . }}-elasticsearch
+  labels:
+    {{- include "elk.labels" . | nindent 4 }}
+    app.kubernetes.io/component: elasticsearch
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.elasticsearch.persistence.size | quote }}
+  {{- if .Values.elasticsearch.persistence.storageClass }}
+  storageClassName: {{ .Values.elasticsearch.persistence.storageClass | quote }}
+  {{- end }}
+{{- end }}

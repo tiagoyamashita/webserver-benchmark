@@ -1,0 +1,6 @@
+apiVersion: v2
+name: elk-stack
+description: Optional Elasticsearch, Logstash, and Kibana for log exploration (dev-oriented defaults)
+type: application
+version: 0.1.0
+appVersion: "8.15.5"

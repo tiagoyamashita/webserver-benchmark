@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "elk.fullname" . }}-kibana
+  labels:
+    {{- include "elk.labels" . | nindent 4 }}
+    app.kubernetes.io/component: kibana
+spec:
+  replicas: {{ .Values.kibana.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: kibana
+  template:
+    metadata:
+      labels:
+        {{- include "elk.labels" . | nindent 8 }}
+        app.kubernetes.io/component: kibana
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        - name: wait-for-elasticsearch
+          image: curlimages/curl:8.5.0
+          command:
+            - sh
+            - -c
+            - >-
+              until curl -sf "{{ include "elk.elasticsearchHost" . }}/_cluster/health?wait_for_status=yellow&timeout=5s";
+              do echo waiting for elasticsearch; sleep 5; done
+      {{- with .Values.kibana.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.kibana.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.kibana.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: kibana
+          image: {{ .Values.kibana.image.registry }}/{{ .Values.kibana.image.repository }}:{{ .Values.kibana.image.tag }}
+          imagePullPolicy: {{ .Values.kibana.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.kibana.service.port }}
+          readinessProbe:
+            httpGet:
+              path: /api/status
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 10
+          {{- with .Values.kibana.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /usr/share/kibana/config/kibana.yml
+              subPath: kibana.yml
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "elk.fullname" . }}-kibana-config

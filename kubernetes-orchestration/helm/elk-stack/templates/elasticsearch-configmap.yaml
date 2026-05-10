@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "elk.fullname" . }}-elasticsearch-config
+  labels:
+    {{- include "elk.labels" . | nindent 4 }}
+    app.kubernetes.io/component: elasticsearch
+data:
+  elasticsearch.yml: |
+    cluster.name: elk-stack
+    discovery.type: single-node
+    network.host: 0.0.0.0
+    http.port: {{ .Values.elasticsearch.service.port }}
+    xpack.security.enabled: false
+    xpack.security.http.ssl.enabled: false
+    xpack.security.transport.ssl.enabled: false

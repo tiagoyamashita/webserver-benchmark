@@ -1,0 +1,10 @@
+# Kibana settings for the local ELK Compose stack.
+# Mounted into the official image; see docker-compose.yml.
+#
+# https://www.elastic.co/guide/en/kibana/current/settings.html
+
+server.host: "0.0.0.0"
+server.name: "kibana-local"
+
+elasticsearch.hosts:
+  - "http://elasticsearch:9200"

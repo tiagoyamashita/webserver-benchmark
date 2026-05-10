@@ -1,0 +1,11 @@
+# https://grafana.com/docs/grafana/latest/administration/provisioning/#dashboards
+apiVersion: 1
+providers:
+  - name: exercises
+    orgId: 1
+    folder: Exercises
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

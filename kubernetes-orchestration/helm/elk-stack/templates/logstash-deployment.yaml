@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "elk.fullname" . }}-logstash
+  labels:
+    {{- include "elk.labels" . | nindent 4 }}
+    app.kubernetes.io/component: logstash
+spec:
+  replicas: {{ .Values.logstash.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: logstash
+  template:
+    metadata:
+      labels:
+        {{- include "elk.labels" . | nindent 8 }}
+        app.kubernetes.io/component: logstash
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        - name: wait-for-elasticsearch
+          image: curlimages/curl:8.5.0
+          command:
+            - sh
+            - -c
+            - >-
+              until curl -sf "{{ include "elk.elasticsearchHost" . }}/_cluster/health?wait_for_status=yellow&timeout=5s";
+              do echo waiting for elasticsearch; sleep 5; done
+      {{- with .Values.logstash.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.logstash.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.logstash.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: logstash
+          image: {{ .Values.logstash.image.registry }}/{{ .Values.logstash.image.repository }}:{{ .Values.logstash.image.tag }}
+          imagePullPolicy: {{ .Values.logstash.image.pullPolicy }}
+          ports:
+            - name: beats
+              containerPort: {{ .Values.logstash.service.beatsPort }}
+          env:
+            - name: LS_JAVA_OPTS
+              value: "-Xms256m -Xmx256m"
+          readinessProbe:
+            tcpSocket:
+              port: beats
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          {{- with .Values.logstash.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: pipeline
+              mountPath: /usr/share/logstash/pipeline
+      volumes:
+        - name: pipeline
+          configMap:
+            name: {{ include "elk.fullname" . }}-logstash-pipeline

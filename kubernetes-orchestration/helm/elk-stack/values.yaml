@@ -1,0 +1,78 @@
+# Default Helm values for elk-stack — dev / lab only. Override per cluster with -f or --set.
+# See ../../README.md
+
+global:
+  region: ""
+  platform: ""
+  cluster: ""
+
+nameOverride: ""
+fullnameOverride: ""
+
+imagePullSecrets: []
+
+elasticsearch:
+  replicaCount: 1
+  image:
+    registry: docker.elastic.co
+    repository: elasticsearch/elasticsearch
+    tag: "8.15.5"
+    pullPolicy: IfNotPresent
+  service:
+    port: 9200
+  persistence:
+    enabled: true
+    size: 20Gi
+    storageClass: ""
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "2000m"
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+logstash:
+  replicaCount: 1
+  image:
+    registry: docker.elastic.co
+    repository: logstash/logstash
+    tag: "8.15.5"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    beatsPort: 5044
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+kibana:
+  replicaCount: 1
+  image:
+    registry: docker.elastic.co
+    repository: kibana/kibana
+    tag: "8.15.5"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 5601
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}

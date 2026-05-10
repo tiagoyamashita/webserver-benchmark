@@ -1,0 +1,8 @@
+# Activate with: spring.profiles.active=observability
+# (Often combined: observability,postgres for Docker Compose.)
+#
+# JSON logs are written to ${LOG_PATH:-logs}/demo-app.json.log — ideal for Filebeat -> Logstash -> Elasticsearch.
+logging:
+  level:
+    root: INFO
+    com.example.demo: INFO

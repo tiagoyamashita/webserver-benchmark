@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "elk.fullname" . }}-logstash
+  labels:
+    {{- include "elk.labels" . | nindent 4 }}
+    app.kubernetes.io/component: logstash
+spec:
+  type: {{ .Values.logstash.service.type }}
+  ports:
+    - name: beats
+      port: {{ .Values.logstash.service.beatsPort }}
+      targetPort: beats
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: logstash

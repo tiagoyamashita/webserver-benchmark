@@ -1,0 +1,17 @@
+# Example Filebeat config for java/observability JSON log file -> ELK Logstash (port 5044).
+# Copy to filebeat.yml and run Filebeat on the host that can read this path.
+
+filebeat.inputs:
+  - type: log
+    enabled: true
+    paths:
+      # Repo-relative path when apps write under java/logs (see java/observability/README.md)
+      - /absolute/path/to/exercises/java/logs/demo-app.json.log
+    json.keys_under_root: true
+    json.add_error_key: true
+
+processors:
+  - add_host_metadata: ~
+
+output.logstash:
+  hosts: ["localhost:5044"]

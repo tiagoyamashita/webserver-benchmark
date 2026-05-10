@@ -1,0 +1,29 @@
+# Copy to filebeat.yml and point Filebeat at it: filebeat -c filebeat.yml
+# Choose ONE style of input (plain files vs Docker container logs) for your OS.
+
+filebeat.inputs:
+
+  # Example A — tail plain log files (adjust paths to your apps / servers).
+  - type: log
+    enabled: true
+    paths:
+      - /var/log/my-app/*.log
+      # Windows-style paths only when Filebeat runs on Windows directly:
+      # - C:/path/to/logs/*.log
+
+  # Example B — Docker container logs (paths differ on Linux vs Docker Desktop).
+  # - type: container
+  #   paths:
+  #     - '/var/lib/docker/containers/*/*.log'
+
+processors:
+  - add_host_metadata: ~
+
+# When Filebeat runs ON THE HOST and Logstash is published on localhost:5044:
+output.logstash:
+  hosts: ["localhost:5044"]
+
+# When Filebeat runs as another container on the **same Docker network** as Logstash,
+# comment out the block above and use the service name instead:
+# output.logstash:
+#   hosts: ["logstash:5044"]

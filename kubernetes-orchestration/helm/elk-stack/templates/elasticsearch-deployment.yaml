@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "elk.fullname" . }}-elasticsearch
+  labels:
+    {{- include "elk.labels" . | nindent 4 }}
+    app.kubernetes.io/component: elasticsearch
+spec:
+  replicas: {{ .Values.elasticsearch.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: elasticsearch
+  template:
+    metadata:
+      labels:
+        {{- include "elk.labels" . | nindent 8 }}
+        app.kubernetes.io/component: elasticsearch
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.elasticsearch.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.elasticsearch.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.elasticsearch.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: elasticsearch
+          image: {{ .Values.elasticsearch.image.registry }}/{{ .Values.elasticsearch.image.repository }}:{{ .Values.elasticsearch.image.tag }}
+          imagePullPolicy: {{ .Values.elasticsearch.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.elasticsearch.service.port }}
+          env:
+            - name: ES_JAVA_OPTS
+              value: "-Xms512m -Xmx512m"
+          readinessProbe:
+            httpGet:
+              path: /_cluster/health?wait_for_status=yellow&timeout=5s
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 10
+          {{- with .Values.elasticsearch.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+              subPath: elasticsearch.yml
+            - name: data
+              mountPath: /usr/share/elasticsearch/data
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "elk.fullname" . }}-elasticsearch-config
+        - name: data
+          {{- if .Values.elasticsearch.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "elk.fullname" . }}-elasticsearch
+          {{- else }}
+          emptyDir: {}
+          {{- end }}

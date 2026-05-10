@@ -8,13 +8,19 @@ Build contexts live next to each stack:
 | `python/` | Flask dashboard | **5000** |
 | `rust/` | Axum dashboard | **8082** |
 
-From the **repository root**:
+From the **repository root** (use **Podman** if `docker` is not installed):
+
+```bash
+podman compose up --build
+```
+
+With Docker Engine:
 
 ```bash
 docker compose up --build
 ```
 
-Works with **Podman** using `podman compose up --build` (or `podman-compose`).
+Works with **Podman** using `podman compose` (Compose v2) or legacy `podman-compose`.
 
 ### Compose layout
 
