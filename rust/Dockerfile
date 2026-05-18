@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# icu_* in the lockfile needs rustc >= 1.86 (do not use rust:1.85-*).
+# icu_* needs rustc >= 1.86; home pinned to 0.5.11 (0.5.12 needs 1.88).
 FROM rust:1.86-bookworm AS build
 WORKDIR /build
 COPY Cargo.toml Cargo.lock ./

@@ -177,7 +177,7 @@ async fn create_item(
         )
             .into_response();
     };
-    crate::items::create_item(pool, query).await
+    crate::items::create_item(pool, query).await.into_response()
 }
 
 async fn health() -> impl IntoResponse {
