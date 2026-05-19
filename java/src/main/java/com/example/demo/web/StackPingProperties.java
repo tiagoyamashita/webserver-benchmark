@@ -24,7 +24,7 @@ public class StackPingProperties {
   private String kibanaBaseUrl = "http://127.0.0.1:5601";
 
   /** Base URL for Reach UI (server-side GET from Java). */
-  private String reachUiBaseUrl = "http://127.0.0.1:5173";
+  private String reachUiBaseUrl = "http://127.0.0.1:5174";
 
   /** Browser links from the host machine (Compose port maps; not container DNS names). */
   private String rustBrowserUrl = "http://127.0.0.1:8082/";
@@ -34,7 +34,7 @@ public class StackPingProperties {
   private String grafanaBrowserUrl = "http://127.0.0.1:3000/";
   private String elasticsearchBrowserUrl = "http://127.0.0.1:9200/";
   private String kibanaBrowserUrl = "http://127.0.0.1:5601/";
-  private String reachUiBrowserUrl = "http://127.0.0.1:5173/";
+  private String reachUiBrowserUrl = "http://127.0.0.1:5174/";
 
   public String getRustBaseUrl() {
     return rustBaseUrl;

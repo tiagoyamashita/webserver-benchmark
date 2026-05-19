@@ -2,6 +2,7 @@
 
 pub mod app;
 pub mod db;
+pub mod stack_ping;
 pub mod items;
 pub mod flash;
 pub mod junit;

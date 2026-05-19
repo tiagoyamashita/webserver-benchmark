@@ -205,7 +205,7 @@ The default **MSVC** Rust target needs **Visual Studio** C++ build tools (`link.
 
 ### Page loads but looks empty
 
-Hard-refresh the tab. **`GET /`** should show a **Hello Rust** banner and the nextest section; **`GET /welcome`** is the smaller landing page. If logs mention **templates**, ensure **`templates/`** exists under **`EXERCISES_RUST_ROOT`** (Compose sets **`/app`** in the image).
+Hard-refresh the tab. **`GET /`** is the **stack connectivity** page (GET probes to Java, Python, Prometheus, Grafana, ELK, Reach UI — same idea as Reach UI / Java home). **`GET /tests`** is the **cargo nextest** dashboard. **`/welcome`** redirects to **`/`**. If logs mention **templates**, ensure **`templates/`** exists under **`EXERCISES_RUST_ROOT`** (Compose sets **`/app`** in the image).
 
 ## Reports
 

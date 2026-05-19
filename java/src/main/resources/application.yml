@@ -48,14 +48,14 @@ app:
     grafana-base-url: http://127.0.0.1:3000
     elasticsearch-base-url: http://127.0.0.1:9200
     kibana-base-url: http://127.0.0.1:5601
-    reach-ui-base-url: http://127.0.0.1:5173
+    reach-ui-base-url: http://127.0.0.1:5174
     rust-browser-url: http://127.0.0.1:8082/
     python-browser-url: http://127.0.0.1:5000/
     prometheus-browser-url: http://127.0.0.1:9090/
     grafana-browser-url: http://127.0.0.1:3000/
     elasticsearch-browser-url: http://127.0.0.1:9200/
     kibana-browser-url: http://127.0.0.1:5601/
-    reach-ui-browser-url: http://127.0.0.1:5173/
+    reach-ui-browser-url: http://127.0.0.1:5174/
 
 ---
 # Optional: spring.profiles.active=postgres

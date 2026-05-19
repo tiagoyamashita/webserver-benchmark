@@ -4,7 +4,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from flask import Flask, Response, redirect, render_template, request, session, url_for
+from flask import Flask, Response, jsonify, redirect, render_template, request, session, url_for
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, generate_latest
 
 from exercises.web.junit_report import (
@@ -14,6 +14,7 @@ from exercises.web.junit_report import (
 )
 from exercises.web.pytest_runner import run_pytest
 from exercises.web.source_service import read_test_source
+from exercises.web.stack_ping import StackLinks
 
 # Module-level so repeated `create_app()` (e.g. pytest) does not re-register on the default registry.
 _HTTP_REQUESTS = Counter(
@@ -61,14 +62,19 @@ def create_app() -> Flask:
     @app.after_request
     def after_request_hooks(response):
         _HTTP_REQUESTS.labels(request.method, request.endpoint or "unknown").inc()
-        if request.endpoint == "home":
+        if request.endpoint in ("stack_landing", "tests_dashboard"):
             response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
             response.headers["Pragma"] = "no-cache"
             response.headers["Expires"] = "0"
         return response
 
     @app.route("/")
-    def home() -> str:
+    def stack_landing() -> str:
+        links = StackLinks.from_env()
+        return render_template("landing.html", stack_links=links.browser_view())
+
+    @app.route("/tests")
+    def tests_dashboard() -> str:
         root: Path = app.config["PROJECT_ROOT"]
         jpath = report_xml_path(root)
         has_report_file = jpath.is_file()
@@ -92,6 +98,11 @@ def create_app() -> Flask:
             test_run_log_tail=test_run_log_tail,
         )
 
+    @app.get("/stack-ping/<target>")
+    def stack_ping(target: str):
+        links = StackLinks.from_env()
+        return jsonify(links.ping(target))
+
     @app.post("/tests/run")
     def run_tests() -> Response:
         root: Path = app.config["PROJECT_ROOT"]
@@ -101,11 +112,11 @@ def create_app() -> Flask:
         except subprocess.TimeoutExpired:
             session["test_run_error"] = "Pytest timed out."
             session["test_run_log_tail"] = ""
-            return redirect(url_for("home"))
+            return redirect(url_for("tests_dashboard"))
         except OSError as e:
             session["test_run_error"] = f"Could not run pytest: {e}"
             session["test_run_log_tail"] = ""
-            return redirect(url_for("home"))
+            return redirect(url_for("tests_dashboard"))
         tail = log[-12000:] if len(log) > 12000 else log
         session["test_run_log_tail"] = tail
         if "No module named pytest" in log or "No module named 'pytest'" in log:
@@ -114,17 +125,15 @@ def create_app() -> Flask:
                 "Use the project venv and install dev deps (e.g. pip install -r requirements-dev.txt)."
             )
             session.pop("test_run_message", None)
-            return redirect(url_for("home"))
+            return redirect(url_for("tests_dashboard"))
         if rc == 0:
             session["test_run_message"] = "Pytest finished (exit code 0)."
         else:
             session["test_run_error"] = f"Pytest finished (exit code {rc})."
-        return redirect(url_for("home"))
+        return redirect(url_for("tests_dashboard"))
 
     @app.get("/tests/source")
     def test_source():
-        from flask import jsonify
-
         cn = (request.args.get("className") or "").strip()
         root: Path = app.config["PROJECT_ROOT"]
         payload = read_test_source(root, cn)

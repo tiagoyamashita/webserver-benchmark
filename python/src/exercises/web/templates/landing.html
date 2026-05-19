@@ -4,7 +4,7 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <meta name="color-scheme" content="dark light"/>
-    <title>Hello Rust — stack connectivity</title>
+    <title>Hello Python — stack connectivity</title>
     <style>
       :root {
         color-scheme: dark;
@@ -15,7 +15,7 @@
         --th-bg: #27272a;
         --code-bg: #27272a;
         --code-text: #e4e4e7;
-        --accent: #f97316;
+        --accent: #38bdf8;
         --ok: #4ade80;
         --warn: #fbbf24;
         --err: #f87171;
@@ -30,7 +30,7 @@
           --th-bg: #ececec;
           --code-bg: #eee;
           --code-text: #222;
-          --accent: #c2410c;
+          --accent: #0284c7;
           --ok: #0d6d0d;
         }
       }
@@ -81,15 +81,15 @@
     </style>
   </head>
   <body>
-    <h1 id="stack-heading">Hello Rust</h1>
+    <h1 id="stack-heading">Hello Python</h1>
     <p class="hint">
       Stack connectivity from this server: <strong>Open</strong> uses your browser;
-      <strong>GET</strong> runs an outbound probe from Rust (Compose DNS when containerized).
+      <strong>GET</strong> runs an outbound probe from Python (Compose DNS when containerized).
       Reach UI <code>:5174</code> · Grafana <code>:3000</code>.
     </p>
     <div class="toolbar">
       <button type="button" class="btn primary" id="ping-all">Ping all</button>
-      <a class="btn" href="/tests">cargo nextest dashboard →</a>
+      <a class="btn" href="{{ url_for('tests_dashboard') }}">pytest dashboard →</a>
     </div>
     <section class="connectivity" id="stack-services" aria-labelledby="stack-heading">
       <table>
@@ -105,11 +105,11 @@
             </td>
             <td class="status-cell"><span class="status-pending">—</span></td>
           </tr>
-          <tr data-target="python">
-            <td>Python</td>
+          <tr data-target="rust">
+            <td>Rust</td>
             <td class="actions">
-              <a class="btn" href="{{ stack_links.python_browser_url }}" target="_blank" rel="noopener noreferrer">Open</a>
-              <button type="button" class="btn stack-ping-btn" data-target="python">GET</button>
+              <a class="btn" href="{{ stack_links.rust_browser_url }}" target="_blank" rel="noopener noreferrer">Open</a>
+              <button type="button" class="btn stack-ping-btn" data-target="rust">GET</button>
             </td>
             <td class="status-cell"><span class="status-pending">—</span></td>
           </tr>
@@ -169,7 +169,7 @@
           if (cell) cell.innerHTML = html;
         }
 
-        function formatJsonRow(target, r, d) {
+        function formatJsonRow(r, d) {
           if (r.ok && d.ok === true) {
             return '<span class="status-ok">HTTP ' + (d.status != null ? d.status : '?') + '</span>';
           }
@@ -195,7 +195,7 @@
             })
             .then(function (r) {
               var d = r.data || {};
-              setRowStatus(target, formatJsonRow(target, r, d));
+              setRowStatus(target, formatJsonRow(r, d));
               var u = d.url != null ? String(d.url) : '';
               if (r.ok && d.ok === true) {
                 statusEl.textContent = target + ': OK (HTTP ' + (d.status != null ? d.status : '?') + ')' + (u ? ' → ' + u : '');
@@ -220,7 +220,7 @@
         var pingAll = document.getElementById('ping-all');
         if (pingAll) {
           pingAll.addEventListener('click', function () {
-            var targets = ['java', 'python', 'prometheus', 'grafana', 'elasticsearch', 'kibana', 'reach-ui'];
+            var targets = ['java', 'rust', 'prometheus', 'grafana', 'elasticsearch', 'kibana', 'reach-ui'];
             targets.forEach(function (t) {
               setRowStatus(t, '<span class="status-pending">Pinging…</span>');
             });

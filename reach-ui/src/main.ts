@@ -1,6 +1,7 @@
 type Service = { id: string; label: string };
 
 const services: Service[] = [
+  { id: "java", label: "Java" },
   { id: "rust", label: "Rust" },
   { id: "python", label: "Python" },
   { id: "prometheus", label: "Prometheus" },

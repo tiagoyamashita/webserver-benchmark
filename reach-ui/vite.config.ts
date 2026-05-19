@@ -7,6 +7,7 @@ function probeTarget(service: string, port: string): string {
 }
 
 const probeProxy = {
+  "/api/probe/java": { target: probeTarget("java", "8080"), changeOrigin: true, rewrite: () => "/" },
   "/api/probe/rust": { target: probeTarget("rust", "8082"), changeOrigin: true, rewrite: () => "/" },
   "/api/probe/python": { target: probeTarget("python", "5000"), changeOrigin: true, rewrite: () => "/" },
   "/api/probe/prometheus": {
@@ -24,7 +25,7 @@ const probeProxy = {
 
 export default defineConfig({
   server: {
-    port: 5173,
+    port: 5174,
     strictPort: false,
     host: true,
     proxy: probeProxy,

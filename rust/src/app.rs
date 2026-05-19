@@ -1,6 +1,5 @@
 use axum::extract::{Form, Query, Request, State};
 use axum::http::{header, HeaderValue, StatusCode};
-use std::time::Duration;
 use axum::middleware::{self, Next};
 use axum::response::{Html, IntoResponse, Json, Redirect, Response};
 use axum::routing::{get, post};
@@ -35,19 +34,16 @@ static HTTP_REQUESTS: LazyLock<prometheus::CounterVec> = LazyLock::new(|| {
 pub struct AppState {
     pub project_root: PathBuf,
     pub tera: Arc<Tera>,
-    /// Base URL for the Spring Boot app (no trailing slash). Compose: `http://java:8080`.
-    pub java_base_url: String,
+    pub stack_links: crate::stack_ping::StackLinks,
     pub pg_pool: Option<PgPool>,
 }
 
 impl AppState {
     pub fn new(project_root: PathBuf, tera: Tera, pg_pool: Option<PgPool>) -> Self {
-        let java_base_url = std::env::var("EXERCISES_JAVA_BASE_URL")
-            .unwrap_or_else(|_| "http://127.0.0.1:8080".to_string());
         Self {
             project_root,
             tera: Arc::new(tera),
-            java_base_url,
+            stack_links: crate::stack_ping::StackLinks::from_env(),
             pg_pool,
         }
     }
@@ -55,10 +51,10 @@ impl AppState {
 
 fn route_endpoint_label(path: &str) -> &'static str {
     match path {
-        "/" => "home",
+        "/" => "stack_landing",
+        "/tests" => "tests_dashboard",
         "/health" => "health",
-        "/welcome" => "welcome_landing",
-        "/welcome/ping-java" => "welcome_ping_java",
+        "/welcome" => "welcome_redirect",
         "/tests/run" => "run_tests_post",
         "/tests/source" => "test_source",
         "/api/items" => "create_item",
@@ -180,6 +176,10 @@ async fn create_item(
     crate::items::create_item(pool, query).await.into_response()
 }
 
+async fn welcome_redirect() -> Redirect<&'static str> {
+    Redirect::to("/")
+}
+
 async fn health() -> impl IntoResponse {
     (
         [(
@@ -238,10 +238,11 @@ pub async fn serve() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 /// HTTP router (used by `serve` and integration tests).
 pub fn build_router(state: AppState) -> Router {
     Router::new()
-        .route("/", get(home))
+        .route("/", get(stack_landing))
+        .route("/tests", get(tests_dashboard))
         .route("/health", get(health))
-        .route("/welcome", get(landing))
-        .route("/welcome/ping-java", get(ping_java))
+        .route("/welcome", get(welcome_redirect))
+        .route("/stack-ping/{target}", get(crate::stack_ping::stack_ping_handler))
         .route("/tests/run", post(run_tests_post))
         .route("/tests/source", get(test_source))
         .route("/api/items", post(create_item))
@@ -263,8 +264,16 @@ struct HomePage {
     test_run_log_tail: Option<String>,
 }
 
-async fn landing(State(state): State<AppState>) -> Result<Html<String>, StatusCode> {
-    let ctx = Context::new();
+#[derive(Serialize)]
+struct StackLandingPage {
+    stack_links: crate::stack_ping::StackLinksView,
+}
+
+async fn stack_landing(State(state): State<AppState>) -> Result<Html<String>, StatusCode> {
+    let page = StackLandingPage {
+        stack_links: state.stack_links.browser_view(),
+    };
+    let ctx = Context::from_serialize(&page).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let html = state
         .tera
         .render("landing.html", &ctx)
@@ -272,73 +281,7 @@ async fn landing(State(state): State<AppState>) -> Result<Html<String>, StatusCo
     Ok(Html(html))
 }
 
-#[derive(Serialize)]
-struct PingJavaResponse {
-    ok: bool,
-    java_status: Option<u16>,
-    java_body: Option<String>,
-    java_url: String,
-    error: Option<String>,
-}
-
-async fn ping_java(State(state): State<AppState>) -> impl IntoResponse {
-    let base = state.java_base_url.trim_end_matches('/').to_string();
-    let url = format!("{base}/api/hello-from-rust");
-    tracing::info!(
-        java_url = %url,
-        "Rust /welcome: proxying GET to Java /api/hello-from-rust"
-    );
-    let url_for_task = url.clone();
-    let outcome = tokio::task::spawn_blocking(move || ping_java_blocking(url_for_task)).await;
-
-    match outcome {
-        Ok(resp) => Json(resp).into_response(),
-        Err(e) => Json(PingJavaResponse {
-            ok: false,
-            java_status: None,
-            java_body: None,
-            java_url: url,
-            error: Some(format!("join error: {e}")),
-        })
-        .into_response(),
-    }
-}
-
-fn ping_java_blocking(url: String) -> PingJavaResponse {
-    match ureq::get(&url).timeout(Duration::from_secs(15)).call() {
-        Ok(resp) => {
-            let status = resp.status();
-            let ok = (200..300).contains(&status);
-            let text = resp.into_string().unwrap_or_default();
-            PingJavaResponse {
-                ok,
-                java_status: Some(status),
-                java_body: Some(text),
-                java_url: url,
-                error: None,
-            }
-        }
-        Err(ureq::Error::Status(status, resp)) => {
-            let text = resp.into_string().unwrap_or_default();
-            PingJavaResponse {
-                ok: false,
-                java_status: Some(status),
-                java_body: Some(text),
-                java_url: url,
-                error: None,
-            }
-        }
-        Err(e) => PingJavaResponse {
-            ok: false,
-            java_status: None,
-            java_body: None,
-            java_url: url,
-            error: Some(e.to_string()),
-        },
-    }
-}
-
-async fn home(State(state): State<AppState>) -> Result<Html<String>, StatusCode> {
+async fn tests_dashboard(State(state): State<AppState>) -> Result<Html<String>, StatusCode> {
     let flash = crate::flash::take_flash(&state.project_root);
     let rows = crate::junit::load_latest_results(&state.project_root);
     let resolved = crate::junit::resolve_existing_report_path_for_ui(&state.project_root);
@@ -386,7 +329,7 @@ async fn run_tests_post(State(state): State<AppState>, Form(form): Form<RunForm>
                 "Could not run cargo nextest ({e}). Install: cargo install --locked cargo-nextest"
             ));
             crate::flash::write_flash(&state.project_root, &flash);
-            return Redirect::to("/");
+            return Redirect::to("/tests");
         }
     };
     let tail = if log.len() > 12_000 {
@@ -406,7 +349,7 @@ async fn run_tests_post(State(state): State<AppState>, Form(form): Form<RunForm>
         flash.error = Some(format!("cargo nextest finished (exit code {code})."));
     }
     crate::flash::write_flash(&state.project_root, &flash);
-    Redirect::to("/")
+    Redirect::to("/tests")
 }
 
 #[derive(Deserialize)]

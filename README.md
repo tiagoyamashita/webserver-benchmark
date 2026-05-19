@@ -46,7 +46,7 @@ If you use Docker Engine instead of Podman:
 docker compose up --build
 ```
 
-That starts **Postgres**, **Java**, **Python**, **Rust**, **reach-ui**, **Prometheus**, **Grafana**, and **ELK** (Elasticsearch, Logstash, Kibana) together. **Reach UI** (stack URL probes): `http://127.0.0.1:5173/`. To skip ELK only (save RAM):
+That starts **Postgres**, **Java**, **Python**, **Rust**, **reach-ui**, **Prometheus**, **Grafana**, and **ELK** (Elasticsearch, Logstash, Kibana) together. **Reach UI** (stack URL probes): `http://127.0.0.1:5174/`. To skip ELK only (save RAM):
 
 ```bash
 podman compose up --build postgres java python rust reach-ui grafana prometheus

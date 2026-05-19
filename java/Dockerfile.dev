@@ -2,5 +2,8 @@
 FROM docker.io/library/eclipse-temurin:25-jdk
 WORKDIR /workspace
 ENV MAVEN_OPTS="--enable-native-access=ALL-UNNAMED"
+COPY docker-entrypoint-dev.sh /usr/local/bin/docker-entrypoint-dev.sh
+RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint-dev.sh \
+  && chmod +x /usr/local/bin/docker-entrypoint-dev.sh
 EXPOSE 8080
-CMD ["sh", "-c", "chmod +x ./mvnw && ./mvnw -q compile spring-boot:run -Dspring-boot.run.jvmArguments=-Dserver.address=0.0.0.0"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint-dev.sh"]
