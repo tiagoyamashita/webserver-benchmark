@@ -7,4 +7,5 @@ ENV EXERCISES_WEB_HOST=0.0.0.0
 ENV EXERCISES_WEB_PORT=8082
 ENV EXERCISES_RUST_ROOT=/app
 EXPOSE 8082
-CMD ["cargo", "watch", "-w", "src", "-w", "templates", "-x", "run --bin exercises-web"]
+# -p: poll for file changes (bind mounts on Windows/Podman often miss inotify).
+CMD ["cargo", "watch", "-p", "-w", "src", "-w", "templates", "-x", "run --bin exercises-web"]

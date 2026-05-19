@@ -174,11 +174,12 @@ pub async fn stack_ping_handler(
 ) -> impl IntoResponse {
     let target = target.trim().to_string();
     tracing::info!(%target, "Rust stack ping GET");
+    let stack_name = target.clone();
     let stack = state.stack_links.clone();
     let result = tokio::task::spawn_blocking(move || stack.ping(&target))
         .await
         .unwrap_or_else(|e| StackPingResult {
-            stack: target.clone(),
+            stack: stack_name,
             url: String::new(),
             ok: false,
             status: None,

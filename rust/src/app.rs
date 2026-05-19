@@ -176,7 +176,7 @@ async fn create_item(
     crate::items::create_item(pool, query).await.into_response()
 }
 
-async fn welcome_redirect() -> Redirect<&'static str> {
+async fn welcome_redirect() -> Redirect {
     Redirect::to("/")
 }
 
