@@ -1,0 +1,43 @@
+# Used by the root docker-compose.yml filebeat service.
+# Tails Java / Python / Rust observability JSON logs and ships to Logstash.
+
+filebeat.inputs:
+  - type: filestream
+    id: java-demo-json
+    enabled: true
+    paths:
+      - /var/log/java/demo-app.json.log
+    parsers:
+      - ndjson:
+          keys_under_root: true
+          add_error_key: true
+
+  - type: filestream
+    id: python-demo-json
+    enabled: true
+    paths:
+      - /var/log/python/demo-app.json.log
+    parsers:
+      - ndjson:
+          keys_under_root: true
+          add_error_key: true
+
+  - type: filestream
+    id: rust-demo-json
+    enabled: true
+    paths:
+      - /var/log/rust/demo-app.json.log
+    parsers:
+      - ndjson:
+          keys_under_root: true
+          add_error_key: true
+
+processors:
+  - add_host_metadata: {}
+
+output.logstash:
+  hosts: ["logstash:5044"]
+
+# Logstash owns index naming (logstash-YYYY.MM.dd); disable direct ES setup.
+setup.ilm.enabled: false
+setup.template.enabled: false

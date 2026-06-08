@@ -2,7 +2,9 @@ def main() -> None:
     import os
 
     from exercises.web.app import create_app
+    from exercises.web.observability_logging import configure_observability_logging
 
+    configure_observability_logging()
     app = create_app()
     app.run(
         host=os.environ.get("FLASK_RUN_HOST", "127.0.0.1"),

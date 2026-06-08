@@ -1,6 +1,8 @@
 # ELK stack (Elasticsearch, Logstash, Kibana)
 
-Optional **Elastic Stack** layout for **local experiments**: ship logs through **Logstash** into **Elasticsearch**, explore them in **Kibana**. This is **not** wired to the Java / Python / Rust apps by default—add Filebeat or app logging pipelines when you need end-to-end ingestion.
+Optional **Elastic Stack** layout for **local experiments**: ship logs through **Logstash** into **Elasticsearch**, explore them in **Kibana**.
+
+The **root** `docker-compose.yml` includes a **`filebeat`** service that tails **Java**, **Python**, and **Rust** JSON logs (`*/logs/demo-app.json.log`). Java uses the Spring **`observability`** profile; Python and Rust use **`EXERCISES_OBSERVABILITY=1`** with **`LOG_PATH=/app/logs`** (set in Compose).
 
 ## What “ELK” means here
 
@@ -48,11 +50,20 @@ Then:
 
 ### Using Kibana after logs arrive
 
-1. Open **Discover** (left nav).
-2. Create a **data view** (Stack Management → Data views, or the prompt in Discover) with index pattern **`logstash-*`** — that matches indices created by **`logstash/pipeline/logstash.conf`**.
-3. Set **Timestamp field** to **`@timestamp`** when prompted.
+1. Generate log lines (sample endpoints on each app):
+   ```bash
+   curl -s http://127.0.0.1:8080/api/observability/sample-log
+   curl -s http://127.0.0.1:5000/api/observability/sample-log
+   curl -s http://127.0.0.1:8082/api/observability/sample-log
+   ```
+2. Confirm indices exist: `curl -s http://127.0.0.1:9200/_cat/indices?v` — look for **`logstash-YYYY.MM.dd`**.
+3. Open **Kibana** at `http://127.0.0.1:5601/` → **Discover**.
+4. Create a **data view** (Stack Management → Data views, or the prompt in Discover) with index pattern **`logstash-*`** — that matches indices created by **`logstash/pipeline/logstash.conf`**.
+5. Set **Timestamp field** to **`@timestamp`** when prompted.
 
 Until Filebeat (or another Beat) sends events through Logstash, indices may not exist yet; Elasticsearch will create **`logstash-YYYY.MM.dd`** on first ingest.
+
+**Root Compose Filebeat:** config is **`elk/filebeat/filebeat-compose.yml`**. After `podman compose up`, check **`podman compose logs filebeat --tail 30`** if nothing appears in Kibana.
 
 To stop:
 

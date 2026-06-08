@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import subprocess
 from pathlib import Path
@@ -146,5 +147,13 @@ def create_app() -> Flask:
     def metrics() -> Response:
         """Prometheus scrape endpoint (see root `prometheus/prometheus.yml`)."""
         return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
+
+    @app.get("/api/observability/sample-log")
+    def observability_sample_log() -> str:
+        """Emit one INFO JSON log line for Filebeat / ELK verification."""
+        logging.getLogger(__name__).info(
+            "Observability sample event (JSON log file -> Filebeat -> Logstash -> Elasticsearch)"
+        )
+        return "logged"
 
     return app

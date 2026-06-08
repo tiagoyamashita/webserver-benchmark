@@ -1,5 +1,5 @@
 # Podman: from repo root — podman compose up --build   (or: docker compose up --build)
-# Starts postgres + java + python + rust + reach-ui + Grafana + ELK + Prometheus (scrapes Java /actuator/prometheus + Python/Rust /metrics; Grafana loads exercises dashboard JSON).
+# Starts postgres + java + python + rust + reach-ui + Grafana + ELK + Filebeat + Prometheus (app JSON logs -> Filebeat -> Logstash -> ES; Grafana loads exercises dashboard JSON).
 # Reach UI (stack GET probes from the browser): http://127.0.0.1:5174/
 # To skip ELK only (lighter): podman compose up --build postgres java python rust reach-ui grafana prometheus
 # Do not also run elk/docker-compose.yml or grafana/docker-compose.yml on the same host (duplicate ports).
@@ -30,7 +30,8 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_PROFILES_ACTIVE: postgres
+      SPRING_PROFILES_ACTIVE: postgres,observability
+      LOG_PATH: /app/logs
       DB_HOST: postgres
       DB_PORT: "5432"
       DB_NAME: demo
@@ -45,6 +46,8 @@ services:
       APP_STACK_ELASTICSEARCH_BASE_URL: http://elasticsearch:9200
       APP_STACK_KIBANA_BASE_URL: http://kibana:5601
       APP_STACK_REACH_UI_BASE_URL: http://reach-ui:80
+    volumes:
+      - ./java/logs:/app/logs
     depends_on:
       - postgres
 
@@ -59,6 +62,8 @@ services:
       FLASK_RUN_HOST: "0.0.0.0"
       FLASK_RUN_PORT: "5000"
       EXERCISES_PROJECT_ROOT: /app
+      EXERCISES_OBSERVABILITY: "1"
+      LOG_PATH: /app/logs
       APP_STACK_JAVA_BASE_URL: http://java:8080
       APP_STACK_RUST_BASE_URL: http://rust:8082
       APP_STACK_PROMETHEUS_BASE_URL: http://prometheus:9090
@@ -66,6 +71,8 @@ services:
       APP_STACK_ELASTICSEARCH_BASE_URL: http://elasticsearch:9200
       APP_STACK_KIBANA_BASE_URL: http://kibana:5601
       APP_STACK_REACH_UI_BASE_URL: http://reach-ui:80
+    volumes:
+      - ./python/logs:/app/logs
 
   rust:
     build:
@@ -78,12 +85,16 @@ services:
       EXERCISES_WEB_HOST: "0.0.0.0"
       EXERCISES_WEB_PORT: "8082"
       EXERCISES_RUST_ROOT: /app
+      EXERCISES_OBSERVABILITY: "1"
+      LOG_PATH: /app/logs
       EXERCISES_JAVA_BASE_URL: http://java:8080
       DB_HOST: postgres
       DB_PORT: "5432"
       DB_NAME: demo
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
+    volumes:
+      - ./rust/logs:/app/logs
     depends_on:
       - postgres
       - java
@@ -155,6 +166,23 @@ services:
       - "5601:5601"
     volumes:
       - ./elk/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+
+  # Ships Java / Python / Rust JSON logs -> Logstash :5044. See elk/README.md
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.15.5
+    user: root
+    networks: [exercises]
+    depends_on:
+      - logstash
+      - java
+      - python
+      - rust
+    volumes:
+      - ./elk/filebeat/filebeat-compose.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./java/logs:/var/log/java:ro
+      - ./python/logs:/var/log/python:ro
+      - ./rust/logs:/var/log/rust:ro
+    command: ["filebeat", "-e", "-strict.perms=false"]
 
   grafana:
     image: docker.io/grafana/grafana-oss:11.5.2

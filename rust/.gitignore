@@ -2,5 +2,7 @@
 # Ignore generated artifacts under reports/ except the committed seed JUnit file.
 /reports/*
 !/reports/junit.xml
+/logs/*
+!/logs/.gitkeep
 **/*.rs.bk
 Cargo.lock

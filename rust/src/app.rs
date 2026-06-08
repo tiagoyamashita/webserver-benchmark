@@ -190,6 +190,20 @@ async fn health() -> impl IntoResponse {
     )
 }
 
+async fn observability_sample_log() -> impl IntoResponse {
+    tracing::info!(
+        service = "exercises-rust",
+        "Observability sample event (JSON log file -> Filebeat -> Logstash -> Elasticsearch)"
+    );
+    (
+        [(
+            header::CONTENT_TYPE,
+            HeaderValue::from_static("text/plain; charset=utf-8"),
+        )],
+        "logged",
+    )
+}
+
 pub async fn serve() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let project_root = resolve_project_root();
     eprintln!("exercises-web: project root {}", project_root.display());
@@ -241,6 +255,7 @@ pub fn build_router(state: AppState) -> Router {
         .route("/", get(stack_landing))
         .route("/tests", get(tests_dashboard))
         .route("/health", get(health))
+        .route("/api/observability/sample-log", get(observability_sample_log))
         .route("/welcome", get(welcome_redirect))
         .route("/stack-ping/{target}", get(crate::stack_ping::stack_ping_handler))
         .route("/tests/run", post(run_tests_post))

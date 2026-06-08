@@ -17,7 +17,7 @@ HEALTHCHECK --interval=15s --timeout=3s --start-period=5s --retries=3 \
 WORKDIR /app
 COPY --from=build /build/target/release/exercises-web /app/exercises-web
 COPY templates ./templates
-RUN mkdir -p reports/target/nextest/dashboard
+RUN mkdir -p reports/target/nextest/dashboard logs
 ENV EXERCISES_WEB_HOST=0.0.0.0
 ENV EXERCISES_WEB_PORT=8082
 ENV EXERCISES_RUST_ROOT=/app

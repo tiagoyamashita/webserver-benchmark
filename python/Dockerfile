@@ -4,7 +4,7 @@ WORKDIR /app
 COPY pyproject.toml README.md requirements-dev.txt ./
 COPY src ./src
 COPY tests ./tests
-RUN mkdir -p reports \
+RUN mkdir -p reports logs \
     && pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements-dev.txt
 ENV FLASK_RUN_HOST=0.0.0.0
