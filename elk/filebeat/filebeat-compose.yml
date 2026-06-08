@@ -3,7 +3,7 @@
 
 filebeat.inputs:
   - type: filestream
-    id: java-demo-json
+    id: exercises-java-json
     enabled: true
     paths:
       - /var/log/java/demo-app.json.log
@@ -13,7 +13,7 @@ filebeat.inputs:
           add_error_key: true
 
   - type: filestream
-    id: python-demo-json
+    id: exercises-python-json
     enabled: true
     paths:
       - /var/log/python/demo-app.json.log
@@ -23,7 +23,7 @@ filebeat.inputs:
           add_error_key: true
 
   - type: filestream
-    id: rust-demo-json
+    id: exercises-rust-json
     enabled: true
     paths:
       - /var/log/rust/demo-app.json.log
@@ -33,6 +33,13 @@ filebeat.inputs:
           add_error_key: true
 
 processors:
+  # Java dashboard logs use a string field "event"; Logstash beats input expects ECS "event" as an object.
+  - rename:
+      fields:
+        - from: event
+          to: ui_event
+      ignore_missing: true
+      fail_on_error: false
   - add_host_metadata: {}
 
 output.logstash:

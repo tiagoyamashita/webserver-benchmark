@@ -1,9 +1,13 @@
 package com.example.demo.web;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -14,6 +18,8 @@ import org.springframework.web.client.RestClientResponseException;
 
 @Service
 public class StackPingService {
+
+  private static final Logger log = LoggerFactory.getLogger(StackPingService.class);
 
   private final RestClient restClient;
   private final StackPingProperties properties;
@@ -30,40 +36,50 @@ public class StackPingService {
     try {
       ResponseEntity<Void> res =
           restClient.get().uri(URI.create(root)).retrieve().toBodilessEntity();
-      return Map.of(
-          "stack", stack,
-          "url", root,
-          "ok", true,
-          "status", res.getStatusCode().value());
+      Map<String, Object> result =
+          Map.of(
+              "stack", stack,
+              "url", root,
+              "ok", true,
+              "status", res.getStatusCode().value());
+      logStackPingResult(result);
+      return result;
     } catch (RestClientResponseException e) {
-      return Map.of(
-          "stack", stack,
-          "url", root,
-          "ok", false,
-          "status", e.getStatusCode().value(),
-          "error", e.getStatusText() != null ? e.getStatusText() : e.getMessage());
+      Map<String, Object> result =
+          Map.of(
+              "stack", stack,
+              "url", root,
+              "ok", false,
+              "status", e.getStatusCode().value(),
+              "error", e.getStatusText() != null ? e.getStatusText() : e.getMessage());
+      logStackPingResult(result);
+      return result;
     } catch (ResourceAccessException e) {
       String hint =
           "Cannot connect (is the container running on the Compose network?). ";
       String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-      return Map.of(
-          "stack", stack,
-          "url", root,
-          "ok", false,
-          "error", hint + msg);
+      Map<String, Object> result =
+          Map.of(
+              "stack", stack,
+              "url", root,
+              "ok", false,
+              "error", hint + msg);
+      logStackPingResult(result);
+      return result;
     } catch (RestClientException e) {
-      return Map.of(
-          "stack", stack,
-          "url", root,
-          "ok", false,
-          "error", e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
+      Map<String, Object> result =
+          Map.of(
+              "stack", stack,
+              "url", root,
+              "ok", false,
+              "error", e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
+      logStackPingResult(result);
+      return result;
     }
   }
 
   public Map<String, Object> pingAll() {
-    Map<String, Object> body = new LinkedHashMap<>();
-    body.put(
-        "results",
+    List<Map<String, Object>> results =
         List.of(
             pingRust(),
             pingPython(),
@@ -71,8 +87,43 @@ public class StackPingService {
             pingGrafana(),
             pingElasticsearch(),
             pingKibana(),
-            pingReachUi()));
+            pingReachUi());
+    long okCount = results.stream().filter(r -> Boolean.TRUE.equals(r.get("ok"))).count();
+    log.info(
+        "Dashboard UI stack ping-all completed",
+        kv("ui_event", "dashboard.ui"),
+        kv("action", "stack-ping-all"),
+        kv("serviceCount", results.size()),
+        kv("okCount", okCount),
+        kv("failCount", results.size() - okCount));
+    Map<String, Object> body = new LinkedHashMap<>();
+    body.put("results", results);
     return body;
+  }
+
+  private void logStackPingResult(Map<String, Object> result) {
+    Object status = result.get("status");
+    Object error = result.get("error");
+    if (Boolean.TRUE.equals(result.get("ok"))) {
+      log.info(
+          "Dashboard UI stack ping completed",
+          kv("ui_event", "dashboard.ui"),
+          kv("action", "stack-ping"),
+          kv("target", result.get("stack")),
+          kv("ok", true),
+          kv("status", status),
+          kv("url", result.get("url")));
+    } else {
+      log.warn(
+          "Dashboard UI stack ping failed",
+          kv("ui_event", "dashboard.ui"),
+          kv("action", "stack-ping"),
+          kv("target", result.get("stack")),
+          kv("ok", false),
+          kv("status", status),
+          kv("url", result.get("url")),
+          kv("error", error));
+    }
   }
 
   public Map<String, Object> pingRust() {

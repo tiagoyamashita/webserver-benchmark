@@ -1,6 +1,6 @@
 spring:
   application:
-    name: demo
+    name: exercises-java
   thymeleaf:
     cache: false
   # Default: in-memory H2 (no PostgreSQL required). Use profile "postgres" when ready.

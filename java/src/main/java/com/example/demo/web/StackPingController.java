@@ -1,5 +1,7 @@
 package com.example.demo.web;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,49 +23,54 @@ public class StackPingController {
 
   @GetMapping("/rust")
   public Map<String, Object> pingRust() {
-    log.info("Dashboard stack ping: user clicked Rust — issuing outbound GET");
-    return stackPingService.pingRust();
+    return ping("rust", stackPingService::pingRust);
   }
 
   @GetMapping("/python")
   public Map<String, Object> pingPython() {
-    log.info("Dashboard stack ping: user clicked Python — issuing outbound GET");
-    return stackPingService.pingPython();
+    return ping("python", stackPingService::pingPython);
   }
 
   @GetMapping("/prometheus")
   public Map<String, Object> pingPrometheus() {
-    log.info("Dashboard stack ping: user clicked Prometheus — issuing outbound GET");
-    return stackPingService.pingPrometheus();
+    return ping("prometheus", stackPingService::pingPrometheus);
   }
 
   @GetMapping("/grafana")
   public Map<String, Object> pingGrafana() {
-    log.info("Dashboard stack ping: user clicked Grafana — issuing outbound GET");
-    return stackPingService.pingGrafana();
+    return ping("grafana", stackPingService::pingGrafana);
   }
 
   @GetMapping("/elasticsearch")
   public Map<String, Object> pingElasticsearch() {
-    log.info("Dashboard stack ping: user clicked Elasticsearch — issuing outbound GET");
-    return stackPingService.pingElasticsearch();
+    return ping("elasticsearch", stackPingService::pingElasticsearch);
   }
 
   @GetMapping("/kibana")
   public Map<String, Object> pingKibana() {
-    log.info("Dashboard stack ping: user clicked Kibana — issuing outbound GET");
-    return stackPingService.pingKibana();
+    return ping("kibana", stackPingService::pingKibana);
   }
 
   @GetMapping("/reach-ui")
   public Map<String, Object> pingReachUi() {
-    log.info("Dashboard stack ping: user clicked Reach UI — issuing outbound GET");
-    return stackPingService.pingReachUi();
+    return ping("reach-ui", stackPingService::pingReachUi);
   }
 
   @GetMapping("/all")
   public Map<String, Object> pingAll() {
-    log.info("Dashboard stack ping: ping all services");
+    log.info(
+        "Dashboard UI button click",
+        kv("ui_event", "dashboard.ui"),
+        kv("action", "stack-ping-all"));
     return stackPingService.pingAll();
+  }
+
+  private Map<String, Object> ping(String target, java.util.function.Supplier<Map<String, Object>> run) {
+    log.info(
+        "Dashboard UI button click",
+        kv("ui_event", "dashboard.ui"),
+        kv("action", "stack-ping"),
+        kv("target", target));
+    return run.get();
   }
 }
