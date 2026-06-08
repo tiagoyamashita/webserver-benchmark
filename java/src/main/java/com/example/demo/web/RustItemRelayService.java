@@ -39,7 +39,7 @@ public class RustItemRelayService {
     }
     String base = properties.getRustBaseUrl().trim().replaceAll("/+$", "");
     URI uri =
-        UriComponentsBuilder.fromHttpUrl(base + "/api/items")
+        UriComponentsBuilder.fromUriString(base + "/api/items")
             .queryParam("name", trimmed)
             .encode(StandardCharsets.UTF_8)
             .build()
