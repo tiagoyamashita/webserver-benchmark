@@ -7,4 +7,5 @@ if [ ! -f "$STAMP" ] || [ "package-lock.json" -nt "$STAMP" ]; then
   npm ci
   touch "$STAMP"
 fi
+mkdir -p "${LOG_PATH:-/app/logs}"
 exec npm run dev

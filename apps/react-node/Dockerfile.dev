@@ -9,7 +9,8 @@ COPY client ./client
 COPY server ./server
 COPY docker-entrypoint-dev.sh /usr/local/bin/docker-entrypoint-dev.sh
 RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint-dev.sh \
-  && chmod +x /usr/local/bin/docker-entrypoint-dev.sh
+  && chmod +x /usr/local/bin/docker-entrypoint-dev.sh \
+  && mkdir -p logs
 EXPOSE 5174
 ENV PORT=5174
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint-dev.sh"]

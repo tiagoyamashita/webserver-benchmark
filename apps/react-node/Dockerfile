@@ -13,7 +13,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=5174
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev \
+  && mkdir -p logs
 COPY --from=build /app/dist ./dist
 EXPOSE 5174
 HEALTHCHECK --interval=10s --timeout=3s --retries=3 --start-period=5s \

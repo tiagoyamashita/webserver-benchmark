@@ -88,7 +88,6 @@ services:
     volumes:
       - ./apps/react-node:/app
       - react-node-node-modules:/app/node_modules
-      - ./apps/react-node/logs:/app/logs
     ports: !override
       - "5174:5174"
     environment:
