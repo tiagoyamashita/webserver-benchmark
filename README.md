@@ -2,17 +2,19 @@
 
 Exercises (tiagoyamashita.com)
 
-## Three application servers
+## Application servers
 
-This repo ships **three separate web apps**, each in its own stack:
+This repo ships **three separate web apps** under **`apps/`**, plus **Postgres**, **React Node**, and optional **observability** under **`devops/`**:
 
-| Stack | Role | Typical URL (local) |
-|-------|------|---------------------|
-| **Java** (`java/`) | Spring Boot | `http://localhost:8080/` |
-| **Python** (`python/`) | Flask dashboard | `http://localhost:5000/` |
-| **Rust** (`rust/`) | Axum dashboard | `http://localhost:8082/` |
+| Stack | Folder | Role | Typical URL (local) |
+|-------|--------|------|---------------------|
+| **Java** | `apps/java/` | Spring Boot | `http://127.0.0.1:8080/` |
+| **Python** | `apps/python/` | Flask dashboard | `http://127.0.0.1:5000/` |
+| **Rust** | `apps/rust/` | Axum dashboard | `http://127.0.0.1:8082/` |
+| **React Node** | `apps/react-node/` | Stack probe UI (React + Express) | `http://127.0.0.1:5174/` |
+| **PostgreSQL** | `apps/postgres/` | Shared database (Compose scripts + log dir) | `127.0.0.1:5432` |
 
-**Rust on Windows:** If **`cargo`** fails with **`link.exe` not found**, the MSVC linker is missing — use **`podman compose up --build rust`** from this repo root, or fix the toolchain per [rust/README.md — Troubleshooting: Rust server won’t build or won’t open](rust/README.md#troubleshooting-rust-server-wont-build-or-wont-open).
+**Rust on Windows:** If **`cargo`** fails with **`link.exe` not found**, the MSVC linker is missing — use **`podman compose up --build rust`** from this repo root, or fix the toolchain per [apps/rust/README.md — Troubleshooting](apps/rust/README.md#troubleshooting-rust-server-wont-build-or-wont-open).
 
 Illustration (same stacks; Postgres is used when the Java app is wired to a real database):
 
@@ -28,13 +30,56 @@ flowchart LR
   J -->|Spring postgres profile| DB
 ```
 
-They are independent exercises; you can build, run, and deploy **any subset**. **PostgreSQL** is used when you wire the Java app to a real database (for example via Compose or Kubernetes); see **`postgre/`** and [DOCKER.md](DOCKER.md).
+They are independent exercises; you can build, run, and deploy **any subset**. **PostgreSQL** is used when you wire the Java app to a real database (for example via Compose or Kubernetes); see **`apps/postgres/`** and [DOCKER.md](DOCKER.md).
 
 _Diagrams use [Mermaid](https://mermaid.js.org/); they render on GitHub. In other viewers you may see the source block only._
 
+## Compose stacks (apps, devops, dev)
+
+From the **repo root**, Compose is split so you can run **apps** and **observability (devops)** separately, and optionally add a **dev** overlay for hot reload on the app services.
+
+### Compose files
+
+| File | Starts | Typical command |
+|------|--------|-----------------|
+| **`docker-compose.yml`** | Apps **+** devops (full stack) | `podman compose up -d --build` |
+| **`docker-compose.apps.yml`** | Postgres, Java, Python, Rust, react-node | `podman compose -f docker-compose.apps.yml up -d --build` |
+| **`docker-compose.observability.yml`** | Prometheus, Grafana, ELK, Filebeat | `podman compose -f docker-compose.observability.yml up -d` |
+| **`docker-compose.dev.yml`** | Overlay on **apps** only (hot reload) | Add `-f docker-compose.dev.yml` to an **apps** command (see below) |
+
+**Dev overlay** (pair with **`docker-compose.apps.yml`** or full **`docker-compose.yml`**):
+
+```bash
+# Apps with hot reload (Java spring-boot:run, Python FLASK_DEBUG, Rust cargo-watch, react-node Vite)
+podman compose -f docker-compose.apps.yml -f docker-compose.dev.yml up -d --build
+
+# Full stack: dev apps + production observability images
+podman compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+```
+
+Use **Docker Engine** the same way with `docker compose` instead of `podman compose`. Details: [DOCKER.md](DOCKER.md).
+
+### All services
+
+| Service | Folder | Role | Host port | Compose file | With **`docker-compose.dev.yml`** |
+|---------|--------|------|-----------|--------------|-----------------------------------|
+| **postgres** | `apps/postgres/` | PostgreSQL 16 | **5432** | apps | Same image (no dev overlay) |
+| **java** | `apps/java/` | Spring Boot API + UI | **8080** | apps | `spring-boot:run`, source mounted |
+| **python** | `apps/python/` | Flask dashboard + `/api/items` | **5000** | apps | `FLASK_DEBUG=1` reloader |
+| **rust** | `apps/rust/` | Axum dashboard + `/api/items` | **8082** | apps | `cargo-watch` rebuild on change |
+| **react-node** | `apps/react-node/` | Stack probes + items proxy | **5174** | apps | Express + Vite dev server |
+| **prometheus** | `devops/prometheus/` | Metrics TSDB + UI | **9090** | observability | — |
+| **grafana** | `devops/grafana/` | Dashboards (provisioned) | **3000** | observability | — |
+| **elasticsearch** | `devops/elk/` | Log / search store | **9200** | observability | — |
+| **logstash** | `devops/elk/` | Beats → Elasticsearch | **5044** | observability | — |
+| **kibana** | `devops/elk/` | Log UI | **5601** | observability | — |
+| **filebeat** | `devops/elk/` | Tails app + Postgres JSON logs | *(internal)* | observability | — |
+
+**apps** = `docker-compose.apps.yml` · **observability** = `docker-compose.observability.yml`. Restart apps without touching Grafana / ELK: `podman compose -f docker-compose.apps.yml restart java rust`.
+
 ## How to run or deploy them
 
-**Normal / à la carte:** Run stacks locally the way each folder documents (toolchains, tests, dev servers), or build **container images** and run **one, two, or all three** with **Podman** or **Docker**. From the repo root:
+**Normal / à la carte:** Run stacks locally the way each folder documents (toolchains, tests, dev servers), or build **container images** and run **one, two, or all** with **Podman** or **Docker**. From the repo root:
 
 ```bash
 podman compose up -d --build
@@ -46,13 +91,19 @@ If you use Docker Engine instead of Podman:
 docker compose up -d --build
 ```
 
-That starts the full stack. Compose is split into **`docker-compose.apps.yml`** (Postgres + Java + Python + Rust + react-node) and **`docker-compose.observability.yml`** (Prometheus, Grafana, ELK, Filebeat) so you can restart apps while leaving observability up — see [DOCKER.md](DOCKER.md). **React Node** (stack URL probes): `http://127.0.0.1:5174/`. Apps only (save RAM):
+That starts the **full** stack (apps + devops). Apps only (save RAM):
 
 ```bash
 podman compose -f docker-compose.apps.yml up -d --build
 ```
 
-You can also bring up a subset of services. Images and ports are summarized in [DOCKER.md](DOCKER.md).
+Observability only (leave running while you restart apps):
+
+```bash
+podman compose -f docker-compose.observability.yml up -d
+```
+
+More ports, networking, and troubleshooting: [DOCKER.md](DOCKER.md).
 
 ### Windows: `helm` or `docker` is not recognized
 
@@ -65,13 +116,13 @@ Usually the tools are installed but this **terminal session** still has an old *
 $env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [System.Environment]::GetEnvironmentVariable('Path','User')
 ```
 
-3. **Helm:** install or repair with `winget install --id Helm.Helm -e --accept-source-agreements --accept-package-agreements` ([kubernetes-orchestration README](kubernetes-orchestration/README.md) has the same note).
+3. **Helm:** install or repair with `winget install --id Helm.Helm -e --accept-source-agreements --accept-package-agreements` ([devops/kubernetes-orchestration README](devops/kubernetes-orchestration/README.md) has the same note).
 4. **Docker:** install [Docker Desktop](https://docs.docker.com/desktop/install/windows-install/) **or** skip Docker and use **Podman** only (`podman compose …` as above). This machine already had **Podman** available when the environment `PATH` was refreshed; if `Get-Command podman` works, prefer **`podman compose`** until Docker is installed.
 5. **Browser shows connection refused / timeout** while `podman compose ps` shows **Up** — see [DOCKER.md — Browser cannot reach containers](DOCKER.md#browser-cannot-reach-containers-podman-on-windows) (try **`http://127.0.0.1:`**… instead of **`localhost`**, start **`podman machine`**, check ports).
 
-**Local testing vs production:** In practice, **`docker compose`** is for **running and testing on your own machine**—quick loops, integration checks, and the same container images you might build in CI. When you deploy to **production or shared environments**, you typically use **Helm** on **Kubernetes** (this repo’s chart under **`kubernetes-orchestration/`**) so you get replicas, rolling updates, cluster networking, and environment-specific values. **Terraform** is optional and addresses **infrastructure**, not the app chart itself: it often provisions **VPCs, managed clusters (EKS, AKS, …), IAM, and networking**. Many teams use Terraform (or similar) to **create** the cluster and supporting cloud resources, then **Helm** to **install this stack inside** that cluster—the two work **together**; Helm does not replace Terraform and Terraform does not deploy Helm charts unless you wire that explicitly (for example with a `helm_release` resource).
+**Local testing vs production:** In practice, **`docker compose`** is for **running and testing on your own machine**—quick loops, integration checks, and the same container images you might build in CI. When you deploy to **production or shared environments**, you typically use **Helm** on **Kubernetes** (this repo’s chart under **`devops/kubernetes-orchestration/`**) so you get replicas, rolling updates, cluster networking, and environment-specific values. **Terraform** is optional and addresses **infrastructure**, not the app chart itself: it often provisions **VPCs, managed clusters (EKS, AKS, …), IAM, and networking**. Many teams use Terraform (or similar) to **create** the cluster and supporting cloud resources, then **Helm** to **install this stack inside** that cluster—the two work **together**; Helm does not replace Terraform and Terraform does not deploy Helm charts unless you wire that explicitly (for example with a `helm_release` resource).
 
-**Kubernetes with Helm:** To deploy **all three apps plus Postgres** on a **Kubernetes cluster**, use the **Helm** umbrella chart under **`kubernetes-orchestration/`**. Helm installs the chart as a **release** (Deployments, Services, PVCs, optional Ingress) and lets you tune replicas, image tags, and per-environment values. Details: [kubernetes-orchestration/README.md](kubernetes-orchestration/README.md).
+**Kubernetes with Helm:** To deploy **all three apps plus Postgres** on a **Kubernetes cluster**, use the **Helm** umbrella chart under **`devops/kubernetes-orchestration/`**. Helm installs the chart as a **release** (Deployments, Services, PVCs, optional Ingress) and lets you tune replicas, image tags, and per-environment values. Details: [devops/kubernetes-orchestration/README.md](devops/kubernetes-orchestration/README.md).
 
 **Regions and clouds (AWS, Azure, …):** Helm is the **installer for Kubernetes**—it does not pick a cloud or region by itself. You choose **which cluster** to deploy to (for example **Amazon EKS** in `us-east-1`, **Azure AKS** in `eastus`, **Google GKE**, or an on-prem cluster) by pointing **`kubectl`** / Helm at that cluster’s API. The **region** is primarily **where that cluster runs**; this repo’s Helm values can also record topology (for example `global.region` and selectors—see the orchestration README) so workloads line up with how you operate each environment. The **same chart** can target different regions or clouds using **different kubeconfig contexts** and **different values files** per cluster.
 
@@ -111,14 +162,14 @@ Use **Compose** when you want the fastest loop on a single computer. Use **Helm*
 
 ---
 
-**Rust** tooling bootstrap (rustup, cargo-nextest, `cargo build`) lives under **`rust/scripts/`**: [rust/README.md](rust/README.md) (“One-shot setup / reinstall”).
+**Rust** tooling bootstrap (rustup, cargo-nextest, `cargo build`) lives under **`apps/rust/scripts/`**: [apps/rust/README.md](apps/rust/README.md) (“One-shot setup / reinstall”).
 
-**PostgreSQL** for local development under **Podman**: [postgre/README.md](postgre/README.md).
+**PostgreSQL** for local development under **Podman**: [apps/postgres/README.md](apps/postgres/README.md).
 
-**Grafana** (optional dashboards; Compose under **`grafana/`**): [grafana/README.md](grafana/README.md).
+**Grafana** (optional dashboards; Compose under **`devops/grafana/`**): [devops/grafana/README.md](devops/grafana/README.md).
 
-**ELK** (optional Elasticsearch + Logstash + Kibana; **Podman** or **Docker** Compose under **`elk/`**; cluster path uses Helm + **`kubectl`**): [elk/README.md](elk/README.md).
+**ELK** (optional Elasticsearch + Logstash + Kibana; **Podman** or **Docker** Compose under **`devops/elk/`**; cluster path uses Helm + **`kubectl`**): [devops/elk/README.md](devops/elk/README.md).
 
-**React Node** (React + Express stack probe UI): [react-node/README.md](react-node/README.md).
+**React Node** (React + Express stack probe UI): [apps/react-node/README.md](apps/react-node/README.md).
 
-On Windows, if **`link.exe` not found** and you do not want Visual Studio’s MSVC build tools, use the **GNU / MinGW** path: [rust/README.md — GNU target](rust/README.md#windows-gnu-target-mingw-instead-of-msvc) or run the project under **WSL**: [rust/README.md — WSL](rust/README.md#windows-wsl-linux-in-windows).
+On Windows, if **`link.exe` not found** and you do not want Visual Studio’s MSVC build tools, use the **GNU / MinGW** path: [apps/rust/README.md — GNU target](apps/rust/README.md#windows-gnu-target-mingw-instead-of-msvc) or run the project under **WSL**: [apps/rust/README.md — WSL](apps/rust/README.md#windows-wsl-linux-in-windows).

@@ -1,12 +1,20 @@
 # syntax=docker/dockerfile:1
 FROM python:3.12-slim-bookworm
 WORKDIR /app
-COPY pyproject.toml README.md requirements-dev.txt ./
+
+# Install third-party deps first — this layer is reused when only src/ or tests/ change.
+COPY requirements.txt ./
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --upgrade pip \
+    && pip install -r requirements.txt
+
+COPY pyproject.toml README.md ./
 COPY src ./src
 COPY tests ./tests
-RUN mkdir -p reports logs \
-    && pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements-dev.txt
+RUN pip install --no-deps .
+
+RUN mkdir -p reports logs
+
 ENV FLASK_RUN_HOST=0.0.0.0
 ENV FLASK_RUN_PORT=5000
 ENV EXERCISES_PROJECT_ROOT=/app

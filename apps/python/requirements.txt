@@ -1,2 +1,6 @@
-# No third-party runtime dependencies yet.
-# Dev venv: run scripts/init_venv.ps1 or scripts/init_venv.sh (uses requirements-dev.txt).
+# Docker image: install these before copying src/ so dependency layers cache across code edits.
+# Local venv: use requirements-dev.txt via scripts/init_venv.* instead.
+flask>=3.0
+prometheus-client>=0.21
+psycopg[binary]>=3.2
+pytest>=8

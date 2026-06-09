@@ -1,3 +1,2 @@
 -e .
-psycopg[binary]>=3.2
-pytest>=8
+-r requirements.txt
