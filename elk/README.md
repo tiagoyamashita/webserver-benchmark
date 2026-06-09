@@ -2,7 +2,7 @@
 
 Optional **Elastic Stack** layout for **local experiments**: ship logs through **Logstash** into **Elasticsearch**, explore them in **Kibana**.
 
-The **root** `docker-compose.yml` includes a **`filebeat`** service that tails **Java**, **Python**, and **Rust** JSON logs (`*/logs/demo-app.json.log`). Java uses the Spring **`observability`** profile; Python and Rust use **`EXERCISES_OBSERVABILITY=1`** with **`LOG_PATH=/app/logs`** (set in Compose).
+The **root** `docker-compose.yml` includes a **`filebeat`** service that tails **Java**, **Python**, **Rust**, and **Postgres** JSON logs. Apps write **`*/logs/demo-app.json.log`** (Java **`observability`** profile; Python / Rust **`EXERCISES_OBSERVABILITY=1`**). Postgres writes **`postgres/logs/postgresql-*.json`** (`log_destination=jsonlog`; see [../postgres/README.md](../postgres/README.md)).
 
 ## What “ELK” means here
 
@@ -67,7 +67,7 @@ Until Filebeat (or another Beat) sends events through Logstash, indices may not 
 
 **Java logs missing in Kibana?** Dashboard logs must not use a top-level JSON field named **`event`** (string) — Logstash’s Beats input expects ECS **`event`** as an object and will reset the connection. This repo uses **`ui_event`** instead; Filebeat also renames legacy **`event` → `ui_event`** before shipping.
 
-**Filter by app in Discover:** `service: "exercises-java"` · `service: "exercises-python"` · `service: "exercises-rust"`.
+**Filter by app in Discover:** `service: "exercises-java"` · `service: "exercises-python"` · `service: "exercises-rust"` · `service: "exercises-postgres"`.
 
 To stop:
 

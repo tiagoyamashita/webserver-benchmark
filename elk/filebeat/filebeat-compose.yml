@@ -1,5 +1,5 @@
 # Used by the root docker-compose.yml filebeat service.
-# Tails Java / Python / Rust observability JSON logs and ships to Logstash.
+# Tails Java / Python / Rust / Postgres observability JSON logs and ships to Logstash.
 
 filebeat.inputs:
   - type: filestream
@@ -31,6 +31,19 @@ filebeat.inputs:
       - ndjson:
           keys_under_root: true
           add_error_key: true
+
+  - type: filestream
+    id: exercises-postgres-json
+    enabled: true
+    paths:
+      - /var/log/postgresql/*.json
+    parsers:
+      - ndjson:
+          keys_under_root: true
+          add_error_key: true
+    fields:
+      service: exercises-postgres
+    fields_under_root: true
 
 processors:
   # Java dashboard logs use a string field "event"; Logstash beats input expects ECS "event" as an object.

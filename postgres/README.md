@@ -56,3 +56,24 @@ On Windows PowerShell, use `$env:SPRING_PROFILES_ACTIVE="postgres"` etc.
 - Named volume: `exercises-postgre-data` (persists until `podman volume rm …`).
 
 The root **`docker-compose.yml`** starts the same Postgres major version alongside the Java, Python, and Rust containers — see [../DOCKER.md](../DOCKER.md).
+
+## Observability (ELK / Filebeat)
+
+When Postgres runs via the **root** `docker-compose.yml`, it writes **JSON Lines** to **`postgres/logs/`** on the host (`log_destination=jsonlog`). **Filebeat** tails those files and ships them through **Logstash** to **Elasticsearch**, same pipeline as the Java / Python / Rust app logs.
+
+| Setting | Value |
+|---------|--------|
+| Host log dir | `postgres/logs/` (mounted at `/var/log/postgresql` in the container) |
+| File pattern | `postgresql-YYYY-MM-DD.json` |
+| Kibana filter | `service: "exercises-postgres"` |
+
+Logged by default: connections, disconnections, and data-modifying statements (`log_statement=mod`) with duration.
+
+### Verify in Compose
+
+1. Start the stack with ELK + Filebeat (see [../elk/README.md](../elk/README.md)).
+2. Generate DB activity (e.g. use Java or Rust `POST /api/items`, or connect with `psql`).
+3. Confirm files appear under **`postgres/logs/`**.
+4. In **Kibana → Discover** (data view **`logstash-*`**), filter with **`service: "exercises-postgres"`**.
+
+The standalone **`scripts/run.ps1`** / **`run.sh`** Podman scripts do **not** enable JSON logging — use root Compose for the ELK path.

@@ -1,5 +1,5 @@
 # Podman: from repo root — podman compose up --build   (or: docker compose up --build)
-# Starts postgres + java + python + rust + react-node + Grafana + ELK + Filebeat + Prometheus (app JSON logs -> Filebeat -> Logstash -> ES; Grafana loads exercises dashboard JSON).
+# Starts postgres + java + python + rust + react-node + Grafana + ELK + Filebeat + Prometheus (app + Postgres JSON logs -> Filebeat -> Logstash -> ES; Grafana loads exercises dashboard JSON).
 # React Node (React + Express stack probes): http://127.0.0.1:5174/
 # To skip ELK only (lighter): podman compose up --build postgres java python rust react-node grafana prometheus
 # Do not also run elk/docker-compose.yml or grafana/docker-compose.yml on the same host (duplicate ports).
@@ -16,8 +16,30 @@ services:
       POSTGRES_DB: demo
     ports:
       - "5432:5432"
+    # JSON logs -> ./postgres/logs -> Filebeat -> Logstash -> Elasticsearch (see postgres/README.md).
+    command:
+      - postgres
+      - -c
+      - logging_collector=on
+      - -c
+      - log_directory=/var/log/postgresql
+      - -c
+      - log_filename=postgresql-%Y-%m-%d
+      - -c
+      - log_destination=jsonlog
+      - -c
+      - log_rotation_age=1d
+      - -c
+      - log_connections=on
+      - -c
+      - log_disconnections=on
+      - -c
+      - log_statement=mod
+      - -c
+      - log_duration=on
     volumes:
       - exercises_pg_data:/var/lib/postgresql/data
+      - ./postgres/logs:/var/log/postgresql
 
   java:
     build:
@@ -177,18 +199,20 @@ services:
     volumes:
       - ./elk/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
 
-  # Ships Java / Python / Rust JSON logs -> Logstash :5044. See elk/README.md
+  # Ships Java / Python / Rust / Postgres JSON logs -> Logstash :5044. See elk/README.md
   filebeat:
     image: docker.elastic.co/beats/filebeat:8.15.5
     user: root
     networks: [exercises]
     depends_on:
       - logstash
+      - postgres
       - java
       - python
       - rust
     volumes:
       - ./elk/filebeat/filebeat-compose.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./postgres/logs:/var/log/postgresql:ro
       - ./java/logs:/var/log/java:ro
       - ./python/logs:/var/log/python:ro
       - ./rust/logs:/var/log/rust:ro
