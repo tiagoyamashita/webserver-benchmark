@@ -190,6 +190,34 @@
           return '<span class="status-err">' + err.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</span>';
         }
 
+        function readStackPingJson(res) {
+          return res.text().then(function (text) {
+            var trimmed = text ? text.trim() : '';
+            if (!trimmed) {
+              return {
+                ok: res.ok,
+                data: {
+                  ok: false,
+                  error: res.ok
+                    ? 'Empty response from server'
+                    : 'HTTP ' + res.status + ' (empty body — server may be restarting)',
+                },
+              };
+            }
+            try {
+              return { ok: res.ok, data: JSON.parse(trimmed) };
+            } catch (e) {
+              return {
+                ok: false,
+                data: {
+                  ok: false,
+                  error: 'Invalid JSON from /stack-ping (HTTP ' + res.status + ')',
+                },
+              };
+            }
+          });
+        }
+
         function ping(target) {
           setRowStatus(target, '<span class="status-pending">Pinging…</span>');
           statusEl.textContent = 'Requesting ' + target + '…';
@@ -198,11 +226,7 @@
             credentials: 'same-origin',
             cache: 'no-store'
           })
-            .then(function (res) {
-              return res.json().then(function (data) {
-                return { ok: res.ok, data: data };
-              });
-            })
+            .then(readStackPingJson)
             .then(function (r) {
               var d = r.data || {};
               setRowStatus(target, formatJsonRow(r, d));

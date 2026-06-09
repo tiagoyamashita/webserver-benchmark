@@ -270,7 +270,7 @@ pub fn build_router(state: AppState) -> Router {
         .route("/health", get(health))
         .route("/api/observability/sample-log", get(observability_sample_log))
         .route("/welcome", get(welcome_redirect))
-        .route("/stack-ping/{target}", get(crate::stack_ping::stack_ping_handler))
+        .route("/stack-ping/:target", get(crate::stack_ping::stack_ping_handler))
         .route("/tests/run", post(run_tests_post))
         .route("/tests/source", get(test_source))
         .route("/api/items", get(list_items).post(create_item))
