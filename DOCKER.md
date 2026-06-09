@@ -11,13 +11,34 @@ Build contexts live next to each stack:
 From the **repository root** (use **Podman** if `docker` is not installed):
 
 ```bash
-podman compose up --build
+podman compose up -d --build
 ```
 
-**Hot reload (dev):** overlay **`docker-compose.dev.yml`** so Java runs **`spring-boot:run`**, Python uses **`FLASK_DEBUG=1`**, Rust uses **`cargo-watch`** (`rust/Dockerfile.dev`), and **react-node** runs Express + Vite on **`http://127.0.0.1:5174/`**. Example:
+Compose is split so you can **restart apps without stopping observability**:
+
+| File | Services |
+|------|----------|
+| **`docker-compose.apps.yml`** | postgres, java, python, rust, react-node |
+| **`docker-compose.observability.yml`** | prometheus, grafana, elasticsearch, logstash, kibana, filebeat |
+| **`docker-compose.yml`** | includes both (full stack) |
 
 ```bash
-podman compose -f docker-compose.yml -f docker-compose.dev.yml up --build java python rust react-node
+# Observability once (Grafana, Prometheus, ELK)
+podman compose -f docker-compose.observability.yml up -d
+
+# (Re)start / rebuild apps only
+podman compose -f docker-compose.apps.yml up -d --build
+
+# Restart one app
+podman compose -f docker-compose.apps.yml restart java rust
+```
+
+All files share the **`exercises`** network (same Compose project name from the repo directory).
+
+**Hot reload (dev):** overlay **`docker-compose.dev.yml`** on the **apps** file so Java runs **`spring-boot:run`**, Python uses **`FLASK_DEBUG=1`**, Rust uses **`cargo-watch`**, and **react-node** runs Express + Vite on **`http://127.0.0.1:5174/`**:
+
+```bash
+podman compose -f docker-compose.apps.yml -f docker-compose.dev.yml up -d --build
 ```
 
 Production **`rust/Dockerfile`** uses **`rust:1.86-bookworm`** (lockfile ICU crates need **rustc ≥ 1.86**; **`rust:1.85-*`** fails at build time).
@@ -66,7 +87,7 @@ The **`unknown shorthand flag: 'd' in -d`** message usually means **`compose` wa
 - **`java`** — exposes **`/actuator/prometheus`** (Spring Boot Actuator + Micrometer) for **`prometheus`**.
 - **`prometheus`** — metrics TSDB and UI on **9090**; config in **`prometheus/prometheus.yml`** (scrapes **Java**, **Python**, and **Rust**). **Grafana** uses this datasource (provisioned).
 - **`grafana`** — dashboards on **3000**; provisioning under **`grafana/`**. A starter dashboard **`Exercises — Java, Python & Rust`** is loaded from **`grafana/dashboards/exercises-java-python-rust.json`** (folder **Exercises**). **`GF_SECURITY_ALLOW_EMBEDDING=true`** so it can load inside an **`<iframe>`** (dev-oriented; tighten for production).
-- **`elasticsearch`** / **`logstash`** / **`kibana`** — ELK (lab defaults; security off). Started with the root compose file; config under **`elk/`**. **Heavy on RAM** — to skip ELK only: `podman compose up --build postgres java python rust grafana prometheus`.
+- **`elasticsearch`** / **`logstash`** / **`kibana`** — ELK (lab defaults; security off). In **`docker-compose.observability.yml`**; config under **`elk/`**. **Heavy on RAM** — run apps without observability: `podman compose -f docker-compose.apps.yml up -d --build`.
 
 **Metrics vs ELK:** **Prometheus + Grafana** handle **metrics** (e.g. Python/Rust **`/metrics`**, Java **`/actuator/prometheus`**). **ELK** handles **logs** (Filebeat → Logstash → Elasticsearch → Kibana). Prometheus does not replace ELK; wire logs separately if you want both.
 

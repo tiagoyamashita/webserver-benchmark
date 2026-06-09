@@ -1,8 +1,12 @@
-# Hot-reload dev overlay — use with the main compose file:
+# Hot-reload dev overlay — apps only (pair with docker-compose.apps.yml):
 #
-#   podman compose -f docker-compose.yml -f docker-compose.dev.yml up --build postgres java python rust react-node
+#   podman compose -f docker-compose.apps.yml -f docker-compose.dev.yml up -d --build
 #
-# Lighter (no ELK): add grafana prometheus to the command above as needed.
+# Full stack (apps dev + observability prod images):
+#   podman compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+#
+# Observability only (leave running while restarting apps):
+#   podman compose -f docker-compose.observability.yml up -d
 #
 # Java: spring-boot:run (first start may download Maven deps into maven-cache; if compile fails, podman volume rm exercises_maven-cache and up again).
 # Python: FLASK_DEBUG=1 reloader when ./python changes.

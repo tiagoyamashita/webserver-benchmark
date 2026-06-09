@@ -37,19 +37,19 @@ _Diagrams use [Mermaid](https://mermaid.js.org/); they render on GitHub. In othe
 **Normal / à la carte:** Run stacks locally the way each folder documents (toolchains, tests, dev servers), or build **container images** and run **one, two, or all three** with **Podman** or **Docker**. From the repo root:
 
 ```bash
-podman compose up --build
+podman compose up -d --build
 ```
 
 If you use Docker Engine instead of Podman:
 
 ```bash
-docker compose up --build
+docker compose up -d --build
 ```
 
-That starts **Postgres**, **Java**, **Python**, **Rust**, **react-node**, **Prometheus**, **Grafana**, and **ELK** (Elasticsearch, Logstash, Kibana) together. **React Node** (stack URL probes): `http://127.0.0.1:5174/`. To skip ELK only (save RAM):
+That starts the full stack. Compose is split into **`docker-compose.apps.yml`** (Postgres + Java + Python + Rust + react-node) and **`docker-compose.observability.yml`** (Prometheus, Grafana, ELK, Filebeat) so you can restart apps while leaving observability up — see [DOCKER.md](DOCKER.md). **React Node** (stack URL probes): `http://127.0.0.1:5174/`. Apps only (save RAM):
 
 ```bash
-podman compose up --build postgres java python rust react-node grafana prometheus
+podman compose -f docker-compose.apps.yml up -d --build
 ```
 
 You can also bring up a subset of services. Images and ports are summarized in [DOCKER.md](DOCKER.md).

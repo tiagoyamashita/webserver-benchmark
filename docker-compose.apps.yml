@@ -1,0 +1,177 @@
+# Application stack — postgres + java + python + rust + react-node.
+#
+# Start / restart apps only (observability can keep running):
+#   podman compose -f docker-compose.apps.yml up -d --build
+#   podman compose -f docker-compose.apps.yml restart java rust
+#   podman compose -f docker-compose.apps.yml down
+#
+# Dev overlay: add -f docker-compose.dev.yml
+services:
+  postgres:
+    image: docker.io/library/postgres:16
+    networks: [exercises]
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: demo
+    ports:
+      - "5432:5432"
+    command:
+      - postgres
+      - -c
+      - logging_collector=on
+      - -c
+      - log_directory=/var/log/postgresql
+      - -c
+      - log_filename=postgresql-%Y-%m-%d
+      - -c
+      - log_destination=jsonlog
+      - -c
+      - log_rotation_age=1d
+      - -c
+      - log_connections=on
+      - -c
+      - log_disconnections=on
+      - -c
+      - log_statement=mod
+      - -c
+      - log_duration=on
+    volumes:
+      - exercises_pg_data:/var/lib/postgresql/data
+      - ./postgres/logs:/var/log/postgresql
+
+  java:
+    build:
+      context: ./java
+      dockerfile: Dockerfile
+      args:
+        SKIP_TESTS: "true"
+        CACHE_BUST: ${CACHE_BUST:-1}
+    networks: [exercises]
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: postgres,observability
+      LOG_PATH: /app/logs
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: demo
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      APP_STACK_RUST_BASE_URL: http://rust:8082
+      APP_STACK_PYTHON_BASE_URL: http://python:5000
+      APP_STACK_PROMETHEUS_BASE_URL: http://prometheus:9090
+      APP_STACK_GRAFANA_BASE_URL: http://grafana:3000
+      APP_STACK_ELASTICSEARCH_BASE_URL: http://elasticsearch:9200
+      APP_STACK_KIBANA_BASE_URL: http://kibana:5601
+      APP_STACK_REACT_NODE_BASE_URL: http://react-node:5174
+    volumes:
+      - ./java/logs:/app/logs
+    depends_on:
+      - postgres
+
+  python:
+    build:
+      context: ./python
+      dockerfile: Dockerfile
+    networks: [exercises]
+    ports:
+      - "5000:5000"
+    environment:
+      FLASK_RUN_HOST: "0.0.0.0"
+      FLASK_RUN_PORT: "5000"
+      EXERCISES_PROJECT_ROOT: /app
+      EXERCISES_OBSERVABILITY: "1"
+      LOG_PATH: /app/logs
+      APP_STACK_JAVA_BASE_URL: http://java:8080
+      APP_STACK_RUST_BASE_URL: http://rust:8082
+      APP_STACK_PROMETHEUS_BASE_URL: http://prometheus:9090
+      APP_STACK_GRAFANA_BASE_URL: http://grafana:3000
+      APP_STACK_ELASTICSEARCH_BASE_URL: http://elasticsearch:9200
+      APP_STACK_KIBANA_BASE_URL: http://kibana:5601
+      APP_STACK_REACT_NODE_BASE_URL: http://react-node:5174
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: demo
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+    volumes:
+      - ./python/logs:/app/logs
+    depends_on:
+      - postgres
+      - java
+
+  rust:
+    build:
+      context: ./rust
+      dockerfile: Dockerfile
+    networks: [exercises]
+    ports:
+      - "8082:8082"
+    environment:
+      EXERCISES_WEB_HOST: "0.0.0.0"
+      EXERCISES_WEB_PORT: "8082"
+      EXERCISES_RUST_ROOT: /app
+      EXERCISES_OBSERVABILITY: "1"
+      LOG_PATH: /app/logs
+      EXERCISES_JAVA_BASE_URL: http://java:8080
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: demo
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+    volumes:
+      - ./rust/logs:/app/logs
+    depends_on:
+      - postgres
+      - java
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8082/health"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  react-node:
+    build:
+      context: ./react-node
+      dockerfile: Dockerfile
+    networks: [exercises]
+    ports:
+      - "5174:5174"
+    environment:
+      NODE_ENV: production
+      PORT: "5174"
+      PROBE_JAVA_URL: http://java:8080
+      PROBE_RUST_URL: http://rust:8082
+      PROBE_PYTHON_URL: http://python:5000
+      PROBE_PROMETHEUS_URL: http://prometheus:9090
+      PROBE_GRAFANA_URL: http://grafana:3000
+      PROBE_ELASTICSEARCH_URL: http://elasticsearch:9200
+      PROBE_KIBANA_URL: http://kibana:5601
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: demo
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+    depends_on:
+      - postgres
+      - java
+      - python
+      - rust
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5174/api/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+networks:
+  exercises:
+    name: exercises
+    driver: bridge
+
+volumes:
+  exercises_pg_data:
