@@ -12,6 +12,6 @@
   <description>Aggregator — run Maven from this repo root</description>
 
   <modules>
-    <module>java</module>
+    <module>apps/java</module>
   </modules>
 </project>

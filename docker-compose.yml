@@ -9,7 +9,7 @@
 #
 # Dev hot-reload: add -f docker-compose.dev.yml to the apps command (or all three files).
 #
-# Do not also run elk/docker-compose.yml or grafana/docker-compose.yml on the same host (duplicate ports).
+# Do not also run devops/elk/docker-compose.yml or devops/grafana/docker-compose.yml on the same host (duplicate ports).
 
 include:
   - docker-compose.apps.yml

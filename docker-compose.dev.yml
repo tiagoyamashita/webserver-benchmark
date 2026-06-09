@@ -9,25 +9,25 @@
 #   podman compose -f docker-compose.observability.yml up -d
 #
 # Java: spring-boot:run (first start may download Maven deps into maven-cache; if compile fails, podman volume rm exercises_maven-cache and up again).
-# Python: FLASK_DEBUG=1 reloader when ./python changes.
+# Python: FLASK_DEBUG=1 reloader when ./apps/python changes.
 # Rust: cargo-watch rebuilds on src/ and templates/ (first start compiles; can take a few minutes).
 # React Node: Express + Vite middleware on http://127.0.0.1:5174
 # react-node dev entrypoint runs npm ci when package-lock.json changes (named node_modules volume).
 services:
   java:
     build:
-      context: ./java
+      context: ./apps/java
       dockerfile: Dockerfile.dev
     volumes:
-      - ./java:/workspace
+      - ./apps/java:/workspace
       - maven-cache:/root/.m2
 
   python:
     build:
-      context: ./python
+      context: ./apps/python
       dockerfile: Dockerfile
     volumes:
-      - ./python:/app
+      - ./apps/python:/app
     environment:
       FLASK_ENV: development
       FLASK_DEBUG: "1"
@@ -48,7 +48,7 @@ services:
 
   rust:
     build:
-      context: ./rust
+      context: ./apps/rust
       dockerfile: Dockerfile.dev
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8082/health"]
@@ -57,7 +57,7 @@ services:
       retries: 12
       start_period: 300s
     volumes:
-      - ./rust:/app
+      - ./apps/rust:/app
       - rust-cargo-registry:/usr/local/cargo/registry
       - rust-target:/app/target
     environment:
@@ -83,10 +83,10 @@ services:
 
   react-node:
     build:
-      context: ./react-node
+      context: ./apps/react-node
       dockerfile: Dockerfile.dev
     volumes:
-      - ./react-node:/app
+      - ./apps/react-node:/app
       - react-node-node-modules:/app/node_modules
     ports: !override
       - "5174:5174"

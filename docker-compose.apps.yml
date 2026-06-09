@@ -38,11 +38,11 @@ services:
       - log_duration=on
     volumes:
       - exercises_pg_data:/var/lib/postgresql/data
-      - ./postgres/logs:/var/log/postgresql
+      - ./apps/postgres/logs:/var/log/postgresql
 
   java:
     build:
-      context: ./java
+      context: ./apps/java
       dockerfile: Dockerfile
       args:
         SKIP_TESTS: "true"
@@ -66,13 +66,13 @@ services:
       APP_STACK_KIBANA_BASE_URL: http://kibana:5601
       APP_STACK_REACT_NODE_BASE_URL: http://react-node:5174
     volumes:
-      - ./java/logs:/app/logs
+      - ./apps/java/logs:/app/logs
     depends_on:
       - postgres
 
   python:
     build:
-      context: ./python
+      context: ./apps/python
       dockerfile: Dockerfile
     networks: [exercises]
     ports:
@@ -96,14 +96,14 @@ services:
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
     volumes:
-      - ./python/logs:/app/logs
+      - ./apps/python/logs:/app/logs
     depends_on:
       - postgres
       - java
 
   rust:
     build:
-      context: ./rust
+      context: ./apps/rust
       dockerfile: Dockerfile
     networks: [exercises]
     ports:
@@ -121,7 +121,7 @@ services:
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
     volumes:
-      - ./rust/logs:/app/logs
+      - ./apps/rust/logs:/app/logs
     depends_on:
       - postgres
       - java
@@ -135,7 +135,7 @@ services:
 
   react-node:
     build:
-      context: ./react-node
+      context: ./apps/react-node
       dockerfile: Dockerfile
     networks: [exercises]
     ports:

@@ -25,6 +25,9 @@ public class ProjectLayout {
       }
     }
     Path cwd = Path.of("").toAbsolutePath().normalize();
+    if (Files.isRegularFile(cwd.resolve("apps/java/pom.xml"))) {
+      return cwd.resolve("apps/java");
+    }
     if (Files.isRegularFile(cwd.resolve("java/pom.xml"))) {
       return cwd.resolve("java");
     }

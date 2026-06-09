@@ -32,7 +32,7 @@ services:
     ports:
       - "5044:5044"
     volumes:
-      - ./elk/logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ./devops/elk/logstash/pipeline:/usr/share/logstash/pipeline:ro
     environment:
       LS_JAVA_OPTS: "-Xms256m -Xmx256m"
 
@@ -44,7 +44,7 @@ services:
     ports:
       - "5601:5601"
     volumes:
-      - ./elk/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+      - ./devops/elk/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
 
   filebeat:
     image: docker.elastic.co/beats/filebeat:8.15.5
@@ -53,11 +53,11 @@ services:
     depends_on:
       - logstash
     volumes:
-      - ./elk/filebeat/filebeat-compose.yml:/usr/share/filebeat/filebeat.yml:ro
-      - ./postgres/logs:/var/log/postgresql:ro
-      - ./java/logs:/var/log/java:ro
-      - ./python/logs:/var/log/python:ro
-      - ./rust/logs:/var/log/rust:ro
+      - ./devops/elk/filebeat/filebeat-compose.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./apps/postgres/logs:/var/log/postgresql:ro
+      - ./apps/java/logs:/var/log/java:ro
+      - ./apps/python/logs:/var/log/python:ro
+      - ./apps/rust/logs:/var/log/rust:ro
     command: ["filebeat", "-e", "-strict.perms=false"]
     restart: unless-stopped
 
@@ -67,7 +67,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./devops/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
@@ -93,8 +93,8 @@ services:
       GF_SECURITY_ALLOW_EMBEDDING: "true"
     volumes:
       - exercises_grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/dashboards:/var/lib/grafana/dashboards
+      - ./devops/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./devops/grafana/dashboards:/var/lib/grafana/dashboards
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3000/api/health || exit 1"]
       interval: 15s
