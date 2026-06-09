@@ -13,7 +13,7 @@ public class DashboardMetaController {
         "title", "Java APP",
         "template", "index.html",
         "path", "/",
-        "version", 4,
-        "features", "tabs,connectivity-ping,ping-all,user-create,rust-item-relay");
+        "version", 5,
+        "features", "sidebar,connectivity-ping,ping-all,user-create,user-list,rust-item-relay");
   }
 }

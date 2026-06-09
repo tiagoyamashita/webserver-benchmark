@@ -77,6 +77,48 @@ Use **Docker Engine** the same way with `docker compose` instead of `podman comp
 
 **apps** = `docker-compose.apps.yml` · **observability** = `docker-compose.observability.yml`. Restart apps without touching Grafana / ELK: `podman compose -f docker-compose.apps.yml restart java rust`.
 
+### Postgres logs in Kibana
+
+Postgres log shipping to ELK is **already configured** — no extra Postgres plugin. Compose Postgres writes **JSON** log files; **Filebeat** tails them and sends them through **Logstash** into **Elasticsearch**; you search them in **Kibana**.
+
+```
+Postgres → apps/postgres/logs/postgresql-*.json → Filebeat → Logstash → Elasticsearch → Kibana
+```
+
+**1. Start both stacks** (same Compose project / `exercises` network):
+
+```bash
+podman compose -f docker-compose.observability.yml up -d
+podman compose -f docker-compose.apps.yml up -d
+```
+
+**2. Generate DB activity** (logs appear only when Postgres does work): use the Java **Create user** / **List users** actions, call `/api/items`, connect with `psql`, etc.
+
+**3. Confirm log files on the host:**
+
+```powershell
+dir apps\postgres\logs
+```
+
+Expect files like `postgresql-YYYY-MM-DD.json`. The standalone `apps/postgres/scripts/run.ps1` path does **not** enable this JSON logging — use Compose Postgres.
+
+**4. Open Kibana** at **http://127.0.0.1:5601** → **Discover**. Create or use a data view with index pattern **`logstash-*`** and timestamp field **`@timestamp`**.
+
+**5. Filter Postgres lines:**
+
+```
+service: "exercises-postgres"
+```
+
+**Quick checks**
+
+| Check | Command |
+|-------|---------|
+| Indices exist | `curl -s http://127.0.0.1:9200/_cat/indices?v` (look for `logstash-YYYY.MM.dd`) |
+| Filebeat healthy | `podman compose -f docker-compose.observability.yml logs filebeat --tail 30` |
+
+Config: Postgres logging in **`docker-compose.apps.yml`**; Filebeat input in **`devops/elk/filebeat/filebeat-compose.yml`**; mounts in **`docker-compose.observability.yml`**. More detail: [apps/postgres/README.md](apps/postgres/README.md#observability-elk--filebeat), [devops/elk/README.md](devops/elk/README.md).
+
 ## How to run or deploy them
 
 **Normal / à la carte:** Run stacks locally the way each folder documents (toolchains, tests, dev servers), or build **container images** and run **one, two, or all** with **Podman** or **Docker**. From the repo root:

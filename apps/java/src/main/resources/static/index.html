@@ -12,8 +12,8 @@
         --muted: #a3a3a8;
         --border: #3f3f46;
         --th-bg: #27272a;
+        --nav-bg: #1c1c1f;
         --code-bg: #27272a;
-        --code-text: #e4e4e7;
         --ok: #4ade80;
         --warn: #fbbf24;
         --err: #f87171;
@@ -26,49 +26,99 @@
           --muted: #555;
           --border: #ccc;
           --th-bg: #ececec;
+          --nav-bg: #e8e8e8;
           --code-bg: #eee;
-          --code-text: #222;
           --ok: #0d6d0d;
           --warn: #b45309;
           --err: #b91c1c;
         }
       }
+      * { box-sizing: border-box; }
       body {
         font-family: system-ui, -apple-system, sans-serif;
-        margin: 1.5rem;
-        max-width: min(52rem, calc(100vw - 3rem));
+        margin: 1rem;
+        max-width: min(62rem, calc(100vw - 2rem));
         background: var(--bg);
         color: var(--text);
       }
-      h1 { font-size: 1.5rem; font-weight: 700; margin: 0 0 0.35rem; letter-spacing: 0.02em; }
-      .subtitle { color: var(--muted); font-size: 0.9rem; margin: 0 0 1.25rem; line-height: 1.45; }
-      .tabs {
+      h1 { font-size: 1.5rem; font-weight: 700; margin: 0 0 0.35rem; }
+      .page-subtitle { color: var(--muted); font-size: 0.9rem; margin: 0 0 1rem; line-height: 1.45; }
+      .dashboard {
         display: flex;
-        flex-wrap: wrap;
-        gap: 0.35rem;
-        margin: 0 0 1rem;
-        border-bottom: 1px solid var(--border);
-        padding-bottom: 0.35rem;
+        align-items: stretch;
+        min-height: 20rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+        background: rgba(128, 128, 128, 0.04);
       }
-      .tab-btn {
+      .sidebar {
+        flex: 0 0 13.5rem;
+        width: 13.5rem;
+        min-width: 13.5rem;
+        padding: 0.75rem 0.6rem;
+        border-right: 1px solid var(--border);
+        background: var(--nav-bg);
+      }
+      .sidebar-title {
+        margin: 0 0 0.6rem;
+        padding: 0 0.5rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .sidebar-btn {
+        display: block;
+        width: 100%;
         cursor: pointer;
-        padding: 0.45rem 0.85rem;
+        text-align: left;
+        padding: 0.55rem 0.65rem;
+        margin-bottom: 0.2rem;
         font-size: 0.88rem;
         font-weight: 600;
-        border-radius: 6px 6px 0 0;
+        border-radius: 6px;
         border: 1px solid transparent;
-        border-bottom: none;
         background: transparent;
         color: var(--muted);
       }
-      .tab-btn:hover { color: var(--text); background: rgba(128, 128, 128, 0.08); }
-      .tab-btn[aria-selected="true"] {
+      .sidebar-btn:hover {
         color: var(--text);
-        background: rgba(128, 128, 128, 0.12);
+        background: rgba(128, 128, 128, 0.15);
+      }
+      .sidebar-btn[aria-current="page"] {
+        color: var(--text);
+        background: var(--bg);
         border-color: var(--border);
       }
-      .tab-panel { display: none; }
-      .tab-panel[aria-hidden="false"] { display: block; }
+      .sidebar-section {
+        margin: 0.85rem 0 0.35rem;
+        padding: 0 0.5rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .sidebar-btn.sub {
+        padding-left: 1.1rem;
+        font-size: 0.84rem;
+        font-weight: 500;
+      }
+      .main-panel {
+        flex: 1 1 auto;
+        min-width: 0;
+        padding: 1rem 1.15rem;
+      }
+      .view-panel { display: none; }
+      .view-panel[aria-hidden="false"] { display: block; }
+      .panel-lead {
+        margin: 0 0 1rem;
+        font-size: 0.88rem;
+        color: var(--muted);
+        line-height: 1.45;
+      }
       .toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 1rem; }
       .btn {
         cursor: pointer;
@@ -84,9 +134,8 @@
       .btn.primary { border-color: var(--ok); color: var(--ok); }
       .connectivity {
         border: 1px solid var(--border);
-        border-radius: 10px;
+        border-radius: 8px;
         overflow: hidden;
-        background: rgba(128, 128, 128, 0.05);
       }
       table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
       th, td { padding: 0.5rem 0.65rem; text-align: left; border-bottom: 1px solid var(--border); }
@@ -98,25 +147,24 @@
       .status-warn { color: var(--warn); font-weight: 600; }
       .status-err { color: var(--err); font-weight: 600; }
       .url-hint { font-size: 0.75rem; color: var(--muted); display: block; margin-top: 0.15rem; }
-      .action-panel {
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 1rem 1.1rem;
-        background: rgba(128, 128, 128, 0.05);
-      }
-      .action-panel + .action-panel { margin-top: 1rem; }
-      .action-panel h2 {
-        font-size: 0.95rem;
+      .form-heading {
+        font-size: 1rem;
         font-weight: 600;
-        margin: 0 0 0.65rem;
+        margin: 0 0 0.5rem;
       }
-      .action-panel p.hint {
+      .form-hint {
         margin: 0 0 0.85rem;
         font-size: 0.85rem;
         color: var(--muted);
         line-height: 1.45;
       }
-      .field-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.65rem; align-items: center; }
+      .field-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 0.65rem;
+        align-items: center;
+      }
       .field-row label { font-size: 0.85rem; min-width: 4.5rem; color: var(--muted); }
       .field-row input {
         flex: 1 1 12rem;
@@ -135,144 +183,155 @@
         white-space: pre-wrap;
         word-break: break-word;
       }
-      .visually-hidden {
-        position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-        overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+      @media (max-width: 36rem) {
+        .dashboard { flex-direction: column; }
+        .sidebar {
+          width: 100%;
+          min-width: 0;
+          flex: none;
+          border-right: none;
+          border-bottom: 1px solid var(--border);
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.25rem;
+          align-items: center;
+        }
+        .sidebar-title, .sidebar-section { width: 100%; }
+        .sidebar-btn { width: auto; flex: 1 1 auto; }
+        .sidebar-btn.sub { padding-left: 0.65rem; }
       }
     </style>
   </head>
   <body>
     <h1>Java APP</h1>
-    <p class="subtitle">Dashboard tabs for stack connectivity checks and database actions.</p>
+    <p class="page-subtitle">Use the menu on the left to open connectivity checks or action forms.</p>
 
-    <div class="tabs" role="tablist" aria-label="Dashboard sections">
-      <button type="button" class="tab-btn" role="tab" id="tab-connectivity" aria-selected="true" aria-controls="panel-connectivity">Connectivity</button>
-      <button type="button" class="tab-btn" role="tab" id="tab-actions" aria-selected="false" aria-controls="panel-actions">Actions</button>
-    </div>
+    <div class="dashboard">
+      <nav class="sidebar" aria-label="Dashboard menu">
+        <p class="sidebar-title">Menu</p>
+        <button type="button" class="sidebar-btn" id="nav-connectivity" aria-current="page" data-view="view-connectivity">Connectivity</button>
+        <p class="sidebar-section">Actions</p>
+        <button type="button" class="sidebar-btn sub" id="nav-create-user" data-view="view-create-user">Create user</button>
+        <button type="button" class="sidebar-btn sub" id="nav-list-users" data-view="view-list-users">List users</button>
+        <button type="button" class="sidebar-btn sub" id="nav-rust-relay" data-view="view-rust-relay">Rust item relay</button>
+      </nav>
 
-    <div id="panel-connectivity" class="tab-panel" role="tabpanel" aria-labelledby="tab-connectivity" aria-hidden="false">
-      <p class="subtitle" style="margin-top: 0;">
-        Each <strong>Ping</strong> runs an outbound <code>GET</code> from this Java server and shows the HTTP status (or error if unreachable).
-      </p>
+      <div class="main-panel">
+        <section id="view-connectivity" class="view-panel" aria-hidden="false">
+          <p class="panel-lead">
+            Each <strong>Ping</strong> runs an outbound <code>GET</code> from this Java server and shows the HTTP status (or error if unreachable).
+          </p>
+          <div class="toolbar">
+            <button type="button" class="btn primary" id="ping-all">Ping all services</button>
+          </div>
+          <div class="connectivity">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Service</th>
+                  <th scope="col">Test</th>
+                  <th scope="col">Response</th>
+                </tr>
+              </thead>
+              <tbody id="connectivity-rows">
+                <tr data-target="postgres"><td>Postgres</td><td><button type="button" class="btn ping-btn" data-target="postgres">Ping</button></td><td class="status-cell"><span class="status-pending">—</span></td></tr>
+                <tr data-target="rust"><td>Rust</td><td><button type="button" class="btn ping-btn" data-target="rust">Ping</button></td><td class="status-cell"><span class="status-pending">—</span></td></tr>
+                <tr data-target="python"><td>Python</td><td><button type="button" class="btn ping-btn" data-target="python">Ping</button></td><td class="status-cell"><span class="status-pending">—</span></td></tr>
+                <tr data-target="prometheus"><td>Prometheus</td><td><button type="button" class="btn ping-btn" data-target="prometheus">Ping</button></td><td class="status-cell"><span class="status-pending">—</span></td></tr>
+                <tr data-target="grafana"><td>Grafana</td><td><button type="button" class="btn ping-btn" data-target="grafana">Ping</button></td><td class="status-cell"><span class="status-pending">—</span></td></tr>
+                <tr data-target="elasticsearch"><td>Elasticsearch</td><td><button type="button" class="btn ping-btn" data-target="elasticsearch">Ping</button></td><td class="status-cell"><span class="status-pending">—</span></td></tr>
+                <tr data-target="kibana"><td>Kibana</td><td><button type="button" class="btn ping-btn" data-target="kibana">Ping</button></td><td class="status-cell"><span class="status-pending">—</span></td></tr>
+                <tr data-target="react-node"><td>React Node</td><td><button type="button" class="btn ping-btn" data-target="react-node">Ping</button></td><td class="status-cell"><span class="status-pending">—</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
 
-      <div class="toolbar">
-        <button type="button" class="btn primary" id="ping-all">Ping all services</button>
+        <section id="view-create-user" class="view-panel" aria-hidden="true">
+          <h2 class="form-heading">Create user</h2>
+          <p class="form-hint">Persists a row to the shared PostgreSQL <code>users</code> table via <code>POST /api/users</code>.</p>
+          <form id="create-user-form">
+            <div class="field-row">
+              <label for="user-name">Name</label>
+              <input type="text" id="user-name" name="name" required autocomplete="name" placeholder="Jane Doe"/>
+            </div>
+            <div class="field-row">
+              <label for="user-email">Email</label>
+              <input type="email" id="user-email" name="email" required autocomplete="email" placeholder="jane@example.com"/>
+            </div>
+            <button type="submit" class="btn primary">Save user</button>
+          </form>
+          <pre id="create-user-result" class="result-box" aria-live="polite"></pre>
+        </section>
+
+        <section id="view-list-users" class="view-panel" aria-hidden="true">
+          <h2 class="form-heading">Registered users</h2>
+          <p class="form-hint">Loads all rows from the <code>users</code> table via <code>GET /api/users</code>.</p>
+          <div class="toolbar">
+            <button type="button" class="btn primary" id="refresh-users">Refresh list</button>
+          </div>
+          <div class="connectivity">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">ID</th>
+                  <th scope="col">Name</th>
+                  <th scope="col">Email</th>
+                  <th scope="col">Created</th>
+                </tr>
+              </thead>
+              <tbody id="users-table-body">
+                <tr id="users-empty-row">
+                  <td colspan="4" class="status-pending">Open this view or click Refresh to load users.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <pre id="list-users-error" class="result-box status-err" aria-live="polite"></pre>
+        </section>
+
+        <section id="view-rust-relay" class="view-panel" aria-hidden="true">
+          <h2 class="form-heading">Rust item relay</h2>
+          <p class="form-hint">Calls Rust <code>POST /api/items</code> so the item is inserted into PostgreSQL from the Rust service.</p>
+          <div class="field-row">
+            <label for="rust-item-name">Item</label>
+            <input type="text" id="rust-item-name" placeholder="Item name"/>
+            <button type="button" class="btn" id="rust-item-add">Add via Rust</button>
+          </div>
+          <pre id="rust-item-result" class="result-box"></pre>
+        </section>
       </div>
-
-      <section class="connectivity" aria-labelledby="connectivity-heading">
-        <h2 id="connectivity-heading" class="visually-hidden">Service connectivity</h2>
-        <table>
-          <thead>
-            <tr>
-              <th scope="col">Service</th>
-              <th scope="col">Test</th>
-              <th scope="col">Response</th>
-            </tr>
-          </thead>
-          <tbody id="connectivity-rows">
-            <tr data-target="postgres" data-label="Postgres">
-              <td>Postgres</td>
-              <td><button type="button" class="btn ping-btn" data-target="postgres">Ping</button></td>
-              <td class="status-cell"><span class="status-pending">—</span></td>
-            </tr>
-            <tr data-target="rust" data-label="Rust">
-              <td>Rust</td>
-              <td><button type="button" class="btn ping-btn" data-target="rust">Ping</button></td>
-              <td class="status-cell"><span class="status-pending">—</span></td>
-            </tr>
-            <tr data-target="python" data-label="Python">
-              <td>Python</td>
-              <td><button type="button" class="btn ping-btn" data-target="python">Ping</button></td>
-              <td class="status-cell"><span class="status-pending">—</span></td>
-            </tr>
-            <tr data-target="prometheus" data-label="Prometheus">
-              <td>Prometheus</td>
-              <td><button type="button" class="btn ping-btn" data-target="prometheus">Ping</button></td>
-              <td class="status-cell"><span class="status-pending">—</span></td>
-            </tr>
-            <tr data-target="grafana" data-label="Grafana">
-              <td>Grafana</td>
-              <td><button type="button" class="btn ping-btn" data-target="grafana">Ping</button></td>
-              <td class="status-cell"><span class="status-pending">—</span></td>
-            </tr>
-            <tr data-target="elasticsearch" data-label="Elasticsearch">
-              <td>Elasticsearch</td>
-              <td><button type="button" class="btn ping-btn" data-target="elasticsearch">Ping</button></td>
-              <td class="status-cell"><span class="status-pending">—</span></td>
-            </tr>
-            <tr data-target="kibana" data-label="Kibana">
-              <td>Kibana</td>
-              <td><button type="button" class="btn ping-btn" data-target="kibana">Ping</button></td>
-              <td class="status-cell"><span class="status-pending">—</span></td>
-            </tr>
-            <tr data-target="react-node" data-label="React Node">
-              <td>React Node</td>
-              <td><button type="button" class="btn ping-btn" data-target="react-node">Ping</button></td>
-              <td class="status-cell"><span class="status-pending">—</span></td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-    </div>
-
-    <div id="panel-actions" class="tab-panel" role="tabpanel" aria-labelledby="tab-actions" aria-hidden="true">
-      <section class="action-panel" aria-labelledby="create-user-heading">
-        <h2 id="create-user-heading">Create user</h2>
-        <p class="hint">Persists a row to the shared PostgreSQL <code>users</code> table via <code>POST /api/users</code>.</p>
-        <form id="create-user-form">
-          <div class="field-row">
-            <label for="user-name">Name</label>
-            <input type="text" id="user-name" name="name" required autocomplete="name" placeholder="Jane Doe"/>
-          </div>
-          <div class="field-row">
-            <label for="user-email">Email</label>
-            <input type="email" id="user-email" name="email" required autocomplete="email" placeholder="jane@example.com"/>
-          </div>
-          <button type="submit" class="btn primary">Save user</button>
-        </form>
-        <pre id="create-user-result" class="result-box" aria-live="polite"></pre>
-      </section>
-
-      <section class="action-panel" aria-labelledby="rust-relay-heading">
-        <h2 id="rust-relay-heading">Rust item relay</h2>
-        <p class="hint">Calls Rust <code>POST /api/items</code> so the item is inserted into PostgreSQL from the Rust service.</p>
-        <div class="field-row">
-          <label for="rust-item-name">Item</label>
-          <input type="text" id="rust-item-name" placeholder="Item name"/>
-          <button type="button" class="btn" id="rust-item-add">Add via Rust</button>
-        </div>
-        <pre id="rust-item-result" class="result-box"></pre>
-      </section>
     </div>
 
     <script src="/js/reachability-parent.js"></script>
     <script>
       (function () {
-        var tabButtons = document.querySelectorAll(".tab-btn");
-        var tabPanels = document.querySelectorAll(".tab-panel");
+        var navButtons = document.querySelectorAll(".sidebar-btn[data-view]");
+        var viewPanels = document.querySelectorAll(".view-panel");
 
-        function activateTab(tabId) {
-          tabButtons.forEach(function (btn) {
-            var selected = btn.id === tabId;
-            btn.setAttribute("aria-selected", selected ? "true" : "false");
+        function showView(viewId, navId) {
+          viewPanels.forEach(function (panel) {
+            panel.setAttribute("aria-hidden", panel.id === viewId ? "false" : "true");
           });
-          tabPanels.forEach(function (panel) {
-            var btn = document.getElementById(tabId);
-            var show = btn && panel.id === btn.getAttribute("aria-controls");
-            panel.setAttribute("aria-hidden", show ? "false" : "true");
+          navButtons.forEach(function (btn) {
+            if (btn.id === navId) {
+              btn.setAttribute("aria-current", "page");
+            } else {
+              btn.removeAttribute("aria-current");
+            }
           });
+          if (viewId === "view-list-users") {
+            loadUsers();
+          }
         }
 
-        tabButtons.forEach(function (btn) {
+        navButtons.forEach(function (btn) {
           btn.addEventListener("click", function () {
-            activateTab(btn.id);
+            showView(btn.getAttribute("data-view"), btn.id);
           });
         });
 
-        var reach = function () {
-          return window.exerciseReachabilityParent;
-        };
-
+        var reach = function () { return window.exerciseReachabilityParent; };
         var routes = {
           postgres: "/dashboard/stack-ping/postgres",
           rust: "/dashboard/stack-ping/rust",
@@ -284,12 +343,8 @@
           "react-node": "/dashboard/stack-ping/react-node"
         };
 
-        function rowFor(target) {
-          return document.querySelector('tr[data-target="' + target + '"]');
-        }
-
         function setStatus(target, html) {
-          var row = rowFor(target);
+          var row = document.querySelector('tr[data-target="' + target + '"]');
           if (!row) return;
           var cell = row.querySelector(".status-cell");
           if (cell) cell.innerHTML = html;
@@ -299,24 +354,13 @@
           var url = d.url != null ? String(d.url) : "";
           var urlLine = url ? '<span class="url-hint">' + url + "</span>" : "";
           if (d.ok === true) {
-            if (d.status == null) {
-              return '<span class="status-ok">Postgres OK</span>' + urlLine;
-            }
-            return (
-              '<span class="status-ok">HTTP ' + d.status + "</span>" + urlLine
-            );
+            if (d.status == null) return '<span class="status-ok">Postgres OK</span>' + urlLine;
+            return '<span class="status-ok">HTTP ' + d.status + "</span>" + urlLine;
           }
           if (d.status != null) {
-            return (
-              '<span class="status-warn">HTTP ' +
-              d.status +
-              "</span>" +
-              (d.error ? " " + String(d.error) : "") +
-              urlLine
-            );
+            return '<span class="status-warn">HTTP ' + d.status + "</span>" + (d.error ? " " + String(d.error) : "") + urlLine;
           }
-          var err = d.error != null ? String(d.error) : "Unreachable";
-          return '<span class="status-err">' + err + "</span>" + urlLine;
+          return '<span class="status-err">' + (d.error != null ? String(d.error) : "Unreachable") + "</span>" + urlLine;
         }
 
         function pingOne(target) {
@@ -325,125 +369,135 @@
           var t0 = performance.now();
           setStatus(target, '<span class="status-pending">Pinging…</span>');
           return fetch(route, { method: "GET", credentials: "same-origin" })
-            .then(function (res) {
-              return res.json().then(function (data) {
-                return { httpOk: res.ok, data: data };
-              });
-            })
+            .then(function (res) { return res.json().then(function (data) { return { data: data }; }); })
             .then(function (r) {
               var d = r.data || {};
               setStatus(target, formatResult(d));
               var parent = reach();
-              if (parent) {
-                parent.notifyParent(
-                  target,
-                  parent.probePayloadFromPingResult(d, performance.now() - t0),
-                );
-              }
+              if (parent) parent.notifyParent(target, parent.probePayloadFromPingResult(d, performance.now() - t0));
             })
             .catch(function (err) {
-              setStatus(
-                target,
-                '<span class="status-err">' +
-                  String(err.message || err) +
-                  "</span>"
-              );
+              setStatus(target, '<span class="status-err">' + String(err.message || err) + "</span>");
               var parent = reach();
-              if (parent) {
-                parent.notifyParent(target, {
-                  ok: false,
-                  error: String(err.message || err),
-                  ms: performance.now() - t0,
-                });
-              }
+              if (parent) parent.notifyParent(target, { ok: false, error: String(err.message || err), ms: performance.now() - t0 });
             });
         }
 
         document.getElementById("connectivity-rows").addEventListener("click", function (ev) {
           var btn = ev.target.closest && ev.target.closest(".ping-btn");
-          if (!btn) return;
-          var target = btn.getAttribute("data-target");
-          if (target) pingOne(target);
+          if (btn) pingOne(btn.getAttribute("data-target"));
         });
 
         document.getElementById("ping-all").addEventListener("click", function () {
-          Object.keys(routes).forEach(function (t) {
-            setStatus(t, '<span class="status-pending">Pinging…</span>');
-          });
+          Object.keys(routes).forEach(function (t) { setStatus(t, '<span class="status-pending">Pinging…</span>'); });
           fetch("/dashboard/stack-ping/all", { method: "GET", credentials: "same-origin" })
-            .then(function (res) {
-              return res.json();
-            })
+            .then(function (res) { return res.json(); })
             .then(function (body) {
-              var list = body && body.results ? body.results : [];
-              list.forEach(function (d) {
+              (body && body.results ? body.results : []).forEach(function (d) {
                 var stack = d.stack != null ? String(d.stack) : "";
                 setStatus(stack, formatResult(d));
                 var parent = reach();
-                if (parent && stack) {
-                  parent.notifyParent(stack, parent.probePayloadFromPingResult(d));
-                }
+                if (parent && stack) parent.notifyParent(stack, parent.probePayloadFromPingResult(d));
               });
             })
             .catch(function (err) {
               Object.keys(routes).forEach(function (t) {
-                setStatus(
-                  t,
-                  '<span class="status-err">' + String(err.message || err) + "</span>"
-                );
+                setStatus(t, '<span class="status-err">' + String(err.message || err) + "</span>");
                 var parent = reach();
-                if (parent) {
-                  parent.notifyParent(t, { ok: false, error: String(err.message || err) });
-                }
+                if (parent) parent.notifyParent(t, { ok: false, error: String(err.message || err) });
               });
             });
         });
 
         var userForm = document.getElementById("create-user-form");
         var userResult = document.getElementById("create-user-result");
+        var usersTableBody = document.getElementById("users-table-body");
+        var listUsersError = document.getElementById("list-users-error");
+        var refreshUsersBtn = document.getElementById("refresh-users");
+
+        function escapeHtml(text) {
+          return String(text)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+        }
+
+        function loadUsers() {
+          if (!usersTableBody) return;
+          usersTableBody.innerHTML =
+            '<tr><td colspan="4" class="status-pending">Loading…</td></tr>';
+          if (listUsersError) listUsersError.textContent = "";
+          fetch("/api/users", { method: "GET", credentials: "same-origin", headers: { Accept: "application/json" } })
+            .then(function (res) {
+              return res.json().then(function (data) {
+                return { httpOk: res.ok, status: res.status, data: data };
+              });
+            })
+            .then(function (r) {
+              if (!r.httpOk) {
+                usersTableBody.innerHTML = "";
+                if (listUsersError) {
+                  listUsersError.textContent = "HTTP " + r.status + "\n" + JSON.stringify(r.data, null, 2);
+                }
+                return;
+              }
+              var rows = Array.isArray(r.data) ? r.data : [];
+              if (rows.length === 0) {
+                usersTableBody.innerHTML =
+                  '<tr><td colspan="4" class="status-pending">No users yet — create one from the Create user action.</td></tr>';
+                return;
+              }
+              usersTableBody.innerHTML = rows
+                .map(function (u) {
+                  return (
+                    "<tr><td>" +
+                    escapeHtml(u.id) +
+                    "</td><td>" +
+                    escapeHtml(u.name) +
+                    "</td><td>" +
+                    escapeHtml(u.email) +
+                    "</td><td>" +
+                    escapeHtml(u.createdAt) +
+                    "</td></tr>"
+                  );
+                })
+                .join("");
+            })
+            .catch(function (err) {
+              usersTableBody.innerHTML = "";
+              if (listUsersError) listUsersError.textContent = String(err.message || err);
+            });
+        }
+
+        if (refreshUsersBtn) {
+          refreshUsersBtn.addEventListener("click", loadUsers);
+        }
+
         if (userForm && userResult) {
           userForm.addEventListener("submit", function (ev) {
             ev.preventDefault();
             var name = (document.getElementById("user-name").value || "").trim();
             var email = (document.getElementById("user-email").value || "").trim();
-            if (!name || !email) {
-              userResult.textContent = "Name and email are required.";
-              return;
-            }
+            if (!name || !email) { userResult.textContent = "Name and email are required."; return; }
             userResult.textContent = "Saving…";
             fetch("/api/users", {
               method: "POST",
               credentials: "same-origin",
-              headers: {
-                Accept: "application/json",
-                "Content-Type": "application/json"
-              },
+              headers: { Accept: "application/json", "Content-Type": "application/json" },
               body: JSON.stringify({ name: name, email: email })
             })
-              .then(function (res) {
-                return res.json().then(function (data) {
-                  return { httpOk: res.ok, status: res.status, data: data };
-                });
-              })
+              .then(function (res) { return res.json().then(function (data) { return { httpOk: res.ok, status: res.status, data: data }; }); })
               .then(function (r) {
                 if (r.httpOk) {
                   var u = r.data || {};
-                  userResult.textContent =
-                    "Saved user id=" +
-                    u.id +
-                    " name=" +
-                    u.name +
-                    " email=" +
-                    u.email;
+                  userResult.textContent = "Saved user id=" + u.id + " name=" + u.name + " email=" + u.email;
                   userForm.reset();
                   return;
                 }
-                var msg = r.data && r.data.message ? r.data.message : JSON.stringify(r.data, null, 2);
-                userResult.textContent = "HTTP " + r.status + "\n" + msg;
+                userResult.textContent = "HTTP " + r.status + "\n" + JSON.stringify(r.data, null, 2);
               })
-              .catch(function (err) {
-                userResult.textContent = String(err.message || err);
-              });
+              .catch(function (err) { userResult.textContent = String(err.message || err); });
           });
         }
 
@@ -453,21 +507,12 @@
         if (addBtn && nameInput && resultEl) {
           addBtn.addEventListener("click", function () {
             var name = (nameInput.value || "").trim();
-            if (!name) {
-              resultEl.textContent = "Enter an item name.";
-              return;
-            }
+            if (!name) { resultEl.textContent = "Enter an item name."; return; }
             resultEl.textContent = "Calling Rust…";
             fetch("/dashboard/items/add-via-rust?name=" + encodeURIComponent(name), {
-              method: "POST",
-              credentials: "same-origin",
-              headers: { Accept: "application/json" }
+              method: "POST", credentials: "same-origin", headers: { Accept: "application/json" }
             })
-              .then(function (res) {
-                return res.json().then(function (data) {
-                  return { httpOk: res.ok, status: res.status, data: data };
-                });
-              })
+              .then(function (res) { return res.json().then(function (data) { return { httpOk: res.ok, status: res.status, data: data }; }); })
               .then(function (r) {
                 var lines = ["Java relay HTTP " + r.status];
                 var d = r.data || {};
@@ -479,9 +524,7 @@
                 if (r.httpOk && d.ok === true) nameInput.value = "";
                 resultEl.textContent = lines.join("\n");
               })
-              .catch(function (err) {
-                resultEl.textContent = String(err.message || err);
-              });
+              .catch(function (err) { resultEl.textContent = String(err.message || err); });
           });
         }
       })();

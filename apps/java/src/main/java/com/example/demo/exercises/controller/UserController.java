@@ -4,6 +4,7 @@ import com.example.demo.exercises.db.User;
 import com.example.demo.exercises.db.UserRepository;
 import com.example.demo.exercises.validation.CreateUserRequest;
 import jakarta.validation.Valid;
+import java.util.Comparator;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,7 +26,10 @@ public class UserController {
 
   @GetMapping
   public List<UserResponse> list() {
-    return users.findAll().stream().map(UserResponse::from).toList();
+    return users.findAll().stream()
+        .sorted(Comparator.comparing(User::getId))
+        .map(UserResponse::from)
+        .toList();
   }
 
   @PostMapping
