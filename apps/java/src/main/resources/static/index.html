@@ -42,6 +42,33 @@
       }
       h1 { font-size: 1.5rem; font-weight: 700; margin: 0 0 0.35rem; letter-spacing: 0.02em; }
       .subtitle { color: var(--muted); font-size: 0.9rem; margin: 0 0 1.25rem; line-height: 1.45; }
+      .tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        margin: 0 0 1rem;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 0.35rem;
+      }
+      .tab-btn {
+        cursor: pointer;
+        padding: 0.45rem 0.85rem;
+        font-size: 0.88rem;
+        font-weight: 600;
+        border-radius: 6px 6px 0 0;
+        border: 1px solid transparent;
+        border-bottom: none;
+        background: transparent;
+        color: var(--muted);
+      }
+      .tab-btn:hover { color: var(--text); background: rgba(128, 128, 128, 0.08); }
+      .tab-btn[aria-selected="true"] {
+        color: var(--text);
+        background: rgba(128, 128, 128, 0.12);
+        border-color: var(--border);
+      }
+      .tab-panel { display: none; }
+      .tab-panel[aria-hidden="false"] { display: block; }
       .toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 1rem; }
       .btn {
         cursor: pointer;
@@ -71,94 +98,177 @@
       .status-warn { color: var(--warn); font-weight: 600; }
       .status-err { color: var(--err); font-weight: 600; }
       .url-hint { font-size: 0.75rem; color: var(--muted); display: block; margin-top: 0.15rem; }
-      details.extra { margin-top: 1.25rem; font-size: 0.88rem; color: var(--muted); }
-    </style>
-  </head>
-  <body>
-    <h1>Java APP</h1>
-    <p class="subtitle">
-      Connectivity from this Java server: each <strong>Ping</strong> runs an outbound
-      <code>GET</code> and shows the HTTP status (or error if unreachable).
-    </p>
-
-    <div class="toolbar">
-      <button type="button" class="btn primary" id="ping-all">Ping all services</button>
-    </div>
-
-    <section class="connectivity" aria-labelledby="connectivity-heading">
-      <h2 id="connectivity-heading" class="visually-hidden">Service connectivity</h2>
-      <table>
-        <thead>
-          <tr>
-            <th scope="col">Service</th>
-            <th scope="col">Test</th>
-            <th scope="col">Response</th>
-          </tr>
-        </thead>
-        <tbody id="connectivity-rows">
-          <tr data-target="postgres" data-label="Postgres">
-            <td>Postgres</td>
-            <td><button type="button" class="btn ping-btn" data-target="postgres">Ping</button></td>
-            <td class="status-cell"><span class="status-pending">—</span></td>
-          </tr>
-          <tr data-target="rust" data-label="Rust">
-            <td>Rust</td>
-            <td><button type="button" class="btn ping-btn" data-target="rust">Ping</button></td>
-            <td class="status-cell"><span class="status-pending">—</span></td>
-          </tr>
-          <tr data-target="python" data-label="Python">
-            <td>Python</td>
-            <td><button type="button" class="btn ping-btn" data-target="python">Ping</button></td>
-            <td class="status-cell"><span class="status-pending">—</span></td>
-          </tr>
-          <tr data-target="prometheus" data-label="Prometheus">
-            <td>Prometheus</td>
-            <td><button type="button" class="btn ping-btn" data-target="prometheus">Ping</button></td>
-            <td class="status-cell"><span class="status-pending">—</span></td>
-          </tr>
-          <tr data-target="grafana" data-label="Grafana">
-            <td>Grafana</td>
-            <td><button type="button" class="btn ping-btn" data-target="grafana">Ping</button></td>
-            <td class="status-cell"><span class="status-pending">—</span></td>
-          </tr>
-          <tr data-target="elasticsearch" data-label="Elasticsearch">
-            <td>Elasticsearch</td>
-            <td><button type="button" class="btn ping-btn" data-target="elasticsearch">Ping</button></td>
-            <td class="status-cell"><span class="status-pending">—</span></td>
-          </tr>
-          <tr data-target="kibana" data-label="Kibana">
-            <td>Kibana</td>
-            <td><button type="button" class="btn ping-btn" data-target="kibana">Ping</button></td>
-            <td class="status-cell"><span class="status-pending">—</span></td>
-          </tr>
-          <tr data-target="react-node" data-label="React Node">
-            <td>React Node</td>
-            <td><button type="button" class="btn ping-btn" data-target="react-node">Ping</button></td>
-            <td class="status-cell"><span class="status-pending">—</span></td>
-          </tr>
-        </tbody>
-      </table>
-    </section>
-
-    <details class="extra">
-      <summary>Rust item relay (POST to Rust → PostgreSQL)</summary>
-      <p style="margin: 0.5rem 0;">
-        <input type="text" id="rust-item-name" placeholder="Item name" style="padding: 0.35rem 0.5rem; margin-right: 0.35rem;"/>
-        <button type="button" class="btn" id="rust-item-add">Add via Rust</button>
-      </p>
-      <pre id="rust-item-result" style="font-size: 0.78rem; overflow-x: auto; white-space: pre-wrap;"></pre>
-    </details>
-
-    <style>
+      .action-panel {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 1rem 1.1rem;
+        background: rgba(128, 128, 128, 0.05);
+      }
+      .action-panel + .action-panel { margin-top: 1rem; }
+      .action-panel h2 {
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin: 0 0 0.65rem;
+      }
+      .action-panel p.hint {
+        margin: 0 0 0.85rem;
+        font-size: 0.85rem;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+      .field-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.65rem; align-items: center; }
+      .field-row label { font-size: 0.85rem; min-width: 4.5rem; color: var(--muted); }
+      .field-row input {
+        flex: 1 1 12rem;
+        min-width: 10rem;
+        padding: 0.35rem 0.5rem;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        color: var(--text);
+        font-size: 0.88rem;
+      }
+      .result-box {
+        margin: 0.65rem 0 0;
+        font-size: 0.82rem;
+        font-family: ui-monospace, monospace;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
       .visually-hidden {
         position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
         overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
       }
     </style>
+  </head>
+  <body>
+    <h1>Java APP</h1>
+    <p class="subtitle">Dashboard tabs for stack connectivity checks and database actions.</p>
+
+    <div class="tabs" role="tablist" aria-label="Dashboard sections">
+      <button type="button" class="tab-btn" role="tab" id="tab-connectivity" aria-selected="true" aria-controls="panel-connectivity">Connectivity</button>
+      <button type="button" class="tab-btn" role="tab" id="tab-actions" aria-selected="false" aria-controls="panel-actions">Actions</button>
+    </div>
+
+    <div id="panel-connectivity" class="tab-panel" role="tabpanel" aria-labelledby="tab-connectivity" aria-hidden="false">
+      <p class="subtitle" style="margin-top: 0;">
+        Each <strong>Ping</strong> runs an outbound <code>GET</code> from this Java server and shows the HTTP status (or error if unreachable).
+      </p>
+
+      <div class="toolbar">
+        <button type="button" class="btn primary" id="ping-all">Ping all services</button>
+      </div>
+
+      <section class="connectivity" aria-labelledby="connectivity-heading">
+        <h2 id="connectivity-heading" class="visually-hidden">Service connectivity</h2>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Service</th>
+              <th scope="col">Test</th>
+              <th scope="col">Response</th>
+            </tr>
+          </thead>
+          <tbody id="connectivity-rows">
+            <tr data-target="postgres" data-label="Postgres">
+              <td>Postgres</td>
+              <td><button type="button" class="btn ping-btn" data-target="postgres">Ping</button></td>
+              <td class="status-cell"><span class="status-pending">—</span></td>
+            </tr>
+            <tr data-target="rust" data-label="Rust">
+              <td>Rust</td>
+              <td><button type="button" class="btn ping-btn" data-target="rust">Ping</button></td>
+              <td class="status-cell"><span class="status-pending">—</span></td>
+            </tr>
+            <tr data-target="python" data-label="Python">
+              <td>Python</td>
+              <td><button type="button" class="btn ping-btn" data-target="python">Ping</button></td>
+              <td class="status-cell"><span class="status-pending">—</span></td>
+            </tr>
+            <tr data-target="prometheus" data-label="Prometheus">
+              <td>Prometheus</td>
+              <td><button type="button" class="btn ping-btn" data-target="prometheus">Ping</button></td>
+              <td class="status-cell"><span class="status-pending">—</span></td>
+            </tr>
+            <tr data-target="grafana" data-label="Grafana">
+              <td>Grafana</td>
+              <td><button type="button" class="btn ping-btn" data-target="grafana">Ping</button></td>
+              <td class="status-cell"><span class="status-pending">—</span></td>
+            </tr>
+            <tr data-target="elasticsearch" data-label="Elasticsearch">
+              <td>Elasticsearch</td>
+              <td><button type="button" class="btn ping-btn" data-target="elasticsearch">Ping</button></td>
+              <td class="status-cell"><span class="status-pending">—</span></td>
+            </tr>
+            <tr data-target="kibana" data-label="Kibana">
+              <td>Kibana</td>
+              <td><button type="button" class="btn ping-btn" data-target="kibana">Ping</button></td>
+              <td class="status-cell"><span class="status-pending">—</span></td>
+            </tr>
+            <tr data-target="react-node" data-label="React Node">
+              <td>React Node</td>
+              <td><button type="button" class="btn ping-btn" data-target="react-node">Ping</button></td>
+              <td class="status-cell"><span class="status-pending">—</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+
+    <div id="panel-actions" class="tab-panel" role="tabpanel" aria-labelledby="tab-actions" aria-hidden="true">
+      <section class="action-panel" aria-labelledby="create-user-heading">
+        <h2 id="create-user-heading">Create user</h2>
+        <p class="hint">Persists a row to the shared PostgreSQL <code>users</code> table via <code>POST /api/users</code>.</p>
+        <form id="create-user-form">
+          <div class="field-row">
+            <label for="user-name">Name</label>
+            <input type="text" id="user-name" name="name" required autocomplete="name" placeholder="Jane Doe"/>
+          </div>
+          <div class="field-row">
+            <label for="user-email">Email</label>
+            <input type="email" id="user-email" name="email" required autocomplete="email" placeholder="jane@example.com"/>
+          </div>
+          <button type="submit" class="btn primary">Save user</button>
+        </form>
+        <pre id="create-user-result" class="result-box" aria-live="polite"></pre>
+      </section>
+
+      <section class="action-panel" aria-labelledby="rust-relay-heading">
+        <h2 id="rust-relay-heading">Rust item relay</h2>
+        <p class="hint">Calls Rust <code>POST /api/items</code> so the item is inserted into PostgreSQL from the Rust service.</p>
+        <div class="field-row">
+          <label for="rust-item-name">Item</label>
+          <input type="text" id="rust-item-name" placeholder="Item name"/>
+          <button type="button" class="btn" id="rust-item-add">Add via Rust</button>
+        </div>
+        <pre id="rust-item-result" class="result-box"></pre>
+      </section>
+    </div>
 
     <script src="/js/reachability-parent.js"></script>
     <script>
       (function () {
+        var tabButtons = document.querySelectorAll(".tab-btn");
+        var tabPanels = document.querySelectorAll(".tab-panel");
+
+        function activateTab(tabId) {
+          tabButtons.forEach(function (btn) {
+            var selected = btn.id === tabId;
+            btn.setAttribute("aria-selected", selected ? "true" : "false");
+          });
+          tabPanels.forEach(function (panel) {
+            var btn = document.getElementById(tabId);
+            var show = btn && panel.id === btn.getAttribute("aria-controls");
+            panel.setAttribute("aria-hidden", show ? "false" : "true");
+          });
+        }
+
+        tabButtons.forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            activateTab(btn.id);
+          });
+        });
+
         var reach = function () {
           return window.exerciseReachabilityParent;
         };
@@ -288,6 +398,54 @@
               });
             });
         });
+
+        var userForm = document.getElementById("create-user-form");
+        var userResult = document.getElementById("create-user-result");
+        if (userForm && userResult) {
+          userForm.addEventListener("submit", function (ev) {
+            ev.preventDefault();
+            var name = (document.getElementById("user-name").value || "").trim();
+            var email = (document.getElementById("user-email").value || "").trim();
+            if (!name || !email) {
+              userResult.textContent = "Name and email are required.";
+              return;
+            }
+            userResult.textContent = "Saving…";
+            fetch("/api/users", {
+              method: "POST",
+              credentials: "same-origin",
+              headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({ name: name, email: email })
+            })
+              .then(function (res) {
+                return res.json().then(function (data) {
+                  return { httpOk: res.ok, status: res.status, data: data };
+                });
+              })
+              .then(function (r) {
+                if (r.httpOk) {
+                  var u = r.data || {};
+                  userResult.textContent =
+                    "Saved user id=" +
+                    u.id +
+                    " name=" +
+                    u.name +
+                    " email=" +
+                    u.email;
+                  userForm.reset();
+                  return;
+                }
+                var msg = r.data && r.data.message ? r.data.message : JSON.stringify(r.data, null, 2);
+                userResult.textContent = "HTTP " + r.status + "\n" + msg;
+              })
+              .catch(function (err) {
+                userResult.textContent = String(err.message || err);
+              });
+          });
+        }
 
         var addBtn = document.getElementById("rust-item-add");
         var nameInput = document.getElementById("rust-item-name");
