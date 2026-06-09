@@ -1,0 +1,12 @@
+# syntax=docker/dockerfile:1
+# Express + Vite middleware with HMR — use via docker-compose.dev.yml.
+FROM node:22-alpine
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY index.html tsconfig.json tsconfig.server.json vite.config.ts ./
+COPY client ./client
+COPY server ./server
+EXPOSE 5174
+ENV PORT=5174
+CMD ["npm", "run", "dev"]

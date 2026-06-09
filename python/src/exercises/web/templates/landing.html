@@ -60,7 +60,7 @@
       .btn:hover { filter: brightness(1.08); }
       .btn.primary { border-color: var(--ok); color: var(--ok); }
       .btn.grafana { border-color: #f46800; color: #f46800; }
-      .btn.reach-ui { border-color: #60a5fa; color: #60a5fa; }
+      .btn.react-node { border-color: #60a5fa; color: #60a5fa; }
       .connectivity {
         border: 1px solid var(--border);
         border-radius: 10px;
@@ -85,7 +85,7 @@
     <p class="hint">
       Stack connectivity from this server: <strong>Open</strong> uses your browser;
       <strong>GET</strong> runs an outbound probe from Python (Compose DNS when containerized).
-      Reach UI <code>:5174</code> · Grafana <code>:3000</code>.
+      React Node <code>:5174</code> · Grafana <code>:3000</code>.
     </p>
     <div class="toolbar">
       <button type="button" class="btn primary" id="ping-all">Ping all</button>
@@ -145,11 +145,11 @@
             </td>
             <td class="status-cell"><span class="status-pending">—</span></td>
           </tr>
-          <tr data-target="reach-ui">
-            <td>Reach UI</td>
+          <tr data-target="react-node">
+            <td>React Node</td>
             <td class="actions">
-              <a class="btn reach-ui" href="{{ stack_links.reach_ui_browser_url }}" target="_blank" rel="noopener noreferrer">Open</a>
-              <button type="button" class="btn stack-ping-btn" data-target="reach-ui">GET</button>
+              <a class="btn react-node" href="{{ stack_links.react_node_browser_url }}" target="_blank" rel="noopener noreferrer">Open</a>
+              <button type="button" class="btn stack-ping-btn" data-target="react-node">GET</button>
             </td>
             <td class="status-cell"><span class="status-pending">—</span></td>
           </tr>
@@ -220,7 +220,7 @@
         var pingAll = document.getElementById('ping-all');
         if (pingAll) {
           pingAll.addEventListener('click', function () {
-            var targets = ['java', 'rust', 'prometheus', 'grafana', 'elasticsearch', 'kibana', 'reach-ui'];
+            var targets = ['java', 'rust', 'prometheus', 'grafana', 'elasticsearch', 'kibana', 'react-node'];
             targets.forEach(function (t) {
               setRowStatus(t, '<span class="status-pending">Pinging…</span>');
             });

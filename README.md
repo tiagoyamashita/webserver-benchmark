@@ -46,10 +46,10 @@ If you use Docker Engine instead of Podman:
 docker compose up --build
 ```
 
-That starts **Postgres**, **Java**, **Python**, **Rust**, **reach-ui**, **Prometheus**, **Grafana**, and **ELK** (Elasticsearch, Logstash, Kibana) together. **Reach UI** (stack URL probes): `http://127.0.0.1:5174/`. To skip ELK only (save RAM):
+That starts **Postgres**, **Java**, **Python**, **Rust**, **react-node**, **Prometheus**, **Grafana**, and **ELK** (Elasticsearch, Logstash, Kibana) together. **React Node** (stack URL probes): `http://127.0.0.1:5174/`. To skip ELK only (save RAM):
 
 ```bash
-podman compose up --build postgres java python rust reach-ui grafana prometheus
+podman compose up --build postgres java python rust react-node grafana prometheus
 ```
 
 You can also bring up a subset of services. Images and ports are summarized in [DOCKER.md](DOCKER.md).
@@ -119,6 +119,6 @@ Use **Compose** when you want the fastest loop on a single computer. Use **Helm*
 
 **ELK** (optional Elasticsearch + Logstash + Kibana; **Podman** or **Docker** Compose under **`elk/`**; cluster path uses Helm + **`kubectl`**): [elk/README.md](elk/README.md).
 
-**Reach UI** (optional Vite page: probe Java / Python / Rust URLs with defaults and `localStorage`): [reach-ui/README.md](reach-ui/README.md).
+**React Node** (React + Express stack probe UI): [react-node/README.md](react-node/README.md).
 
 On Windows, if **`link.exe` not found** and you do not want Visual Studio’s MSVC build tools, use the **GNU / MinGW** path: [rust/README.md — GNU target](rust/README.md#windows-gnu-target-mingw-instead-of-msvc) or run the project under **WSL**: [rust/README.md — WSL](rust/README.md#windows-wsl-linux-in-windows).

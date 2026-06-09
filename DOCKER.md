@@ -14,10 +14,10 @@ From the **repository root** (use **Podman** if `docker` is not installed):
 podman compose up --build
 ```
 
-**Hot reload (dev):** overlay **`docker-compose.dev.yml`** so Java runs **`spring-boot:run`**, Python uses **`FLASK_DEBUG=1`**, Rust uses **`cargo-watch`** (`rust/Dockerfile.dev`), and **reach-ui** runs the Vite dev server on **`http://127.0.0.1:5174/`** (same host port as production nginx). Example:
+**Hot reload (dev):** overlay **`docker-compose.dev.yml`** so Java runs **`spring-boot:run`**, Python uses **`FLASK_DEBUG=1`**, Rust uses **`cargo-watch`** (`rust/Dockerfile.dev`), and **react-node** runs Express + Vite on **`http://127.0.0.1:5174/`**. Example:
 
 ```bash
-podman compose -f docker-compose.yml -f docker-compose.dev.yml up --build java python rust reach-ui
+podman compose -f docker-compose.yml -f docker-compose.dev.yml up --build java python rust react-node
 ```
 
 Production **`rust/Dockerfile`** uses **`rust:1.86-bookworm`** (lockfile ICU crates need **rustc ≥ 1.86**; **`rust:1.85-*`** fails at build time).
@@ -115,7 +115,7 @@ Test-NetConnection 127.0.0.1 -Port 3000
 Test-NetConnection 127.0.0.1 -Port 8080
 ```
 
-Optional **browser reach checker** (editable URLs + `GET` probes, `VITE_*` build defaults): [../reach-ui/README.md](../reach-ui/README.md).
+Optional **React Node** stack probe UI (React + Express, `GET /api/probe/:id`): [../react-node/README.md](../react-node/README.md).
 
 ### Build one service
 

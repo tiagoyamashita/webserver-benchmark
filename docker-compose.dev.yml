@@ -1,13 +1,13 @@
 # Hot-reload dev overlay — use with the main compose file:
 #
-#   podman compose -f docker-compose.yml -f docker-compose.dev.yml up --build postgres java python rust reach-ui
+#   podman compose -f docker-compose.yml -f docker-compose.dev.yml up --build postgres java python rust react-node
 #
 # Lighter (no ELK): add grafana prometheus to the command above as needed.
 #
 # Java: spring-boot:run (first start may download Maven deps into maven-cache; if compile fails, podman volume rm exercises_maven-cache and up again).
 # Python: FLASK_DEBUG=1 reloader when ./python changes.
 # Rust: cargo-watch rebuilds on src/ and templates/ (first start compiles; can take a few minutes).
-# Reach UI: Vite dev server on http://127.0.0.1:5174 (same host port as production nginx mapping).
+# React Node: Express + Vite middleware on http://127.0.0.1:5174
 services:
   java:
     build:
@@ -34,7 +34,7 @@ services:
       APP_STACK_GRAFANA_BASE_URL: http://grafana:3000
       APP_STACK_ELASTICSEARCH_BASE_URL: http://elasticsearch:9200
       APP_STACK_KIBANA_BASE_URL: http://kibana:5601
-      APP_STACK_REACH_UI_BASE_URL: http://reach-ui:5174
+      APP_STACK_REACT_NODE_BASE_URL: http://react-node:5174
 
   rust:
     build:
@@ -64,35 +64,41 @@ services:
       APP_STACK_GRAFANA_BASE_URL: http://grafana:3000
       APP_STACK_ELASTICSEARCH_BASE_URL: http://elasticsearch:9200
       APP_STACK_KIBANA_BASE_URL: http://kibana:5601
-      APP_STACK_REACH_UI_BASE_URL: http://reach-ui:5174
+      APP_STACK_REACT_NODE_BASE_URL: http://react-node:5174
       DB_HOST: postgres
       DB_PORT: "5432"
       DB_NAME: demo
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
 
-  reach-ui:
+  react-node:
     build:
-      context: ./reach-ui
+      context: ./react-node
       dockerfile: Dockerfile.dev
     volumes:
-      - ./reach-ui:/app
-      - reach-ui-node-modules:/app/node_modules
+      - ./react-node:/app
+      - react-node-node-modules:/app/node_modules
     ports: !override
       - "5174:5174"
     environment:
-      VITE_PROXY_DOCKER: "1"
-    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5174"]
+      PORT: "5174"
+      PROBE_JAVA_URL: http://java:8080
+      PROBE_RUST_URL: http://rust:8082
+      PROBE_PYTHON_URL: http://python:5000
+      PROBE_PROMETHEUS_URL: http://prometheus:9090
+      PROBE_GRAFANA_URL: http://grafana:3000
+      PROBE_ELASTICSEARCH_URL: http://elasticsearch:9200
+      PROBE_KIBANA_URL: http://kibana:5601
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5174/"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5174/api/health"]
       interval: 10s
       timeout: 3s
       retries: 3
-      start_period: 15s
+      start_period: 20s
     restart: unless-stopped
 
 volumes:
   maven-cache:
   rust-cargo-registry:
   rust-target:
-  reach-ui-node-modules:
+  react-node-node-modules:

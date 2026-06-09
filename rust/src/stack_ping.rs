@@ -16,14 +16,14 @@ pub struct StackLinks {
     pub grafana_browser_url: String,
     pub elasticsearch_browser_url: String,
     pub kibana_browser_url: String,
-    pub reach_ui_browser_url: String,
+    pub react_node_browser_url: String,
     java_base_url: String,
     python_base_url: String,
     prometheus_base_url: String,
     grafana_base_url: String,
     elasticsearch_base_url: String,
     kibana_base_url: String,
-    reach_ui_base_url: String,
+    react_node_base_url: String,
 }
 
 #[derive(Serialize)]
@@ -34,7 +34,7 @@ pub struct StackLinksView {
     pub grafana_browser_url: String,
     pub elasticsearch_browser_url: String,
     pub kibana_browser_url: String,
-    pub reach_ui_browser_url: String,
+    pub react_node_browser_url: String,
 }
 
 impl StackLinks {
@@ -56,8 +56,8 @@ impl StackLinks {
                 "http://127.0.0.1:9200/",
             ),
             kibana_browser_url: read_env("APP_STACK_KIBANA_BROWSER_URL", "http://127.0.0.1:5601/"),
-            reach_ui_browser_url: read_env(
-                "APP_STACK_REACH_UI_BROWSER_URL",
+            react_node_browser_url: read_env(
+                "APP_STACK_REACT_NODE_BROWSER_URL",
                 "http://127.0.0.1:5174/",
             ),
             java_base_url: java_base,
@@ -69,7 +69,7 @@ impl StackLinks {
                 "http://127.0.0.1:9200",
             ),
             kibana_base_url: read_env("APP_STACK_KIBANA_BASE_URL", "http://127.0.0.1:5601"),
-            reach_ui_base_url: read_env("APP_STACK_REACH_UI_BASE_URL", "http://127.0.0.1:5174"),
+            react_node_base_url: read_env("APP_STACK_REACT_NODE_BASE_URL", "http://127.0.0.1:5174"),
         }
     }
 
@@ -81,7 +81,7 @@ impl StackLinks {
             grafana_browser_url: self.grafana_browser_url.clone(),
             elasticsearch_browser_url: self.elasticsearch_browser_url.clone(),
             kibana_browser_url: self.kibana_browser_url.clone(),
-            reach_ui_browser_url: self.reach_ui_browser_url.clone(),
+            react_node_browser_url: self.react_node_browser_url.clone(),
         }
     }
 
@@ -93,7 +93,7 @@ impl StackLinks {
             "grafana" => empty_get("grafana", &self.grafana_base_url),
             "elasticsearch" => empty_get("elasticsearch", &self.elasticsearch_base_url),
             "kibana" => empty_get("kibana", &self.kibana_base_url),
-            "reach-ui" => empty_get("reach-ui", &self.reach_ui_base_url),
+            "react-node" => empty_get("react-node", &self.react_node_base_url),
             _ => StackPingResult {
                 stack: target.to_string(),
                 url: String::new(),

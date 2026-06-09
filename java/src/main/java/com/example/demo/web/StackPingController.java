@@ -51,9 +51,9 @@ public class StackPingController {
     return ping("kibana", stackPingService::pingKibana);
   }
 
-  @GetMapping("/reach-ui")
-  public Map<String, Object> pingReachUi() {
-    return ping("reach-ui", stackPingService::pingReachUi);
+  @GetMapping("/react-node")
+  public Map<String, Object> pingReactNode() {
+    return ping("react-node", stackPingService::pingReactNode);
   }
 
   @GetMapping("/all")

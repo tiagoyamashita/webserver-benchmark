@@ -113,7 +113,7 @@
         border-color: #f46800;
         color: #f46800;
       }
-      .stack-quick-links .btn.reach-ui {
+      .stack-quick-links .btn.react-node {
         border-color: #60a5fa;
         color: #60a5fa;
       }
@@ -190,7 +190,7 @@
   <body>
     <h1>Spring Boot demo</h1>
     <p class="hint" style="margin: 0 0 0.75rem; font-size: 0.85rem;">
-      Dashboard v2 — Stack services (Grafana, Reach UI), Rust→Postgres item relay.
+      Dashboard v2 — Stack services (Grafana, React Node), Rust→Postgres item relay.
     </p>
 
     <section class="stack-services" id="stack-services" aria-labelledby="stack-services-heading">
@@ -198,18 +198,18 @@
       <p class="hint">
         <strong>Open</strong> launches the UI in a new tab.
         <strong>GET</strong> probes from Java (Compose uses container DNS).
-        Grafana <code>:3000</code> · Reach UI <code>:5174</code>
+        Grafana <code>:3000</code> · React Node <code>:5174</code>
       </p>
-      <div class="stack-featured" aria-label="Grafana and Reach UI">
+      <div class="stack-featured" aria-label="Grafana and React Node">
         <a class="btn grafana" th:href="${stackLinks.grafanaBrowserUrl}" target="_blank" rel="noopener noreferrer">Grafana (:3000)</a>
-        <a class="btn reach-ui" th:href="${stackLinks.reachUiBrowserUrl}" target="_blank" rel="noopener noreferrer">Reach UI (:5174)</a>
+        <a class="btn react-node" th:href="${stackLinks.reactNodeBrowserUrl}" target="_blank" rel="noopener noreferrer">React Node (:5174)</a>
       </div>
       <div class="stack-quick-links" aria-label="All stack UIs">
         <a class="btn" th:href="${stackLinks.rustBrowserUrl}" target="_blank" rel="noopener noreferrer">Rust</a>
         <a class="btn" th:href="${stackLinks.pythonBrowserUrl}" target="_blank" rel="noopener noreferrer">Python</a>
         <a class="btn" th:href="${stackLinks.prometheusBrowserUrl}" target="_blank" rel="noopener noreferrer">Prometheus</a>
         <a class="btn grafana" th:href="${stackLinks.grafanaBrowserUrl}" target="_blank" rel="noopener noreferrer">Grafana</a>
-        <a class="btn reach-ui" th:href="${stackLinks.reachUiBrowserUrl}" target="_blank" rel="noopener noreferrer">Reach UI</a>
+        <a class="btn react-node" th:href="${stackLinks.reactNodeBrowserUrl}" target="_blank" rel="noopener noreferrer">React Node</a>
         <a class="btn" th:href="${stackLinks.elasticsearchBrowserUrl}" target="_blank" rel="noopener noreferrer">Elasticsearch</a>
         <a class="btn" th:href="${stackLinks.kibanaBrowserUrl}" target="_blank" rel="noopener noreferrer">Kibana</a>
       </div>
@@ -264,10 +264,10 @@
             </td>
           </tr>
           <tr>
-            <td>Reach UI</td>
+            <td>React Node</td>
             <td class="stack-service-actions">
-              <a class="btn reach-ui" th:href="${stackLinks.reachUiBrowserUrl}" target="_blank" rel="noopener noreferrer">Open Reach UI</a>
-              <button type="button" class="btn stack-ping-btn" data-target="reach-ui">GET</button>
+              <a class="btn react-node" th:href="${stackLinks.reactNodeBrowserUrl}" target="_blank" rel="noopener noreferrer">Open React Node</a>
+              <button type="button" class="btn stack-ping-btn" data-target="react-node">GET</button>
             </td>
           </tr>
         </tbody>
@@ -338,7 +338,7 @@
           grafana: /*[[@{/dashboard/stack-ping/grafana}]]*/ '/dashboard/stack-ping/grafana',
           elasticsearch: /*[[@{/dashboard/stack-ping/elasticsearch}]]*/ '/dashboard/stack-ping/elasticsearch',
           kibana: /*[[@{/dashboard/stack-ping/kibana}]]*/ '/dashboard/stack-ping/kibana',
-          'reach-ui': /*[[@{/dashboard/stack-ping/reach-ui}]]*/ '/dashboard/stack-ping/reach-ui'
+          'react-node': /*[[@{/dashboard/stack-ping/react-node}]]*/ '/dashboard/stack-ping/react-node'
         };
         section.addEventListener('click', function (ev) {
           var btn = ev.target.closest ? ev.target.closest('.stack-ping-btn') : null;

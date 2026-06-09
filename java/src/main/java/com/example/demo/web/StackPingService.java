@@ -87,7 +87,7 @@ public class StackPingService {
             pingGrafana(),
             pingElasticsearch(),
             pingKibana(),
-            pingReachUi());
+            pingReactNode());
     long okCount = results.stream().filter(r -> Boolean.TRUE.equals(r.get("ok"))).count();
     log.info(
         "Dashboard UI stack ping-all completed",
@@ -150,8 +150,8 @@ public class StackPingService {
     return emptyGet("kibana", properties.getKibanaBaseUrl());
   }
 
-  public Map<String, Object> pingReachUi() {
-    return emptyGet("reach-ui", properties.getReachUiBaseUrl());
+  public Map<String, Object> pingReactNode() {
+    return emptyGet("react-node", properties.getReactNodeBaseUrl());
   }
 
   private static String normalizeRoot(String baseUrl) {

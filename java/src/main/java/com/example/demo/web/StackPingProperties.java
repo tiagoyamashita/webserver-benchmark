@@ -23,8 +23,8 @@ public class StackPingProperties {
   /** Base URL for Kibana (server-side GET from Java). */
   private String kibanaBaseUrl = "http://127.0.0.1:5601";
 
-  /** Base URL for Reach UI (server-side GET from Java). */
-  private String reachUiBaseUrl = "http://127.0.0.1:5174";
+  /** Base URL for React Node (server-side GET from Java). */
+  private String reactNodeBaseUrl = "http://127.0.0.1:5174";
 
   /** Browser links from the host machine (Compose port maps; not container DNS names). */
   private String rustBrowserUrl = "http://127.0.0.1:8082/";
@@ -34,7 +34,7 @@ public class StackPingProperties {
   private String grafanaBrowserUrl = "http://127.0.0.1:3000/";
   private String elasticsearchBrowserUrl = "http://127.0.0.1:9200/";
   private String kibanaBrowserUrl = "http://127.0.0.1:5601/";
-  private String reachUiBrowserUrl = "http://127.0.0.1:5174/";
+  private String reactNodeBrowserUrl = "http://127.0.0.1:5174/";
 
   public String getRustBaseUrl() {
     return rustBaseUrl;
@@ -84,12 +84,12 @@ public class StackPingProperties {
     this.kibanaBaseUrl = kibanaBaseUrl;
   }
 
-  public String getReachUiBaseUrl() {
-    return reachUiBaseUrl;
+  public String getReactNodeBaseUrl() {
+    return reactNodeBaseUrl;
   }
 
-  public void setReachUiBaseUrl(String reachUiBaseUrl) {
-    this.reachUiBaseUrl = reachUiBaseUrl;
+  public void setReactNodeBaseUrl(String reactNodeBaseUrl) {
+    this.reactNodeBaseUrl = reactNodeBaseUrl;
   }
 
   public String getRustBrowserUrl() {
@@ -140,11 +140,11 @@ public class StackPingProperties {
     this.kibanaBrowserUrl = kibanaBrowserUrl;
   }
 
-  public String getReachUiBrowserUrl() {
-    return reachUiBrowserUrl;
+  public String getReactNodeBrowserUrl() {
+    return reactNodeBrowserUrl;
   }
 
-  public void setReachUiBrowserUrl(String reachUiBrowserUrl) {
-    this.reachUiBrowserUrl = reachUiBrowserUrl;
+  public void setReactNodeBrowserUrl(String reactNodeBrowserUrl) {
+    this.reactNodeBrowserUrl = reactNodeBrowserUrl;
   }
 }

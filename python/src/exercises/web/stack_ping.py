@@ -29,7 +29,7 @@ class StackLinksView:
     grafana_browser_url: str
     elasticsearch_browser_url: str
     kibana_browser_url: str
-    reach_ui_browser_url: str
+    react_node_browser_url: str
 
 
 @dataclass
@@ -40,14 +40,14 @@ class StackLinks:
     grafana_browser_url: str
     elasticsearch_browser_url: str
     kibana_browser_url: str
-    reach_ui_browser_url: str
+    react_node_browser_url: str
     java_base_url: str
     rust_base_url: str
     prometheus_base_url: str
     grafana_base_url: str
     elasticsearch_base_url: str
     kibana_base_url: str
-    reach_ui_base_url: str
+    react_node_base_url: str
 
     @classmethod
     def from_env(cls) -> StackLinks:
@@ -62,8 +62,8 @@ class StackLinks:
                 "APP_STACK_ELASTICSEARCH_BROWSER_URL", "http://127.0.0.1:9200/"
             ),
             kibana_browser_url=_read_env("APP_STACK_KIBANA_BROWSER_URL", "http://127.0.0.1:5601/"),
-            reach_ui_browser_url=_read_env(
-                "APP_STACK_REACH_UI_BROWSER_URL", "http://127.0.0.1:5174/"
+            react_node_browser_url=_read_env(
+                "APP_STACK_REACT_NODE_BROWSER_URL", "http://127.0.0.1:5174/"
             ),
             java_base_url=_read_env("APP_STACK_JAVA_BASE_URL", "http://127.0.0.1:8080"),
             rust_base_url=_read_env("APP_STACK_RUST_BASE_URL", "http://127.0.0.1:8082"),
@@ -73,7 +73,7 @@ class StackLinks:
                 "APP_STACK_ELASTICSEARCH_BASE_URL", "http://127.0.0.1:9200"
             ),
             kibana_base_url=_read_env("APP_STACK_KIBANA_BASE_URL", "http://127.0.0.1:5601"),
-            reach_ui_base_url=_read_env("APP_STACK_REACH_UI_BASE_URL", "http://127.0.0.1:5174"),
+            react_node_base_url=_read_env("APP_STACK_REACT_NODE_BASE_URL", "http://127.0.0.1:5174"),
         )
 
     def browser_view(self) -> StackLinksView:
@@ -84,7 +84,7 @@ class StackLinks:
             grafana_browser_url=self.grafana_browser_url,
             elasticsearch_browser_url=self.elasticsearch_browser_url,
             kibana_browser_url=self.kibana_browser_url,
-            reach_ui_browser_url=self.reach_ui_browser_url,
+            react_node_browser_url=self.react_node_browser_url,
         )
 
     def ping(self, target: str) -> dict[str, Any]:
@@ -96,7 +96,7 @@ class StackLinks:
             "grafana": ("grafana", self.grafana_base_url),
             "elasticsearch": ("elasticsearch", self.elasticsearch_base_url),
             "kibana": ("kibana", self.kibana_base_url),
-            "reach-ui": ("reach-ui", self.reach_ui_base_url),
+            "react-node": ("react-node", self.react_node_base_url),
         }
         if key not in dispatch:
             return {

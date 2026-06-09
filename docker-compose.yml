@@ -1,7 +1,7 @@
 # Podman: from repo root — podman compose up --build   (or: docker compose up --build)
-# Starts postgres + java + python + rust + reach-ui + Grafana + ELK + Filebeat + Prometheus (app JSON logs -> Filebeat -> Logstash -> ES; Grafana loads exercises dashboard JSON).
-# Reach UI (stack GET probes from the browser): http://127.0.0.1:5174/
-# To skip ELK only (lighter): podman compose up --build postgres java python rust reach-ui grafana prometheus
+# Starts postgres + java + python + rust + react-node + Grafana + ELK + Filebeat + Prometheus (app JSON logs -> Filebeat -> Logstash -> ES; Grafana loads exercises dashboard JSON).
+# React Node (React + Express stack probes): http://127.0.0.1:5174/
+# To skip ELK only (lighter): podman compose up --build postgres java python rust react-node grafana prometheus
 # Do not also run elk/docker-compose.yml or grafana/docker-compose.yml on the same host (duplicate ports).
 #
 # All services share network "exercises" — reach each other by DNS name, e.g. http://postgres:5432,
@@ -45,7 +45,7 @@ services:
       APP_STACK_GRAFANA_BASE_URL: http://grafana:3000
       APP_STACK_ELASTICSEARCH_BASE_URL: http://elasticsearch:9200
       APP_STACK_KIBANA_BASE_URL: http://kibana:5601
-      APP_STACK_REACH_UI_BASE_URL: http://reach-ui:80
+      APP_STACK_REACT_NODE_BASE_URL: http://react-node:5174
     volumes:
       - ./java/logs:/app/logs
     depends_on:
@@ -70,7 +70,7 @@ services:
       APP_STACK_GRAFANA_BASE_URL: http://grafana:3000
       APP_STACK_ELASTICSEARCH_BASE_URL: http://elasticsearch:9200
       APP_STACK_KIBANA_BASE_URL: http://kibana:5601
-      APP_STACK_REACH_UI_BASE_URL: http://reach-ui:80
+      APP_STACK_REACT_NODE_BASE_URL: http://react-node:5174
     volumes:
       - ./python/logs:/app/logs
 
@@ -106,24 +106,34 @@ services:
       start_period: 10s
     restart: unless-stopped
 
-  # Static Vite build served by nginx; probes use host-published ports (browser cannot use Compose DNS names).
-  reach-ui:
+  # React + Express; server-side GET probes use Compose DNS (browser cannot use service names directly).
+  react-node:
     build:
-      context: ./reach-ui
+      context: ./react-node
       dockerfile: Dockerfile
     networks: [exercises]
     ports:
-      - "5174:80"
+      - "5174:5174"
+    environment:
+      NODE_ENV: production
+      PORT: "5174"
+      PROBE_JAVA_URL: http://java:8080
+      PROBE_RUST_URL: http://rust:8082
+      PROBE_PYTHON_URL: http://python:5000
+      PROBE_PROMETHEUS_URL: http://prometheus:9090
+      PROBE_GRAFANA_URL: http://grafana:3000
+      PROBE_ELASTICSEARCH_URL: http://elasticsearch:9200
+      PROBE_KIBANA_URL: http://kibana:5601
     depends_on:
       - java
       - python
       - rust
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:80/"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5174/api/health"]
       interval: 10s
       timeout: 3s
       retries: 3
-      start_period: 5s
+      start_period: 10s
     restart: unless-stopped
 
   # ELK — lab defaults (security off). See elk/README.md
