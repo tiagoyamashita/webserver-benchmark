@@ -58,6 +58,7 @@ services:
       - ./apps/java/logs:/var/log/java:ro
       - ./apps/python/logs:/var/log/python:ro
       - ./apps/rust/logs:/var/log/rust:ro
+      - ./apps/react-node/logs:/var/log/react-node:ro
     command: ["filebeat", "-e", "-strict.perms=false"]
     restart: unless-stopped
 

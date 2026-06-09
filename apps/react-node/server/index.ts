@@ -2,12 +2,14 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createApp } from "./app.js";
+import { installObservabilityLogging } from "./observability-logging.js";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const port = Number(process.env.PORT ?? 5174);
 const isProduction = process.env.NODE_ENV === "production";
 
 async function start() {
+  installObservabilityLogging();
   const app = createApp({ isProduction });
 
   if (!isProduction) {

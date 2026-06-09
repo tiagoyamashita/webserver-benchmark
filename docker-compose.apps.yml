@@ -143,6 +143,8 @@ services:
     environment:
       NODE_ENV: production
       PORT: "5174"
+      EXERCISES_OBSERVABILITY: "1"
+      LOG_PATH: /app/logs
       PROBE_JAVA_URL: http://java:8080
       PROBE_RUST_URL: http://rust:8082
       PROBE_PYTHON_URL: http://python:5000
@@ -155,6 +157,8 @@ services:
       DB_NAME: demo
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
+    volumes:
+      - ./apps/react-node/logs:/app/logs
     depends_on:
       - postgres
       - java

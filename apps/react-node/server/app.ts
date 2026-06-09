@@ -1,8 +1,12 @@
-import express, { type Express, type Request, type Response } from "express";
+import express, { type Express, type NextFunction, type Request, type Response } from "express";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createItem, fetchItems } from "./items.js";
+import {
+  observabilityEnabled,
+  writeLog,
+} from "./observability-logging.js";
 import { probeById } from "./probe.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -31,8 +35,31 @@ export function createApp(options: CreateAppOptions = {}): Express {
   const app = express();
   app.use(express.json());
 
+  if (observabilityEnabled()) {
+    app.use((req: Request, res: Response, next: NextFunction) => {
+      const start = Date.now();
+      res.on("finish", () => {
+        writeLog("INFO", `${req.method} ${req.originalUrl} ${res.statusCode}`, {
+          method: req.method,
+          path: req.originalUrl,
+          status: res.statusCode,
+          ms: Date.now() - start,
+        });
+      });
+      next();
+    });
+  }
+
   app.get("/api/health", (_req: Request, res: Response) => {
     res.json({ ok: true, service: "react-node" });
+  });
+
+  app.get("/api/observability/sample-log", (_req: Request, res: Response) => {
+    writeLog(
+      "INFO",
+      "Observability sample event (JSON log file -> Filebeat -> Logstash -> Elasticsearch)",
+    );
+    res.send("logged");
   });
 
   app.get("/api/probe/:id", async (req: Request, res: Response) => {

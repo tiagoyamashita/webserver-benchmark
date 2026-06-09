@@ -77,38 +77,56 @@ Use **Docker Engine** the same way with `docker compose` instead of `podman comp
 
 **apps** = `docker-compose.apps.yml` · **observability** = `docker-compose.observability.yml`. Restart apps without touching Grafana / ELK: `podman compose -f docker-compose.apps.yml restart java rust`.
 
-### Postgres logs in Kibana
+### App and Postgres logs in Kibana
 
-Postgres log shipping to ELK is **already configured** — no extra Postgres plugin. Compose Postgres writes **JSON** log files; **Filebeat** tails them and sends them through **Logstash** into **Elasticsearch**; you search them in **Kibana**.
+**Filebeat** tails JSON log files from Java, Python, Rust, **React Node**, and Postgres, then ships them through **Logstash** into **Elasticsearch** for **Kibana**.
 
-```
-Postgres → apps/postgres/logs/postgresql-*.json → Filebeat → Logstash → Elasticsearch → Kibana
-```
+| Service | Host log file | Kibana filter (`service`) |
+|---------|---------------|---------------------------|
+| Java | `apps/java/logs/demo-app.json.log` | `exercises-java` |
+| Python | `apps/python/logs/demo-app.json.log` | `exercises-python` |
+| Rust | `apps/rust/logs/demo-app.json.log` | `exercises-rust` |
+| React Node | `apps/react-node/logs/demo-app.json.log` | `exercises-react-node` |
+| Postgres | `apps/postgres/logs/postgresql-*` | `exercises-postgres` |
 
 **1. Start both stacks** (same Compose project / `exercises` network):
 
 ```bash
 podman compose -f docker-compose.observability.yml up -d
-podman compose -f docker-compose.apps.yml up -d
+podman compose -f docker-compose.apps.yml up -d --build
 ```
 
-**2. Generate DB activity** (logs appear only when Postgres does work): use the Java **Create user** / **List users** actions, call `/api/items`, connect with `psql`, etc.
+After changing Filebeat config, restart it: `podman compose -f docker-compose.observability.yml restart filebeat`.
+
+**2. Generate log lines:**
+
+```bash
+curl -s http://127.0.0.1:8080/api/observability/sample-log
+curl -s http://127.0.0.1:5000/api/observability/sample-log
+curl -s http://127.0.0.1:8082/api/observability/sample-log
+curl -s http://127.0.0.1:5174/api/observability/sample-log
+```
+
+For Postgres, run DB activity (Java **Create user**, `/api/items`, `psql`, etc.).
 
 **3. Confirm log files on the host:**
 
 ```powershell
-dir apps\postgres\logs
+dir apps\java\logs, apps\react-node\logs, apps\postgres\logs
 ```
 
-Expect files like `postgresql-YYYY-MM-DD.json`. The standalone `apps/postgres/scripts/run.ps1` path does **not** enable this JSON logging — use Compose Postgres.
+Postgres writes `postgresql-YYYY-MM-DD` (and sometimes `.json` suffix). React Node writes `demo-app.json.log` when `EXERCISES_OBSERVABILITY=1` (set in Compose).
 
-**4. Open Kibana** at **http://127.0.0.1:5601** → **Discover**. Create or use a data view with index pattern **`logstash-*`** and timestamp field **`@timestamp`**.
+**4. Open Kibana** at **http://127.0.0.1:5601** → **Discover**. Data view: **`logstash-*`**, timestamp: **`@timestamp`**.
 
-**5. Filter Postgres lines:**
+**5. Filter in Discover:**
 
 ```
 service: "exercises-postgres"
+service: "exercises-react-node"
 ```
+
+Or by source path: `log.file.path: *postgresql*` · `log.file.path: *react-node*`
 
 **Quick checks**
 
@@ -116,8 +134,9 @@ service: "exercises-postgres"
 |-------|---------|
 | Indices exist | `curl -s http://127.0.0.1:9200/_cat/indices?v` (look for `logstash-YYYY.MM.dd`) |
 | Filebeat healthy | `podman compose -f docker-compose.observability.yml logs filebeat --tail 30` |
+| Paths inside Filebeat | `podman compose -f docker-compose.observability.yml exec filebeat ls -la /var/log/postgresql /var/log/react-node` |
 
-Config: Postgres logging in **`docker-compose.apps.yml`**; Filebeat input in **`devops/elk/filebeat/filebeat-compose.yml`**; mounts in **`docker-compose.observability.yml`**. More detail: [apps/postgres/README.md](apps/postgres/README.md#observability-elk--filebeat), [devops/elk/README.md](devops/elk/README.md).
+Config: **`devops/elk/filebeat/filebeat-compose.yml`**; volume mounts in **`docker-compose.observability.yml`**; app env in **`docker-compose.apps.yml`**. More: [devops/elk/README.md](devops/elk/README.md), [apps/postgres/README.md](apps/postgres/README.md#observability-elk--filebeat).
 
 ## How to run or deploy them
 

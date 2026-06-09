@@ -1,5 +1,5 @@
 # Used by the root docker-compose.yml filebeat service.
-# Tails Java / Python / Rust / Postgres observability JSON logs and ships to Logstash.
+# Tails Java / Python / Rust / React Node / Postgres observability JSON logs and ships to Logstash.
 
 filebeat.inputs:
   - type: filestream
@@ -11,6 +11,9 @@ filebeat.inputs:
       - ndjson:
           keys_under_root: true
           add_error_key: true
+    fields:
+      service: exercises-java
+    fields_under_root: true
 
   - type: filestream
     id: exercises-python-json
@@ -21,6 +24,9 @@ filebeat.inputs:
       - ndjson:
           keys_under_root: true
           add_error_key: true
+    fields:
+      service: exercises-python
+    fields_under_root: true
 
   - type: filestream
     id: exercises-rust-json
@@ -31,12 +37,29 @@ filebeat.inputs:
       - ndjson:
           keys_under_root: true
           add_error_key: true
+    fields:
+      service: exercises-rust
+    fields_under_root: true
+
+  - type: filestream
+    id: exercises-react-node-json
+    enabled: true
+    paths:
+      - /var/log/react-node/demo-app.json.log
+    parsers:
+      - ndjson:
+          keys_under_root: true
+          add_error_key: true
+    fields:
+      service: exercises-react-node
+    fields_under_root: true
 
   - type: filestream
     id: exercises-postgres-json
     enabled: true
     paths:
-      - /var/log/postgresql/*.json
+      # Postgres log_filename=postgresql-%Y-%m-%d (optional .json suffix depending on rotation)
+      - /var/log/postgresql/postgresql-*
     parsers:
       - ndjson:
           keys_under_root: true

@@ -67,7 +67,7 @@ Until Filebeat (or another Beat) sends events through Logstash, indices may not 
 
 **Java logs missing in Kibana?** Dashboard logs must not use a top-level JSON field named **`event`** (string) — Logstash’s Beats input expects ECS **`event`** as an object and will reset the connection. This repo uses **`ui_event`** instead; Filebeat also renames legacy **`event` → `ui_event`** before shipping.
 
-**Filter by app in Discover:** `service: "exercises-java"` · `service: "exercises-python"` · `service: "exercises-rust"` · `service: "exercises-postgres"`.
+**Filter by app in Discover:** `service: "exercises-java"` · `service: "exercises-python"` · `service: "exercises-rust"` · `service: "exercises-react-node"` · `service: "exercises-postgres"`. By file path: `log.file.path: *react-node*` · `log.file.path: *postgresql*`.
 
 To stop:
 

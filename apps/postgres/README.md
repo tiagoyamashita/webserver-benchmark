@@ -64,7 +64,7 @@ When Postgres runs via the **root** `docker-compose.yml`, it writes **JSON Lines
 | Setting | Value |
 |---------|--------|
 | Host log dir | `postgres/logs/` (mounted at `/var/log/postgresql` in the container) |
-| File pattern | `postgresql-YYYY-MM-DD.json` |
+| File pattern | `postgresql-*` (under host `apps/postgres/logs/`) |
 | Kibana filter | `service: "exercises-postgres"` |
 
 Logged by default: connections, disconnections, and data-modifying statements (`log_statement=mod`) with duration.
