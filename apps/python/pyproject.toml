@@ -20,6 +20,9 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+"exercises.web" = ["templates/*.html"]
+
 [project.scripts]
 exercises-web = "exercises.web.cli:main"
 
