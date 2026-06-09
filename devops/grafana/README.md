@@ -9,7 +9,7 @@ Optional **Grafana OSS** setup for dashboards (metrics, logs, or anything you wi
 | `docker-compose.yml` | Runs Grafana on port **3000** with provisioning mounts |
 | `provisioning/datasources/` | Data source definitions loaded at startup |
 | `provisioning/dashboards/` | Dashboard sidecar config (loads JSON from `dashboards/`) |
-| `dashboards/` | Dashboard JSON (e.g. **`exercises-java-python-rust.json`** — Java / Python / Rust over Prometheus) |
+| `dashboards/` | Dashboard JSON (e.g. **`exercises-java-python-rust.json`** — Java / Python / Rust over Prometheus; **`exercises-postgres.json`** — shared `items` table) |
 
 ## Bundled dashboard (root compose)
 
@@ -47,7 +47,7 @@ Grafana does **not** auto-discover your Java/Python/Rust HTTP ports. “Servers�
 
 1. Edit **`provisioning/datasources/datasources.yml`** (or add more `*.yml` files in that folder).
 2. Set each **`url`** to something Grafana’s container can reach:
-   - **Same Compose project:** use the **service name** and internal port, e.g. `http://prometheus:9090`, `http://elasticsearch:9200` (only when that service exists).
+   - **Same Compose project:** use the **service name** and internal port, e.g. `http://prometheus:9090`, `http://elasticsearch:9200` (only when that service exists), `postgres:5432` (when **`docker-compose.apps.yml`** is up on network **`exercises`**).
 3. **`isDefault: true`** — exactly one default; root compose ships **Prometheus** as default (see **`datasources.yml`**).
 4. Restart Grafana: `podman compose restart grafana` (from repo root) or recreate the stack.
 
@@ -56,7 +56,7 @@ Grafana does **not** auto-discover your Java/Python/Rust HTTP ports. “Servers�
 - Edit **`provisioning/datasources/datasources.yml`** to add Loki, extra Prometheus targets, etc. ([Grafana provisioning](https://grafana.com/docs/grafana/latest/administration/provisioning/)).
 - Drop dashboard JSON under **`dashboards/`**; Grafana picks them up via **`provisioning/dashboards/dashboards.yml`**.
 
-The shipped **`datasources.yml`** provisions **Prometheus** (**`http://prometheus:9090`**, default) and **TestData**. **Elasticsearch** is **commented** — uncomment when ELK runs in the same Compose project. The shipped **`dashboards/exercises-java-python-rust.json`** is a starter overview for the three app scrape jobs. Restart Grafana after edits.
+The shipped **`datasources.yml`** provisions **Prometheus** (**`http://prometheus:9090`**, default), **PostgreSQL** (**`postgres:5432`**, database **`demo`** — requires the apps stack), and **TestData**. **Elasticsearch** is **commented** — uncomment when ELK runs in the same Compose project. The shipped **`dashboards/exercises-java-python-rust.json`** is a starter overview for the three app scrape jobs; **`exercises-postgres.json`** queries the shared **`items`** table. Restart Grafana after edits.
 
 ## Embedding in an `<iframe>`
 

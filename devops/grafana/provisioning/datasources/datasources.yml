@@ -21,6 +21,23 @@ datasources:
     isDefault: false
     editable: true
 
+  # Same Compose network as docker-compose.apps.yml (service name `postgres`).
+  - name: PostgreSQL
+    type: postgres
+    uid: postgres-demo
+    access: proxy
+    url: postgres:5432
+    user: postgres
+    isDefault: false
+    editable: true
+    secureJsonData:
+      password: postgres
+    jsonData:
+      database: demo
+      sslmode: disable
+      postgresVersion: 1600
+      timescaledb: false
+
   # --- Uncomment when ELK is running from the *same* root compose project (or elk/ compose) ---
   # - name: Elasticsearch
   #   type: elasticsearch
