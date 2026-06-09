@@ -14,7 +14,11 @@ async function start() {
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       root: rootDir,
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        // Allow server-side probes from other containers (Host: react-node:5174).
+        allowedHosts: true,
+      },
       appType: "custom",
     });
     app.use(vite.middlewares);

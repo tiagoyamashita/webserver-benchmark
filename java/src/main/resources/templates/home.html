@@ -222,6 +222,12 @@
         </thead>
         <tbody>
           <tr>
+            <td>Postgres</td>
+            <td class="stack-service-actions">
+              <button type="button" class="btn stack-ping-btn" data-target="postgres">Ping</button>
+            </td>
+          </tr>
+          <tr>
             <td>Rust</td>
             <td class="stack-service-actions">
               <a class="btn" th:href="${stackLinks.rustBrowserUrl}" target="_blank" rel="noopener noreferrer">Open</a>
@@ -332,6 +338,7 @@
         var statusEl = document.getElementById('stack-ping-status');
         if (!section || !statusEl) return;
         var routes = {
+          postgres: /*[[@{/dashboard/stack-ping/postgres}]]*/ '/dashboard/stack-ping/postgres',
           rust: /*[[@{/dashboard/stack-ping/rust}]]*/ '/dashboard/stack-ping/rust',
           python: /*[[@{/dashboard/stack-ping/python}]]*/ '/dashboard/stack-ping/python',
           prometheus: /*[[@{/dashboard/stack-ping/prometheus}]]*/ '/dashboard/stack-ping/prometheus',
@@ -359,8 +366,8 @@
               var d = r.data || {};
               var u = d.url != null ? String(d.url) : '';
               if (r.ok && d.ok === true) {
-                statusEl.textContent =
-                  target + ': OK (HTTP ' + (d.status != null ? d.status : '?') + ') → ' + u;
+                var okLabel = d.status == null ? 'Postgres OK' : 'OK (HTTP ' + d.status + ')';
+                statusEl.textContent = target + ': ' + okLabel + (u ? ' → ' + u : '');
                 return;
               }
               var err = d.error != null ? String(d.error) : !r.ok ? 'Bad response' : 'Outbound GET failed';

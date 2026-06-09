@@ -69,7 +69,9 @@ When Postgres runs via the **root** `docker-compose.yml`, it writes **JSON Lines
 
 Logged by default: connections, disconnections, and data-modifying statements (`log_statement=mod`) with duration.
 
-### Verify in Compose
+### Shared `items` table
+
+Schema and seed data are owned by **Java Flyway** migrations under **`java/src/main/resources/db/migration/`** (`V1__create_items.sql`, `V2__seed_items.sql`). **Java**, **Python**, and **Rust** expose **`/api/items`** against the same Postgres table once Java has applied migrations.
 
 1. Start the stack with ELK + Filebeat (see [../elk/README.md](../elk/README.md)).
 2. Generate DB activity (e.g. use Java or Rust `POST /api/items`, or connect with `psql`).

@@ -1,4 +1,5 @@
 export type ProbeTargetId =
+  | "postgres"
   | "java"
   | "rust"
   | "python"
@@ -8,6 +9,7 @@ export type ProbeTargetId =
   | "kibana";
 
 export const PROBE_SERVICES: ReadonlyArray<{ id: ProbeTargetId; label: string }> = [
+  { id: "postgres", label: "Postgres" },
   { id: "java", label: "Java" },
   { id: "rust", label: "Rust" },
   { id: "python", label: "Python" },

@@ -2,7 +2,7 @@
 
 **React** front end + **Node/Express** API for stack connectivity probes (replaces the old static Vite **reach-ui** page).
 
-The browser calls **`/api/probe/:id`** on this server; Express performs the outbound **GET** to Java, Python, Rust, Prometheus, Grafana, Elasticsearch, or Kibana (Compose DNS names or localhost defaults).
+The browser calls **`/api/probe/:id`** on this server; Express performs outbound checks to Java, Python, Rust, Prometheus, Grafana, Elasticsearch, Kibana (**HTTP GET**), or **Postgres** (**`SELECT 1`** via `DB_*` env vars).
 
 ## Run locally
 
@@ -26,6 +26,8 @@ Open **http://127.0.0.1:5174/**.
 ## Configure probe targets
 
 Set **`PROBE_*_URL`** env vars (see `.env.example`). Root **`docker-compose.yml`** sets these to Compose service names for the **`react-node`** container.
+
+**Postgres items:** the UI loads shared demo rows via Express → Java **`GET /api/items`** (Flyway seed in `java/src/main/resources/db/migration/V2__seed_items.sql`). Override with **`ITEMS_BASE_URL`** if needed.
 
 ## Stack integration
 

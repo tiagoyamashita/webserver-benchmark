@@ -7,6 +7,9 @@ RUN npm ci
 COPY index.html tsconfig.json tsconfig.server.json vite.config.ts ./
 COPY client ./client
 COPY server ./server
+COPY docker-entrypoint-dev.sh /usr/local/bin/docker-entrypoint-dev.sh
+RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint-dev.sh \
+  && chmod +x /usr/local/bin/docker-entrypoint-dev.sh
 EXPOSE 5174
 ENV PORT=5174
-CMD ["npm", "run", "dev"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint-dev.sh"]

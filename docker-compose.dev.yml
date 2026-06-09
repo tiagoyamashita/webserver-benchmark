@@ -8,6 +8,7 @@
 # Python: FLASK_DEBUG=1 reloader when ./python changes.
 # Rust: cargo-watch rebuilds on src/ and templates/ (first start compiles; can take a few minutes).
 # React Node: Express + Vite middleware on http://127.0.0.1:5174
+# react-node dev entrypoint runs npm ci when package-lock.json changes (named node_modules volume).
 services:
   java:
     build:
@@ -35,6 +36,11 @@ services:
       APP_STACK_ELASTICSEARCH_BASE_URL: http://elasticsearch:9200
       APP_STACK_KIBANA_BASE_URL: http://kibana:5601
       APP_STACK_REACT_NODE_BASE_URL: http://react-node:5174
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: demo
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
 
   rust:
     build:
@@ -90,6 +96,11 @@ services:
       PROBE_GRAFANA_URL: http://grafana:3000
       PROBE_ELASTICSEARCH_URL: http://elasticsearch:9200
       PROBE_KIBANA_URL: http://kibana:5601
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: demo
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5174/api/health"]
       interval: 10s

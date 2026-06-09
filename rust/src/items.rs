@@ -10,6 +10,14 @@ pub struct CreateItemQuery {
 }
 
 #[derive(Serialize)]
+pub struct ItemResponse {
+    pub id: i64,
+    pub name: String,
+    #[serde(rename = "createdAt")]
+    pub created_at: String,
+}
+
+#[derive(Serialize)]
 pub struct CreateItemResponse {
     pub ok: bool,
     pub name: String,
@@ -19,6 +27,30 @@ pub struct CreateItemResponse {
     pub created_at: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+}
+
+/// `GET /api/items` — lists rows from Postgres `items` (Flyway schema + seed from Java).
+pub async fn list_items(pool: PgPool) -> impl IntoResponse {
+    match crate::db::list_items(&pool).await {
+        Ok(rows) => (
+            StatusCode::OK,
+            Json(
+                rows.into_iter()
+                    .map(|row| ItemResponse {
+                        id: row.id,
+                        name: row.name,
+                        created_at: row.created_at,
+                    })
+                    .collect::<Vec<_>>(),
+            ),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e.to_string() })),
+        )
+            .into_response(),
+    }
 }
 
 /// `POST /api/items?name=...` — inserts into Postgres `items` (Flyway schema from Java).

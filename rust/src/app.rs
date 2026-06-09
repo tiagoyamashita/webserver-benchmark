@@ -159,6 +159,19 @@ pub fn load_tera(project_root: &Path) -> std::io::Result<Tera> {
     Ok(tera)
 }
 
+async fn list_items(State(state): State<AppState>) -> impl IntoResponse {
+    let Some(pool) = state.pg_pool.clone() else {
+        return (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(serde_json::json!({
+                "error": "Postgres not configured (set DB_HOST, DB_PORT, DB_NAME, DB_USERNAME, DB_PASSWORD)"
+            })),
+        )
+            .into_response();
+    };
+    crate::items::list_items(pool).await.into_response()
+}
+
 async fn create_item(
     State(state): State<AppState>,
     Query(query): Query<crate::items::CreateItemQuery>,
@@ -260,7 +273,7 @@ pub fn build_router(state: AppState) -> Router {
         .route("/stack-ping/{target}", get(crate::stack_ping::stack_ping_handler))
         .route("/tests/run", post(run_tests_post))
         .route("/tests/source", get(test_source))
-        .route("/api/items", post(create_item))
+        .route("/api/items", get(list_items).post(create_item))
         .route("/metrics", get(metrics))
         .layer(middleware::from_fn(record_http_request_metrics))
         .layer(tower_http::trace::TraceLayer::new_for_http())

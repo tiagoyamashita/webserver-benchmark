@@ -32,6 +32,29 @@ pub struct InsertedItem {
     pub created_at: String,
 }
 
+pub struct ItemRow {
+    pub id: i64,
+    pub name: String,
+    pub created_at: String,
+}
+
+pub async fn list_items(pool: &PgPool) -> Result<Vec<ItemRow>, sqlx::Error> {
+    let rows: Vec<(i64, String, chrono::DateTime<chrono::Utc>)> = sqlx::query_as(
+        "SELECT id, name, created_at FROM items ORDER BY id",
+    )
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows
+        .into_iter()
+        .map(|(id, name, created_at)| ItemRow {
+            id,
+            name,
+            created_at: created_at.to_rfc3339(),
+        })
+        .collect())
+}
+
 pub async fn insert_item(pool: &PgPool, name: &str) -> Result<InsertedItem, sqlx::Error> {
     let row: (i64, String, chrono::DateTime<chrono::Utc>) = sqlx::query_as(
         "INSERT INTO items (name, created_at) VALUES ($1, NOW()) RETURNING id, name, created_at",

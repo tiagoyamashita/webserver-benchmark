@@ -21,6 +21,11 @@ public class StackPingController {
     this.stackPingService = stackPingService;
   }
 
+  @GetMapping("/postgres")
+  public Map<String, Object> pingPostgres() {
+    return ping("postgres", stackPingService::pingPostgres);
+  }
+
   @GetMapping("/rust")
   public Map<String, Object> pingRust() {
     return ping("rust", stackPingService::pingRust);

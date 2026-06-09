@@ -3,6 +3,11 @@ package com.example.demo.web;
 import static net.logstash.logback.argument.StructuredArguments.kv;
 
 import java.net.URI;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -81,6 +86,7 @@ public class StackPingService {
   public Map<String, Object> pingAll() {
     List<Map<String, Object>> results =
         List.of(
+            pingPostgres(),
             pingRust(),
             pingPython(),
             pingPrometheus(),
@@ -126,6 +132,46 @@ public class StackPingService {
     }
   }
 
+  public Map<String, Object> pingPostgres() {
+    String host = envOrDefault("DB_HOST", "127.0.0.1");
+    String port = envOrDefault("DB_PORT", "5432");
+    String db = envOrDefault("DB_NAME", "demo");
+    String user = envOrDefault("DB_USERNAME", "postgres");
+    String password = envOrDefault("DB_PASSWORD", "postgres");
+    String url = "jdbc:postgresql://" + host + ":" + port + "/" + db;
+    try (Connection conn = DriverManager.getConnection(url, user, password);
+        PreparedStatement ps = conn.prepareStatement("SELECT 1");
+        ResultSet rs = ps.executeQuery()) {
+      if (rs.next()) {
+        Map<String, Object> result =
+            Map.of(
+                "stack", "postgres",
+                "url", url,
+                "ok", true);
+        logStackPingResult(result);
+        return result;
+      }
+      Map<String, Object> result =
+          Map.of(
+              "stack", "postgres",
+              "url", url,
+              "ok", false,
+              "error", "SELECT 1 returned no row");
+      logStackPingResult(result);
+      return result;
+    } catch (SQLException e) {
+      String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+      Map<String, Object> result =
+          Map.of(
+              "stack", "postgres",
+              "url", url,
+              "ok", false,
+              "error", "Cannot connect to Postgres. " + msg);
+      logStackPingResult(result);
+      return result;
+    }
+  }
+
   public Map<String, Object> pingRust() {
     return emptyGet("rust", properties.getRustBaseUrl());
   }
@@ -151,7 +197,16 @@ public class StackPingService {
   }
 
   public Map<String, Object> pingReactNode() {
-    return emptyGet("react-node", properties.getReactNodeBaseUrl());
+    String base = properties.getReactNodeBaseUrl().trim().replaceAll("/+$", "");
+    return emptyGet("react-node", base + "/api/health");
+  }
+
+  private static String envOrDefault(String key, String fallback) {
+    String value = System.getenv(key);
+    if (value == null || value.isBlank()) {
+      return fallback;
+    }
+    return value.trim();
   }
 
   private static String normalizeRoot(String baseUrl) {
@@ -159,6 +214,15 @@ public class StackPingService {
       return "http://127.0.0.1/";
     }
     String t = baseUrl.trim();
+    try {
+      URI uri = URI.create(t);
+      String path = uri.getPath();
+      if (path != null && !path.isEmpty() && !"/".equals(path)) {
+        return t;
+      }
+    } catch (IllegalArgumentException ignored) {
+      // fall through
+    }
     return t.endsWith("/") ? t : t + "/";
   }
 }

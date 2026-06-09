@@ -7,6 +7,7 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import urlparse
 
 
 def _read_env(key: str, default: str) -> str:
@@ -18,6 +19,9 @@ def _normalize_root(base_url: str) -> str:
     t = base_url.strip()
     if not t:
         return "http://127.0.0.1/"
+    path = urlparse(t).path
+    if path and path != "/":
+        return t
     return t if t.endswith("/") else f"{t}/"
 
 
@@ -89,6 +93,8 @@ class StackLinks:
 
     def ping(self, target: str) -> dict[str, Any]:
         key = target.strip().lower()
+        if key == "postgres":
+            return _ping_postgres()
         dispatch = {
             "java": ("java", self.java_base_url),
             "rust": ("rust", self.rust_base_url),
@@ -96,7 +102,10 @@ class StackLinks:
             "grafana": ("grafana", self.grafana_base_url),
             "elasticsearch": ("elasticsearch", self.elasticsearch_base_url),
             "kibana": ("kibana", self.kibana_base_url),
-            "react-node": ("react-node", self.react_node_base_url),
+            "react-node": (
+                "react-node",
+                f"{self.react_node_base_url.rstrip('/')}/api/health",
+            ),
         }
         if key not in dispatch:
             return {
@@ -107,6 +116,34 @@ class StackLinks:
             }
         stack, base = dispatch[key]
         return _empty_get(stack, base)
+
+
+def _ping_postgres() -> dict[str, Any]:
+    host = _read_env("DB_HOST", "")
+    port = _read_env("DB_PORT", "5432")
+    url = f"postgres://{host}:{port}" if host else ""
+    if not host:
+        return {
+            "stack": "postgres",
+            "url": "",
+            "ok": False,
+            "error": "Postgres not configured (set DB_HOST)",
+        }
+    try:
+        from exercises.web.db import connection
+
+        with connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
+                cur.fetchone()
+        return {"stack": "postgres", "url": url, "ok": True}
+    except Exception as e:
+        return {
+            "stack": "postgres",
+            "url": url,
+            "ok": False,
+            "error": f"Cannot connect to Postgres. {e}",
+        }
 
 
 def _empty_get(stack: str, base_url: str) -> dict[str, Any]:

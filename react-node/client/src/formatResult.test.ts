@@ -8,6 +8,12 @@ describe("formatProbeResult", () => {
     ).toBe("HTTP 200 · 42 ms");
   });
 
+  it("formats postgres success", () => {
+    expect(
+      formatProbeResult({ ok: true, status: null, error: null, ms: 7, kind: "postgres" }),
+    ).toBe("Postgres OK · 7 ms");
+  });
+
   it("formats http error status", () => {
     expect(
       formatProbeResult({ ok: false, status: 503, error: "Service Unavailable", ms: 10 }),

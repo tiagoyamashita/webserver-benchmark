@@ -93,8 +93,16 @@ services:
       APP_STACK_ELASTICSEARCH_BASE_URL: http://elasticsearch:9200
       APP_STACK_KIBANA_BASE_URL: http://kibana:5601
       APP_STACK_REACT_NODE_BASE_URL: http://react-node:5174
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: demo
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
     volumes:
       - ./python/logs:/app/logs
+    depends_on:
+      - postgres
+      - java
 
   rust:
     build:
@@ -146,7 +154,13 @@ services:
       PROBE_GRAFANA_URL: http://grafana:3000
       PROBE_ELASTICSEARCH_URL: http://elasticsearch:9200
       PROBE_KIBANA_URL: http://kibana:5601
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: demo
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
     depends_on:
+      - postgres
       - java
       - python
       - rust

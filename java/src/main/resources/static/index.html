@@ -96,6 +96,11 @@
           </tr>
         </thead>
         <tbody id="connectivity-rows">
+          <tr data-target="postgres" data-label="Postgres">
+            <td>Postgres</td>
+            <td><button type="button" class="btn ping-btn" data-target="postgres">Ping</button></td>
+            <td class="status-cell"><span class="status-pending">—</span></td>
+          </tr>
           <tr data-target="rust" data-label="Rust">
             <td>Rust</td>
             <td><button type="button" class="btn ping-btn" data-target="rust">Ping</button></td>
@@ -151,9 +156,15 @@
       }
     </style>
 
+    <script src="/js/reachability-parent.js"></script>
     <script>
       (function () {
+        var reach = function () {
+          return window.exerciseReachabilityParent;
+        };
+
         var routes = {
+          postgres: "/dashboard/stack-ping/postgres",
           rust: "/dashboard/stack-ping/rust",
           python: "/dashboard/stack-ping/python",
           prometheus: "/dashboard/stack-ping/prometheus",
@@ -177,7 +188,10 @@
         function formatResult(d) {
           var url = d.url != null ? String(d.url) : "";
           var urlLine = url ? '<span class="url-hint">' + url + "</span>" : "";
-          if (d.ok === true && d.status != null) {
+          if (d.ok === true) {
+            if (d.status == null) {
+              return '<span class="status-ok">Postgres OK</span>' + urlLine;
+            }
             return (
               '<span class="status-ok">HTTP ' + d.status + "</span>" + urlLine
             );
@@ -198,6 +212,7 @@
         function pingOne(target) {
           var route = routes[target];
           if (!route) return Promise.resolve();
+          var t0 = performance.now();
           setStatus(target, '<span class="status-pending">Pinging…</span>');
           return fetch(route, { method: "GET", credentials: "same-origin" })
             .then(function (res) {
@@ -206,7 +221,15 @@
               });
             })
             .then(function (r) {
-              setStatus(target, formatResult(r.data || {}));
+              var d = r.data || {};
+              setStatus(target, formatResult(d));
+              var parent = reach();
+              if (parent) {
+                parent.notifyParent(
+                  target,
+                  parent.probePayloadFromPingResult(d, performance.now() - t0),
+                );
+              }
             })
             .catch(function (err) {
               setStatus(
@@ -215,6 +238,14 @@
                   String(err.message || err) +
                   "</span>"
               );
+              var parent = reach();
+              if (parent) {
+                parent.notifyParent(target, {
+                  ok: false,
+                  error: String(err.message || err),
+                  ms: performance.now() - t0,
+                });
+              }
             });
         }
 
@@ -238,6 +269,10 @@
               list.forEach(function (d) {
                 var stack = d.stack != null ? String(d.stack) : "";
                 setStatus(stack, formatResult(d));
+                var parent = reach();
+                if (parent && stack) {
+                  parent.notifyParent(stack, parent.probePayloadFromPingResult(d));
+                }
               });
             })
             .catch(function (err) {
@@ -246,6 +281,10 @@
                   t,
                   '<span class="status-err">' + String(err.message || err) + "</span>"
                 );
+                var parent = reach();
+                if (parent) {
+                  parent.notifyParent(t, { ok: false, error: String(err.message || err) });
+                }
               });
             });
         });

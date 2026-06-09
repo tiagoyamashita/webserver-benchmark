@@ -4,6 +4,7 @@ use axum::extract::{Path, State};
 use axum::response::IntoResponse;
 use axum::Json;
 use serde::Serialize;
+use std::net::{TcpStream, ToSocketAddrs};
 use std::time::Duration;
 
 use crate::app::AppState;
@@ -87,13 +88,17 @@ impl StackLinks {
 
     pub fn ping(&self, target: &str) -> StackPingResult {
         match target {
+            "postgres" => ping_postgres(),
             "java" => empty_get("java", &self.java_base_url),
             "python" => empty_get("python", &self.python_base_url),
             "prometheus" => empty_get("prometheus", &self.prometheus_base_url),
             "grafana" => empty_get("grafana", &self.grafana_base_url),
             "elasticsearch" => empty_get("elasticsearch", &self.elasticsearch_base_url),
             "kibana" => empty_get("kibana", &self.kibana_base_url),
-            "react-node" => empty_get("react-node", &self.react_node_base_url),
+            "react-node" => {
+                let base = self.react_node_base_url.trim_end_matches('/');
+                empty_get("react-node", &format!("{base}/api/health"))
+            }
             _ => StackPingResult {
                 stack: target.to_string(),
                 url: String::new(),
@@ -129,10 +134,72 @@ fn normalize_root(base_url: &str) -> String {
     if t.is_empty() {
         return "http://127.0.0.1/".to_string();
     }
+    // Keep explicit paths (e.g. /api/health) without forcing a trailing slash.
+    if let Some(scheme_end) = t.find("://") {
+        let after_scheme = &t[scheme_end + 3..];
+        if let Some(slash) = after_scheme.find('/') {
+            if slash < after_scheme.len() - 1 {
+                return t.to_string();
+            }
+        }
+    }
     if t.ends_with('/') {
         t.to_string()
     } else {
         format!("{t}/")
+    }
+}
+
+fn ping_postgres() -> StackPingResult {
+    let host = read_env("DB_HOST", "");
+    if host.is_empty() {
+        return StackPingResult {
+            stack: "postgres".into(),
+            url: String::new(),
+            ok: false,
+            status: None,
+            error: Some("Postgres not configured (set DB_HOST)".into()),
+        };
+    }
+    let port = read_env("DB_PORT", "5432");
+    let url = format!("postgres://{host}:{port}");
+    let addr = format!("{host}:{port}");
+    match addr.to_socket_addrs() {
+        Ok(mut addrs) => match addrs.next() {
+            Some(socket_addr) => match TcpStream::connect_timeout(&socket_addr, Duration::from_secs(15))
+            {
+                Ok(_) => StackPingResult {
+                    stack: "postgres".into(),
+                    url,
+                    ok: true,
+                    status: None,
+                    error: None,
+                },
+                Err(e) => StackPingResult {
+                    stack: "postgres".into(),
+                    url,
+                    ok: false,
+                    status: None,
+                    error: Some(format!(
+                        "Cannot connect to Postgres (is the container running on the Compose network?). {e}"
+                    )),
+                },
+            },
+            None => StackPingResult {
+                stack: "postgres".into(),
+                url,
+                ok: false,
+                status: None,
+                error: Some("Could not resolve Postgres address".into()),
+            },
+        },
+        Err(e) => StackPingResult {
+            stack: "postgres".into(),
+            url,
+            ok: false,
+            status: None,
+            error: Some(format!("Invalid Postgres address: {e}")),
+        },
     }
 }
 

@@ -97,6 +97,13 @@
           <tr><th scope="col">Service</th><th scope="col">Actions</th><th scope="col">Response</th></tr>
         </thead>
         <tbody>
+          <tr data-target="postgres">
+            <td>Postgres</td>
+            <td class="actions">
+              <button type="button" class="btn stack-ping-btn" data-target="postgres">Ping</button>
+            </td>
+            <td class="status-cell"><span class="status-pending">—</span></td>
+          </tr>
           <tr data-target="java">
             <td>Java</td>
             <td class="actions">
@@ -171,7 +178,10 @@
 
         function formatJsonRow(target, r, d) {
           if (r.ok && d.ok === true) {
-            return '<span class="status-ok">HTTP ' + (d.status != null ? d.status : '?') + '</span>';
+            if (d.status == null) {
+              return '<span class="status-ok">Postgres OK</span>';
+            }
+            return '<span class="status-ok">HTTP ' + d.status + '</span>';
           }
           if (d.status != null) {
             return '<span class="status-warn">HTTP ' + d.status + '</span>';
@@ -198,7 +208,8 @@
               setRowStatus(target, formatJsonRow(target, r, d));
               var u = d.url != null ? String(d.url) : '';
               if (r.ok && d.ok === true) {
-                statusEl.textContent = target + ': OK (HTTP ' + (d.status != null ? d.status : '?') + ')' + (u ? ' → ' + u : '');
+                var okLabel = d.status == null ? 'Postgres OK' : 'OK (HTTP ' + d.status + ')';
+                statusEl.textContent = target + ': ' + okLabel + (u ? ' → ' + u : '');
               } else {
                 var err = d.error != null ? String(d.error) : 'Outbound GET failed';
                 statusEl.textContent = target + ': ' + err + (u ? ' → ' + u : '');
@@ -220,7 +231,7 @@
         var pingAll = document.getElementById('ping-all');
         if (pingAll) {
           pingAll.addEventListener('click', function () {
-            var targets = ['java', 'python', 'prometheus', 'grafana', 'elasticsearch', 'kibana', 'react-node'];
+            var targets = ['postgres', 'java', 'python', 'prometheus', 'grafana', 'elasticsearch', 'kibana', 'react-node'];
             targets.forEach(function (t) {
               setRowStatus(t, '<span class="status-pending">Pinging…</span>');
             });

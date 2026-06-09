@@ -8,6 +8,7 @@ from pathlib import Path
 from flask import Flask, Response, jsonify, redirect, render_template, request, session, url_for
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, generate_latest
 
+from exercises.web.items_api import register_items_routes
 from exercises.web.junit_report import (
     existing_report_hints,
     load_latest_results,
@@ -59,6 +60,7 @@ def create_app() -> Flask:
     )
     app.secret_key = os.environ.get("SECRET_KEY", "dev-exercises-web")
     app.config["PROJECT_ROOT"] = resolve_project_root()
+    register_items_routes(app)
 
     @app.after_request
     def after_request_hooks(response):

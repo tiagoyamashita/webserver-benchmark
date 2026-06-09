@@ -1,10 +1,11 @@
-import { useCallback, useState } from "react";
-import { probeService } from "./api";
+import { useCallback, useEffect, useState } from "react";
+import { createItem, fetchItems, probeService } from "./api";
 import { formatProbeResult, probeResultClassName } from "./formatResult";
-import type { ProbeResult, ServiceRow } from "./types";
+import type { Item, ProbeResult, ServiceRow } from "./types";
 import "./App.css";
 
 const SERVICES: ServiceRow[] = [
+  { id: "postgres", label: "Postgres" },
   { id: "java", label: "Java" },
   { id: "rust", label: "Rust" },
   { id: "python", label: "Python" },
@@ -18,6 +19,11 @@ type RowState = ProbeResult | { pending: true } | null;
 
 export default function App() {
   const [rows, setRows] = useState<Record<string, RowState>>({});
+  const [items, setItems] = useState<Item[]>([]);
+  const [itemsError, setItemsError] = useState<string | null>(null);
+  const [itemsPending, setItemsPending] = useState(false);
+  const [newItemName, setNewItemName] = useState("");
+  const [createPending, setCreatePending] = useState(false);
 
   const pingOne = useCallback(async (id: string) => {
     setRows((prev) => ({ ...prev, [id]: { pending: true } }));
@@ -30,6 +36,42 @@ export default function App() {
     setRows((prev) => ({ ...prev, ...pending }));
     await Promise.all(SERVICES.map((s) => pingOne(s.id)));
   }, [pingOne]);
+
+  const loadItems = useCallback(async () => {
+    setItemsPending(true);
+    setItemsError(null);
+    try {
+      setItems(await fetchItems());
+    } catch (error) {
+      setItems([]);
+      setItemsError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setItemsPending(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadItems();
+  }, [loadItems]);
+
+  const submitItem = useCallback(async () => {
+    const name = newItemName.trim();
+    if (!name) {
+      setItemsError("name must not be blank");
+      return;
+    }
+    setCreatePending(true);
+    setItemsError(null);
+    try {
+      await createItem(name);
+      setNewItemName("");
+      await loadItems();
+    } catch (error) {
+      setItemsError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setCreatePending(false);
+    }
+  }, [loadItems, newItemName]);
 
   function renderCell(id: string) {
     const state = rows[id];
@@ -73,6 +115,64 @@ export default function App() {
             ))}
           </tbody>
         </table>
+      </section>
+
+      <section className="items-panel" aria-label="Postgres items via Java API">
+        <h2>Postgres items</h2>
+        <p className="subtitle">
+          Loaded via Express → Java <code>GET /api/items</code> (Flyway seed + shared{" "}
+          <code>items</code> table).
+        </p>
+        <div className="toolbar">
+          <button type="button" className="btn" onClick={() => void loadItems()} disabled={itemsPending}>
+            {itemsPending ? "Loading…" : "Refresh"}
+          </button>
+        </div>
+        {itemsError ? <p className="items-error">{itemsError}</p> : null}
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">ID</th>
+              <th scope="col">Name</th>
+              <th scope="col">Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.length === 0 ? (
+              <tr>
+                <td colSpan={3} className="status-pending">
+                  {itemsPending ? "Loading…" : "No items yet"}
+                </td>
+              </tr>
+            ) : (
+              items.map((item) => (
+                <tr key={item.id}>
+                  <td>{item.id}</td>
+                  <td>{item.name}</td>
+                  <td>{item.createdAt}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+        <form
+          className="items-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void submitItem();
+          }}
+        >
+          <label htmlFor="new-item-name">Add item</label>
+          <input
+            id="new-item-name"
+            value={newItemName}
+            onChange={(event) => setNewItemName(event.target.value)}
+            placeholder="Item name"
+          />
+          <button type="submit" className="btn primary" disabled={createPending}>
+            {createPending ? "Saving…" : "Create"}
+          </button>
+        </form>
       </section>
     </main>
   );

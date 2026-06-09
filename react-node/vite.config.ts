@@ -13,6 +13,8 @@ export default defineConfig({
     port: 5174,
     strictPort: true,
     host: true,
+    // Compose stack pings use Host: react-node:5174 (Java/Python/Rust server-side GET).
+    allowedHosts: true,
   },
   test: {
     environment: "jsdom",

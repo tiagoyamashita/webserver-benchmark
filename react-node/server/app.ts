@@ -2,6 +2,7 @@ import express, { type Express, type Request, type Response } from "express";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createItem, fetchItems } from "./items.js";
 import { probeById } from "./probe.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -28,6 +29,7 @@ function resolveClientDir(): string | null {
 export function createApp(options: CreateAppOptions = {}): Express {
   const { isProduction = process.env.NODE_ENV === "production", fetchImpl } = options;
   const app = express();
+  app.use(express.json());
 
   app.get("/api/health", (_req: Request, res: Response) => {
     res.json({ ok: true, service: "react-node" });
@@ -42,6 +44,33 @@ export function createApp(options: CreateAppOptions = {}): Express {
       return;
     }
     res.json(result);
+  });
+
+  app.get("/api/items", async (_req: Request, res: Response) => {
+    try {
+      const items = await fetchItems(fetchImpl);
+      res.json(items);
+    } catch (error) {
+      res.status(502).json({
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  app.post("/api/items", async (req: Request, res: Response) => {
+    const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
+    if (!name) {
+      res.status(400).json({ error: "name must not be blank" });
+      return;
+    }
+    try {
+      const item = await createItem(name, fetchImpl);
+      res.status(201).json(item);
+    } catch (error) {
+      res.status(502).json({
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   });
 
   if (isProduction) {

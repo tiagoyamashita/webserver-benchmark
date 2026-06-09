@@ -129,3 +129,50 @@ code {
   border-radius: 4px;
   background: var(--code-bg);
 }
+
+.items-panel {
+  margin-top: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(128, 128, 128, 0.05);
+  padding: 1rem;
+}
+
+.items-panel h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.1rem;
+}
+
+.items-panel .subtitle {
+  margin-bottom: 0.75rem;
+}
+
+.items-error {
+  color: var(--err);
+  font-size: 0.85rem;
+  margin: 0 0 0.75rem;
+}
+
+.items-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.75rem;
+}
+
+.items-form label {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.items-form input {
+  flex: 1 1 12rem;
+  min-width: 10rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--code-bg);
+  color: var(--text);
+}

@@ -1,0 +1,43 @@
+"""Postgres connection helpers (same env vars as Java / Rust Compose services)."""
+
+from __future__ import annotations
+
+import os
+from contextlib import contextmanager
+from typing import TYPE_CHECKING, Iterator
+
+if TYPE_CHECKING:
+    import psycopg
+
+
+class DatabaseNotConfiguredError(RuntimeError):
+    pass
+
+
+def database_url_from_env() -> str | None:
+    host = os.environ.get("DB_HOST", "").strip()
+    if not host:
+        return None
+    port = os.environ.get("DB_PORT", "5432").strip() or "5432"
+    dbname = os.environ.get("DB_NAME", "demo").strip() or "demo"
+    user = os.environ.get("DB_USERNAME", "postgres").strip() or "postgres"
+    password = os.environ.get("DB_PASSWORD", "postgres")
+    return f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
+
+
+@contextmanager
+def connection() -> Iterator["psycopg.Connection"]:
+    url = database_url_from_env()
+    if not url:
+        raise DatabaseNotConfiguredError(
+            "Postgres not configured (set DB_HOST, DB_PORT, DB_NAME, DB_USERNAME, DB_PASSWORD)"
+        )
+    try:
+        import psycopg
+    except ModuleNotFoundError as exc:
+        raise DatabaseNotConfiguredError(
+            "psycopg is not installed; rebuild the python image "
+            "(podman compose build python)"
+        ) from exc
+    with psycopg.connect(url) as conn:
+        yield conn
