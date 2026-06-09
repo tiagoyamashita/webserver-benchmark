@@ -81,6 +81,7 @@ services:
     ports: !override
       - "5174:5174"
     environment:
+      NODE_ENV: development
       PORT: "5174"
       PROBE_JAVA_URL: http://java:8080
       PROBE_RUST_URL: http://rust:8082
