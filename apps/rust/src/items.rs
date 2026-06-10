@@ -11,7 +11,7 @@ pub struct CreateItemQuery {
     pub name: String,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct ItemResponse {
     pub id: i64,
     pub name: String,
