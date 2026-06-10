@@ -18,3 +18,8 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets: ["rust:8082"]
+
+  - job_name: exercises-react-node
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["react-node:5174"]
