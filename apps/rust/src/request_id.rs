@@ -1,7 +1,9 @@
 //! HTTP request id (`X-Request-ID`) for log and Postgres correlation.
 
-use axum::http::{HeaderValue, Request, Response};
+use axum::extract::Request;
+use axum::http::HeaderValue;
 use axum::middleware::Next;
+use axum::response::Response;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
