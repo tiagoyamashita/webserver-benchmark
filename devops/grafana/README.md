@@ -9,11 +9,11 @@ Optional **Grafana OSS** setup for dashboards (metrics, logs, or anything you wi
 | `docker-compose.yml` | Runs Grafana on port **3000** with provisioning mounts |
 | `provisioning/datasources/` | Data source definitions loaded at startup |
 | `provisioning/dashboards/` | Dashboard sidecar config (loads JSON from `dashboards/`) |
-| `dashboards/` | Dashboard JSON (e.g. **`exercises-java-python-rust.json`** — Prometheus metrics for Java, Python, Rust, React Node; **`exercises-postgres.json`** — shared `items` table; **`exercises-requests-logs.json`** — HTTP status + Postgres SQL from Elasticsearch) |
+| `dashboards/` | Dashboard JSON (e.g. **`exercises-java-python-rust.json`** — Prometheus app metrics + PostgreSQL `items`/`users`; **`exercises-postgres.json`** — items-only SQL view; **`exercises-requests-logs.json`** — HTTP status + Postgres SQL from Elasticsearch) |
 
 ## Bundled dashboard (root compose)
 
-With the **repository root** `docker-compose.yml`, Grafana loads **`dashboards/exercises-java-python-rust.json`** into the **Exercises** folder. It expects Prometheus jobs **`exercises-java`**, **`exercises-python`**, **`exercises-rust`**, and **`exercises-react-node`** (see **`prometheus/prometheus.yml`**). After changing the JSON file, restart Grafana or wait for the file provider to rescan (if configured).
+With the **repository root** `docker-compose.yml`, Grafana loads **`dashboards/exercises-java-python-rust.json`** (**Exercises — Apps & Postgres**) into the **Exercises** folder. It expects Prometheus jobs **`exercises-java`**, **`exercises-python`**, **`exercises-rust`**, and **`exercises-react-node`** (see **`prometheus/prometheus.yml`**) plus the **`postgres-demo`** datasource (`postgres:5432`, database **`demo`**). After changing the JSON file, restart Grafana or wait for the file provider to rescan (if configured).
 
 ## Run locally
 
