@@ -15,6 +15,7 @@ services:
       GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
       GF_PATHS_PROVISIONING: /etc/grafana/provisioning
       GF_SECURITY_ALLOW_EMBEDDING: "true"
+      GF_PANELS_DISABLE_SANITIZE_HTML: "true"
     volumes:
       - grafana-data:/var/lib/grafana
       - ./provisioning:/etc/grafana/provisioning:ro

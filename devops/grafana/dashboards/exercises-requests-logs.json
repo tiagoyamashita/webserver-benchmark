@@ -144,7 +144,7 @@
               "type": "count"
             }
           ],
-          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (path:\"/health\" AND status:200) AND NOT (path:\"/api/health\" AND status:200) AND NOT (path:\"/metrics\" AND status:200) AND NOT (path:\"/actuator/prometheus\" AND status:200) AND NOT (path:\"/api/observability/health\" AND status:200) AND status:200",
+          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\")) AND status:200",
           "refId": "A",
           "timeField": "@timestamp"
         },
@@ -171,7 +171,7 @@
               "type": "count"
             }
           ],
-          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (path:\"/health\" AND status:200) AND NOT (path:\"/api/health\" AND status:200) AND NOT (path:\"/metrics\" AND status:200) AND NOT (path:\"/actuator/prometheus\" AND status:200) AND NOT (path:\"/api/observability/health\" AND status:200) AND status:201",
+          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\")) AND status:201",
           "refId": "B",
           "timeField": "@timestamp"
         },
@@ -198,7 +198,7 @@
               "type": "count"
             }
           ],
-          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (path:\"/health\" AND status:200) AND NOT (path:\"/api/health\" AND status:200) AND NOT (path:\"/metrics\" AND status:200) AND NOT (path:\"/actuator/prometheus\" AND status:200) AND NOT (path:\"/api/observability/health\" AND status:200) AND status:302",
+          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\")) AND status:302",
           "refId": "C",
           "timeField": "@timestamp"
         },
@@ -225,7 +225,7 @@
               "type": "count"
             }
           ],
-          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (path:\"/health\" AND status:200) AND NOT (path:\"/api/health\" AND status:200) AND NOT (path:\"/metrics\" AND status:200) AND NOT (path:\"/actuator/prometheus\" AND status:200) AND NOT (path:\"/api/observability/health\" AND status:200) AND status:304",
+          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\")) AND status:304",
           "refId": "D",
           "timeField": "@timestamp"
         },
@@ -252,7 +252,7 @@
               "type": "count"
             }
           ],
-          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (path:\"/health\" AND status:200) AND NOT (path:\"/api/health\" AND status:200) AND NOT (path:\"/metrics\" AND status:200) AND NOT (path:\"/actuator/prometheus\" AND status:200) AND NOT (path:\"/api/observability/health\" AND status:200) AND status:403",
+          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\")) AND status:403",
           "refId": "E",
           "timeField": "@timestamp"
         },
@@ -279,7 +279,7 @@
               "type": "count"
             }
           ],
-          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (path:\"/health\" AND status:200) AND NOT (path:\"/api/health\" AND status:200) AND NOT (path:\"/metrics\" AND status:200) AND NOT (path:\"/actuator/prometheus\" AND status:200) AND NOT (path:\"/api/observability/health\" AND status:200) AND status:404",
+          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\")) AND status:404",
           "refId": "F",
           "timeField": "@timestamp"
         },
@@ -306,7 +306,7 @@
               "type": "count"
             }
           ],
-          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (path:\"/health\" AND status:200) AND NOT (path:\"/api/health\" AND status:200) AND NOT (path:\"/metrics\" AND status:200) AND NOT (path:\"/actuator/prometheus\" AND status:200) AND NOT (path:\"/api/observability/health\" AND status:200) AND status:500",
+          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\")) AND status:500",
           "refId": "G",
           "timeField": "@timestamp"
         },
@@ -333,7 +333,7 @@
               "type": "count"
             }
           ],
-          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (path:\"/health\" AND status:200) AND NOT (path:\"/api/health\" AND status:200) AND NOT (path:\"/metrics\" AND status:200) AND NOT (path:\"/actuator/prometheus\" AND status:200) AND NOT (path:\"/api/observability/health\" AND status:200) AND status:502",
+          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\")) AND status:502",
           "refId": "H",
           "timeField": "@timestamp"
         }
@@ -452,7 +452,7 @@
               "type": "logs"
             }
           ],
-          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\")",
+          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\"))",
           "refId": "A",
           "timeField": "@timestamp"
         }
@@ -537,7 +537,7 @@
               "type": "logs"
             }
           ],
-          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\")",
+          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\"))",
           "refId": "A",
           "timeField": "@timestamp"
         }
@@ -763,7 +763,7 @@
               "type": "logs"
             }
           ],
-          "query": "service:\"exercises-postgres\"",
+          "query": "service:\"exercises-postgres\" AND NOT (message:*Skipping* OR message:*redirecting* OR message:*Future* OR message:*ending*log*output* OR message:*stderr* OR message:*received*fast*shutdown* OR message:*aborting*active*transactions* OR message:*database*system*shut*down* OR message:*shutting*down* OR message:*starting*PostgreSQL*)",
           "refId": "A",
           "timeField": "@timestamp"
         }
@@ -772,7 +772,7 @@
       "type": "logs"
     },
     {
-      "collapsed": true,
+      "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -785,73 +785,53 @@
       "type": "row"
     },
     {
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 41
+      },
+      "id": 103,
+      "options": {
+        "code": {
+          "language": "html",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "<div style=\"display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:4px 8px;\"><label for=\"correlation-id-input\" style=\"font-size:14px;font-weight:500;color:#ccccdc;white-space:nowrap;\">Request ID</label><input id=\"correlation-id-input\" type=\"text\" value=\"${correlation_id}\" autocomplete=\"off\" spellcheck=\"false\" placeholder=\"Paste X-Request-ID\" style=\"flex:1;min-width:240px;max-width:480px;padding:6px 10px;border:1px solid #464646;border-radius:2px;background:#111217;color:#ccccdc;font-size:13px;\" /><button type=\"button\" onclick=\"window.top.location.href='/d/exercises-requests-logs?var-correlation_id='+encodeURIComponent(document.getElementById('correlation-id-input').value)+'&from=${__from}&to=${__to}'\" style=\"padding:6px 12px;border:1px solid #464646;border-radius:2px;background:#2b2b2f;color:#ccccdc;font-size:13px;cursor:pointer;\">Apply</button></div><p style=\"margin:4px 8px 0;font-size:12px;color:#8e8e8e;\">X-Request-ID from app HTTP logs. Click a <strong>request_id</strong> in <strong>Recent HTTP requests</strong> to fill this automatically.</p>",
+        "mode": "html"
+      },
+      "pluginVersion": "11.5.2",
+      "title": "",
+      "transparent": true,
+      "type": "text"
+    },
+    {
       "datasource": {
         "type": "elasticsearch",
         "uid": "elasticsearch"
       },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "text",
-                "value": null
-              },
-              {
-                "color": "#a8b5a8",
-                "value": 200
-              },
-              {
-                "color": "yellow",
-                "value": 400
-              },
-              {
-                "color": "red",
-                "value": 500
-              }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "status"
-            },
-            "properties": [
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-text"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "description": "Set **Request ID** in the variable bar at the top of this dashboard, or click a request_id in **Recent HTTP requests**.",
+      "description": "HTTP access and controller logs for the Request ID above.",
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 41
+        "y": 44
       },
       "id": 6,
       "options": {
-        "cellHeight": "sm",
-        "footer": {
-          "countRows": false,
-          "fields": "",
-          "reducer": [
-            "sum"
-          ],
-          "show": false
-        },
-        "showHeader": true
+        "dedupStrategy": "none",
+        "displayedFields": [
+          "service",
+          "___LOG_LINE_BODY___"
+        ],
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
       },
       "targets": [
         {
@@ -864,20 +844,20 @@
             {
               "id": "1",
               "settings": {
-                "limit": "100",
+                "limit": "500",
                 "orderBy": "Desc",
                 "orderByTime": "true"
               },
               "type": "logs"
             }
           ],
-          "query": "_exists_:request_id AND request_id:\"$correlation_id\"",
+          "query": "_exists_:request_id AND request_id:\"$correlation_id\" AND _exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\"))",
           "refId": "A",
           "timeField": "@timestamp"
         }
       ],
       "title": "HTTP logs for Request ID",
-      "type": "table"
+      "type": "logs"
     },
     {
       "datasource": {
@@ -948,7 +928,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 41
+        "y": 44
       },
       "id": 7,
       "options": {
@@ -1007,8 +987,8 @@
           "text": "",
           "value": ""
         },
-        "description": "X-Request-ID from app HTTP logs (copy from Recent HTTP requests or click a request_id link).",
-        "hide": 0,
+        "description": "X-Request-ID from app HTTP logs (set in Correlate HTTP + SQL section or via request_id links).",
+        "hide": 2,
         "label": "Request ID",
         "name": "correlation_id",
         "options": [
@@ -1032,5 +1012,5 @@
   "timezone": "browser",
   "title": "Exercises HTTP requests & SQL logs",
   "uid": "exercises-requests-logs",
-  "version": 30
+  "version": 34
 }
