@@ -3,3 +3,6 @@ rust/target/
 
 # Local observability secrets (Grafana admin password)
 .env.observability
+
+# Optional app log overrides (see .env.apps.example)
+.env.apps

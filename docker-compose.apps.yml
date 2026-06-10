@@ -6,6 +6,9 @@
 #   podman compose -f docker-compose.apps.yml down
 #
 # Dev overlay: add -f docker-compose.dev.yml
+#
+# App JSON logging: EXERCISES_OBSERVABILITY=1 (Python/Rust/React Node) and Spring profile
+# observability (Java). Optional overrides in .env.apps (see .env.apps.example).
 services:
   postgres:
     image: docker.io/library/postgres:16
@@ -48,6 +51,9 @@ services:
         SKIP_TESTS: "true"
         CACHE_BUST: ${CACHE_BUST:-1}
     networks: [exercises]
+    env_file:
+      - path: .env.apps
+        required: false
     ports:
       - "8080:8080"
     environment:
@@ -75,6 +81,9 @@ services:
       context: ./apps/python
       dockerfile: Dockerfile
     networks: [exercises]
+    env_file:
+      - path: .env.apps
+        required: false
     ports:
       - "5000:5000"
     environment:
@@ -106,6 +115,9 @@ services:
       context: ./apps/rust
       dockerfile: Dockerfile
     networks: [exercises]
+    env_file:
+      - path: .env.apps
+        required: false
     ports:
       - "8082:8082"
     environment:
@@ -138,6 +150,9 @@ services:
       context: ./apps/react-node
       dockerfile: Dockerfile
     networks: [exercises]
+    env_file:
+      - path: .env.apps
+        required: false
     ports:
       - "5174:5174"
     environment:

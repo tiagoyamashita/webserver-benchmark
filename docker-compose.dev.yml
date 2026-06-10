@@ -18,6 +18,12 @@ services:
     build:
       context: ./apps/java
       dockerfile: Dockerfile.dev
+    env_file:
+      - path: .env.apps
+        required: false
+    environment:
+      SPRING_PROFILES_ACTIVE: postgres,observability
+      LOG_PATH: /workspace/logs
     volumes:
       - ./apps/java:/workspace
       - maven-cache:/root/.m2
