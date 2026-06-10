@@ -3,6 +3,14 @@
 
 apiVersion: 1
 
+# Reset Elasticsearch if UI edits corrupted timeField (Grafana error: "timeField cannot be cast to string").
+# Also remove duplicate UI-created datasource (lowercase name "elasticsearch" with empty config).
+deleteDatasources:
+  - name: Elasticsearch
+    orgId: 1
+  - name: elasticsearch
+    orgId: 1
+
 datasources:
   - name: Prometheus
     type: prometheus
@@ -39,16 +47,19 @@ datasources:
       timescaledb: false
 
   # Requires docker-compose.observability.yml (ELK + Filebeat) on network exercises.
+  # index + interval: Daily are required for logstash-YYYY.MM.DD daily indices (see Grafana ES docs).
   - name: Elasticsearch
     type: elasticsearch
     uid: elasticsearch
     access: proxy
     url: http://elasticsearch:9200
-    database: "[logstash-]YYYY.MM.DD"
     jsonData:
+      index: "[logstash-]YYYY.MM.DD"
+      interval: Daily
       timeField: "@timestamp"
       esVersion: "8.0.0"
       logMessageField: message
       logLevelField: level
+      maxConcurrentShardRequests: 5
     isDefault: false
-    editable: true
+    editable: false

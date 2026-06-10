@@ -1,0 +1,5 @@
+# Logstash settings for the exercises Compose stack.
+# Monitoring API (port 9600) is scraped by prometheus-logstash-exporter.
+
+api.http.host: "0.0.0.0"
+api.http.port: 9600

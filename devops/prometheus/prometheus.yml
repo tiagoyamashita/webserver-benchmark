@@ -23,3 +23,15 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets: ["react-node:5174"]
+
+  # beat-exporter scrapes Filebeat :5066/stats and exposes Prometheus metrics.
+  - job_name: exercises-filebeat
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["beat-exporter:9479"]
+
+  # SAP prometheus-logstash-exporter scrapes Logstash :9600/_node/stats.
+  - job_name: exercises-logstash
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["logstash-exporter:9304"]

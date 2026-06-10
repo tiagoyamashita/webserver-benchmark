@@ -1,0 +1,18 @@
+{
+  "attributes": {
+    "title": "Log pipeline — errors & warnings",
+    "description": "Possible shipping failures (app + pipeline errors)",
+    "columns": ["@timestamp", "service", "message"],
+    "sort": [["@timestamp", "desc"]],
+    "kibanaSavedObjectMeta": {
+      "searchSourceJSON": "{\"query\":{\"query\":\"level: (error OR warn) OR message: *error* OR message: *failed*\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
+    }
+  },
+  "references": [
+    {
+      "id": "logstash-data-view",
+      "name": "kibanaSavedObjectMeta.searchSourceJSON.index",
+      "type": "index-pattern"
+    }
+  ]
+}

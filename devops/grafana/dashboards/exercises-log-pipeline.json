@@ -1,0 +1,299 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [
+    {
+      "icon": "external link",
+      "tags": [],
+      "targetBlank": true,
+      "title": "Kibana Discover (logstash-*)",
+      "type": "link",
+      "url": "http://127.0.0.1:5601/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-6h,to:now))&_a=(columns:!(service,message,level),filters:!(),index:logstash-data-view,interval:auto,query:(language:kuery,query:''),sort:!(!('@timestamp',desc)))"
+    }
+  ],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "panels": [],
+      "title": "Elasticsearch ingest (reads logstash-* indices — data arrives via Filebeat → Logstash)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 1,
+            "showPoints": "never",
+            "stacking": { "group": "A", "mode": "normal" }
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 1 },
+      "id": 1,
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "alias": "exercises-java",
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "2",
+              "settings": { "interval": "auto", "min_doc_count": "0" },
+              "type": "date_histogram"
+            }
+          ],
+          "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+          "metrics": [{ "id": "1", "type": "count" }],
+          "query": "service:\"exercises-java\"",
+          "refId": "A",
+          "timeField": "@timestamp"
+        },
+        {
+          "alias": "exercises-python",
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "2",
+              "settings": { "interval": "auto", "min_doc_count": "0" },
+              "type": "date_histogram"
+            }
+          ],
+          "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+          "metrics": [{ "id": "1", "type": "count" }],
+          "query": "service:\"exercises-python\"",
+          "refId": "B",
+          "timeField": "@timestamp"
+        },
+        {
+          "alias": "exercises-rust",
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "2",
+              "settings": { "interval": "auto", "min_doc_count": "0" },
+              "type": "date_histogram"
+            }
+          ],
+          "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+          "metrics": [{ "id": "1", "type": "count" }],
+          "query": "service:\"exercises-rust\"",
+          "refId": "C",
+          "timeField": "@timestamp"
+        },
+        {
+          "alias": "exercises-react-node",
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "2",
+              "settings": { "interval": "auto", "min_doc_count": "0" },
+              "type": "date_histogram"
+            }
+          ],
+          "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+          "metrics": [{ "id": "1", "type": "count" }],
+          "query": "service:\"exercises-react-node\"",
+          "refId": "D",
+          "timeField": "@timestamp"
+        },
+        {
+          "alias": "exercises-postgres",
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "2",
+              "settings": { "interval": "auto", "min_doc_count": "0" },
+              "type": "date_histogram"
+            }
+          ],
+          "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+          "metrics": [{ "id": "1", "type": "count" }],
+          "query": "service:\"exercises-postgres\"",
+          "refId": "E",
+          "timeField": "@timestamp"
+        }
+      ],
+      "title": "Documents ingested by service",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineWidth": 2,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 1 },
+      "id": 2,
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "alias": "all services",
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "2",
+              "settings": { "interval": "auto", "min_doc_count": "0" },
+              "type": "date_histogram"
+            }
+          ],
+          "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+          "metrics": [{ "id": "1", "type": "count" }],
+          "query": "*",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ],
+      "title": "Total ingest rate (gap = possible outage)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 10 },
+      "id": 101,
+      "panels": [],
+      "title": "Prometheus pipeline metrics",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 1,
+            "showPoints": "never"
+          },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 11 },
+      "id": 3,
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "rate(filebeat_libbeat_pipeline_events{type=\"published\"}[5m])",
+          "legendFormat": "filebeat published",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "rate(filebeat_libbeat_output_events{type=\"failed\"}[5m])",
+          "legendFormat": "filebeat output failed",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Filebeat",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 1,
+            "showPoints": "never"
+          },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 11 },
+      "id": 4,
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "rate(logstash_pipeline_events_in{pipeline=\"main\"}[5m])",
+          "legendFormat": "in",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "rate(logstash_pipeline_events_out{pipeline=\"main\"}[5m])",
+          "legendFormat": "out",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Logstash (main pipeline)",
+      "type": "timeseries"
+    },
+    {
+      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 19 },
+      "id": 5,
+      "options": {
+        "code": { "language": "markdown", "showLineNumbers": false },
+        "content": "### After a pipeline alert\n\n1. Note the alert **start time** in Grafana (**Alerting → Alert history**).\n2. Check host log files for that window: `apps/java/logs/demo-app.json.log`, `apps/python/logs/demo-app.json.log`, `apps/rust/logs/demo-app.json.log`, `apps/react-node/logs/demo-app.json.log`, `apps/postgres/logs/postgresql-*`.\n3. In **Kibana Discover** (`logstash-*`), look for a flat gap in the chart above — lines on disk but missing in ES were not shipped.\n4. Logs: `podman compose -f docker-compose.observability.yml logs filebeat logstash --tail 100`.",
+        "mode": "markdown"
+      },
+      "title": "Recovering missed logs",
+      "type": "text"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["exercises", "filebeat", "logstash", "elasticsearch", "kibana"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Exercises — Log pipeline",
+  "uid": "exercises-log-pipeline",
+  "version": 1,
+  "weekStart": ""
+}

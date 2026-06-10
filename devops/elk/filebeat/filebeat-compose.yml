@@ -81,6 +81,11 @@ processors:
 output.logstash:
   hosts: ["logstash:5044"]
 
+# Internal metrics API for beat-exporter / Prometheus (Compose network only).
+http.enabled: true
+http.host: 0.0.0.0
+http.port: 5066
+
 # Logstash owns index naming (logstash-YYYY.MM.dd); disable direct ES setup.
 setup.ilm.enabled: false
 setup.template.enabled: false

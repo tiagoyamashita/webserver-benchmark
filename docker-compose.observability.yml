@@ -1,8 +1,15 @@
 # Observability stack — Prometheus, Grafana, ELK, Filebeat.
 #
+# Grafana admin password: edit .env.observability (see .env.observability.example).
+#
 # Start / leave running while restarting apps:
 #   podman compose -f docker-compose.observability.yml up -d
 #   podman compose -f docker-compose.observability.yml restart grafana
+#
+# After editing prometheus/prometheus.yml (new scrape jobs), reload Prometheus:
+#   curl -X POST http://127.0.0.1:9090/-/reload
+# After editing filebeat/filebeat-compose.yml, restart Filebeat (HTTP :5066 for metrics):
+#   podman compose -f docker-compose.observability.yml restart filebeat beat-exporter
 #
 # Shares network "exercises" with docker-compose.apps.yml (same Compose project name).
 services:
@@ -32,6 +39,7 @@ services:
     ports:
       - "5044:5044"
     volumes:
+      - ./devops/elk/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
       - ./devops/elk/logstash/pipeline:/usr/share/logstash/pipeline:ro
     environment:
       LS_JAVA_OPTS: "-Xms256m -Xmx256m"
@@ -62,6 +70,27 @@ services:
     command: ["filebeat", "-e", "-strict.perms=false"]
     restart: unless-stopped
 
+  beat-exporter:
+    image: docker.io/trustpilot/beat-exporter:latest
+    networks: [exercises]
+    depends_on:
+      - filebeat
+    command:
+      - -beat.uri=http://filebeat:5066
+      - -beat.timeout=5s
+    restart: unless-stopped
+
+  logstash-exporter:
+    image: ghcr.io/sap/prometheus-logstash-exporter:latest
+    networks: [exercises]
+    depends_on:
+      - logstash
+    command:
+      - -logstash.host=logstash
+      - -logstash.port=9600
+      - -logstash.timeout=5s
+    restart: unless-stopped
+
   prometheus:
     image: docker.io/prom/prometheus:v2.55.1
     networks: [exercises]
@@ -82,9 +111,9 @@ services:
       - prometheus
     ports:
       - "3000:3000"
+    env_file:
+      - .env.observability
     environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_SERVER_HTTP_ADDR: "0.0.0.0"
       GF_SERVER_ROOT_URL: http://127.0.0.1:3000/

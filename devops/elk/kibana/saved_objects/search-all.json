@@ -1,0 +1,18 @@
+{
+  "attributes": {
+    "title": "Log pipeline — all services",
+    "description": "All logs shipped through Filebeat → Logstash",
+    "columns": ["@timestamp", "service", "level", "message"],
+    "sort": [["@timestamp", "desc"]],
+    "kibanaSavedObjectMeta": {
+      "searchSourceJSON": "{\"query\":{\"query\":\"\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
+    }
+  },
+  "references": [
+    {
+      "id": "logstash-data-view",
+      "name": "kibanaSavedObjectMeta.searchSourceJSON.index",
+      "type": "index-pattern"
+    }
+  ]
+}

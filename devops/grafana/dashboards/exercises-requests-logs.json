@@ -61,30 +61,131 @@
       },
       "targets": [
         {
-          "alias": "{{term status}}",
+          "alias": "200",
           "bucketAggs": [
             {
               "field": "@timestamp",
               "id": "2",
               "settings": { "interval": "auto", "min_doc_count": "0" },
               "type": "date_histogram"
-            },
-            {
-              "field": "status",
-              "id": "3",
-              "settings": {
-                "min_doc_count": "1",
-                "order": "asc",
-                "orderBy": "_term",
-                "size": "10"
-              },
-              "type": "terms"
             }
           ],
           "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
           "metrics": [{ "id": "1", "type": "count" }],
-          "query": "_exists_:status AND service:$service",
+          "query": "_exists_:status AND ($service) AND ($hide_health_filter) AND status:200",
           "refId": "A",
+          "timeField": "@timestamp"
+        },
+        {
+          "alias": "201",
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "2",
+              "settings": { "interval": "auto", "min_doc_count": "0" },
+              "type": "date_histogram"
+            }
+          ],
+          "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+          "metrics": [{ "id": "1", "type": "count" }],
+          "query": "_exists_:status AND ($service) AND ($hide_health_filter) AND status:201",
+          "refId": "B",
+          "timeField": "@timestamp"
+        },
+        {
+          "alias": "302",
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "2",
+              "settings": { "interval": "auto", "min_doc_count": "0" },
+              "type": "date_histogram"
+            }
+          ],
+          "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+          "metrics": [{ "id": "1", "type": "count" }],
+          "query": "_exists_:status AND ($service) AND ($hide_health_filter) AND status:302",
+          "refId": "C",
+          "timeField": "@timestamp"
+        },
+        {
+          "alias": "304",
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "2",
+              "settings": { "interval": "auto", "min_doc_count": "0" },
+              "type": "date_histogram"
+            }
+          ],
+          "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+          "metrics": [{ "id": "1", "type": "count" }],
+          "query": "_exists_:status AND ($service) AND ($hide_health_filter) AND status:304",
+          "refId": "D",
+          "timeField": "@timestamp"
+        },
+        {
+          "alias": "403",
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "2",
+              "settings": { "interval": "auto", "min_doc_count": "0" },
+              "type": "date_histogram"
+            }
+          ],
+          "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+          "metrics": [{ "id": "1", "type": "count" }],
+          "query": "_exists_:status AND ($service) AND ($hide_health_filter) AND status:403",
+          "refId": "E",
+          "timeField": "@timestamp"
+        },
+        {
+          "alias": "404",
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "2",
+              "settings": { "interval": "auto", "min_doc_count": "0" },
+              "type": "date_histogram"
+            }
+          ],
+          "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+          "metrics": [{ "id": "1", "type": "count" }],
+          "query": "_exists_:status AND ($service) AND ($hide_health_filter) AND status:404",
+          "refId": "F",
+          "timeField": "@timestamp"
+        },
+        {
+          "alias": "500",
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "2",
+              "settings": { "interval": "auto", "min_doc_count": "0" },
+              "type": "date_histogram"
+            }
+          ],
+          "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+          "metrics": [{ "id": "1", "type": "count" }],
+          "query": "_exists_:status AND ($service) AND ($hide_health_filter) AND status:500",
+          "refId": "G",
+          "timeField": "@timestamp"
+        },
+        {
+          "alias": "502",
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "2",
+              "settings": { "interval": "auto", "min_doc_count": "0" },
+              "type": "date_histogram"
+            }
+          ],
+          "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+          "metrics": [{ "id": "1", "type": "count" }],
+          "query": "_exists_:status AND ($service) AND ($hide_health_filter) AND status:502",
+          "refId": "H",
           "timeField": "@timestamp"
         }
       ],
@@ -101,7 +202,7 @@
             "mode": "absolute",
             "steps": [
               { "color": "text", "value": null },
-              { "color": "green", "value": 200 },
+              { "color": "#a8b5a8", "value": 200 },
               { "color": "yellow", "value": 400 },
               { "color": "red", "value": 500 }
             ]
@@ -113,7 +214,7 @@
             "properties": [
               {
                 "id": "custom.cellOptions",
-                "value": { "type": "color-background" }
+                "value": { "type": "color-text" }
               }
             ]
           }
@@ -139,7 +240,7 @@
               "type": "logs"
             }
           ],
-          "query": "_exists_:status AND service:$service",
+          "query": "_exists_:status AND ($service) AND ($hide_health_filter)",
           "refId": "A",
           "timeField": "@timestamp"
         }
@@ -186,10 +287,11 @@
       "id": 3,
       "options": {
         "dedupStrategy": "none",
+        "displayedFields": ["service", "___LOG_LINE_BODY___"],
         "enableLogDetails": true,
         "prettifyLogMessage": true,
         "showCommonLabels": false,
-        "showLabels": true,
+        "showLabels": false,
         "showTime": true,
         "sortOrder": "Descending",
         "wrapLogMessage": true
@@ -205,7 +307,7 @@
               "type": "logs"
             }
           ],
-          "query": "_exists_:status AND service:$service",
+          "query": "_exists_:status AND ($service) AND ($hide_health_filter)",
           "refId": "A",
           "timeField": "@timestamp"
         }
@@ -231,7 +333,7 @@
               "options": {
                 "ERROR": { "color": "red", "index": 0, "text": "ERROR" },
                 "FATAL": { "color": "red", "index": 1, "text": "FATAL" },
-                "LOG": { "color": "green", "index": 2, "text": "OK" },
+                "LOG": { "color": "#a8b5a8", "index": 2, "text": "OK" },
                 "WARNING": { "color": "yellow", "index": 3, "text": "WARN" }
               },
               "type": "value"
@@ -244,11 +346,20 @@
         },
         "overrides": [
           {
+            "matcher": { "id": "byName", "options": "outcome" },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": { "type": "color-text" }
+              }
+            ]
+          },
+          {
             "matcher": { "id": "byName", "options": "error_severity" },
             "properties": [
               {
                 "id": "custom.cellOptions",
-                "value": { "type": "color-background" }
+                "value": { "type": "color-text" }
               }
             ]
           }
@@ -274,7 +385,7 @@
               "type": "logs"
             }
           ],
-          "query": "service:exercises-postgres AND (message:*statement* OR message:*duration* OR error_severity:ERROR OR error_severity:FATAL)",
+          "query": "service:\"exercises-postgres\" AND (message:*statement* OR message:*duration* OR error_severity:ERROR OR error_severity:FATAL)",
           "refId": "A",
           "timeField": "@timestamp"
         }
@@ -342,7 +453,7 @@
               "type": "logs"
             }
           ],
-          "query": "service:exercises-postgres",
+          "query": "service:\"exercises-postgres\"",
           "refId": "A",
           "timeField": "@timestamp"
         }
@@ -367,7 +478,7 @@
             "mode": "absolute",
             "steps": [
               { "color": "text", "value": null },
-              { "color": "green", "value": 200 },
+              { "color": "#a8b5a8", "value": 200 },
               { "color": "yellow", "value": 400 },
               { "color": "red", "value": 500 }
             ]
@@ -379,7 +490,7 @@
             "properties": [
               {
                 "id": "custom.cellOptions",
-                "value": { "type": "color-background" }
+                "value": { "type": "color-text" }
               }
             ]
           }
@@ -421,7 +532,7 @@
               "options": {
                 "ERROR": { "color": "red", "index": 0, "text": "ERROR" },
                 "FATAL": { "color": "red", "index": 1, "text": "FATAL" },
-                "LOG": { "color": "green", "index": 2, "text": "OK" },
+                "LOG": { "color": "#a8b5a8", "index": 2, "text": "OK" },
                 "WARNING": { "color": "yellow", "index": 3, "text": "WARN" }
               },
               "type": "value"
@@ -438,7 +549,7 @@
             "properties": [
               {
                 "id": "custom.cellOptions",
-                "value": { "type": "color-background" }
+                "value": { "type": "color-text" }
               }
             ]
           }
@@ -462,7 +573,7 @@
               "type": "logs"
             }
           ],
-          "query": "service:exercises-postgres AND application_name:*$correlation_id*",
+          "query": "service:\"exercises-postgres\" AND application_name:*$correlation_id*",
           "refId": "A",
           "timeField": "@timestamp"
         }
@@ -480,7 +591,7 @@
         "current": {
           "selected": true,
           "text": "All apps",
-          "value": "(exercises-java OR exercises-python OR exercises-rust OR exercises-react-node)"
+          "value": "(service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\")"
         },
         "hide": 0,
         "includeAll": false,
@@ -491,31 +602,59 @@
           {
             "selected": true,
             "text": "All apps",
-            "value": "(exercises-java OR exercises-python OR exercises-rust OR exercises-react-node)"
+            "value": "(service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\")"
           },
           {
             "selected": false,
             "text": "Java",
-            "value": "exercises-java"
+            "value": "service:\"exercises-java\""
           },
           {
             "selected": false,
             "text": "Python",
-            "value": "exercises-python"
+            "value": "service:\"exercises-python\""
           },
           {
             "selected": false,
             "text": "Rust",
-            "value": "exercises-rust"
+            "value": "service:\"exercises-rust\""
           },
           {
             "selected": false,
             "text": "React Node",
-            "value": "exercises-react-node"
+            "value": "service:\"exercises-react-node\""
           }
         ],
-        "query": "(exercises-java OR exercises-python OR exercises-rust OR exercises-react-node),exercises-java,exercises-python,exercises-rust,exercises-react-node",
+        "query": "(service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\"),service:\"exercises-java\",service:\"exercises-python\",service:\"exercises-rust\",service:\"exercises-react-node\"",
         "skipUrlSync": false,
+        "type": "custom"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "Hide healthy checks",
+          "value": "NOT (path:\"/health\" AND status:200) AND NOT (path:\"/api/health\" AND status:200) AND NOT (path:\"/metrics\" AND status:200)"
+        },
+        "description": "Hide successful healthchecks and Prometheus /metrics scrapes (200 only); failures still shown",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Health checks",
+        "multi": false,
+        "name": "hide_health_filter",
+        "options": [
+          {
+            "selected": false,
+            "text": "Show all",
+            "value": "*"
+          },
+          {
+            "selected": true,
+            "text": "Hide healthy checks",
+            "value": "NOT (path:\"/health\" AND status:200) AND NOT (path:\"/api/health\" AND status:200) AND NOT (path:\"/metrics\" AND status:200)"
+          }
+        ],
+        "query": "Hide healthy checks,Show all",
+        "skipUrlSync": true,
         "type": "custom"
       },
       {
@@ -536,5 +675,5 @@
   "timezone": "browser",
   "title": "Exercises HTTP requests & SQL logs",
   "uid": "exercises-requests-logs",
-  "version": 2
+  "version": 13
 }

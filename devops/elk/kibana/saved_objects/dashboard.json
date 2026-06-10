@@ -1,0 +1,16 @@
+{
+  "attributes": {
+    "title": "Exercises — Log pipeline (Kibana)",
+    "description": "Ingest health for Filebeat → Logstash → Elasticsearch",
+    "panelsJSON": "[{\"version\":\"8.15.5\",\"type\":\"search\",\"gridData\":{\"x\":0,\"y\":0,\"w\":24,\"h\":15,\"i\":\"1\"},\"panelIndex\":\"1\",\"embeddableConfig\":{},\"panelRefName\":\"panel_1\"},{\"version\":\"8.15.5\",\"type\":\"search\",\"gridData\":{\"x\":24,\"y\":0,\"w\":24,\"h\":15,\"i\":\"2\"},\"panelIndex\":\"2\",\"embeddableConfig\":{},\"panelRefName\":\"panel_2\"},{\"version\":\"8.15.5\",\"type\":\"markdown\",\"gridData\":{\"x\":0,\"y\":15,\"w\":48,\"h\":8,\"i\":\"3\"},\"panelIndex\":\"3\",\"embeddableConfig\":{\"attributes\":{\"title\":\"Recovering missed logs\",\"markdown\":\"### If Grafana alerted or ingest flatlined\\n\\n1. Note the **alert start time** (Grafana → Alerting → Alert history).\\n2. On the host, inspect JSON log files for that window:\\n   - `apps/java/logs/demo-app.json.log`\\n   - `apps/python/logs/demo-app.json.log`\\n   - `apps/rust/logs/demo-app.json.log`\\n   - `apps/react-node/logs/demo-app.json.log`\\n   - `apps/postgres/logs/postgresql-*`\\n3. Compare with this dashboard: lines on disk but absent here were **not shipped** during the outage.\\n4. Container logs: `podman compose -f docker-compose.observability.yml logs filebeat logstash --tail 100`.\\n\\nAfter recovery, Filebeat resumes from its registry and may ship backlog.\"}},\"title\":\"Recovering missed logs\"}]",
+    "optionsJSON": "{\"useMargins\":true,\"syncColors\":false,\"syncCursor\":true,\"syncTooltips\":false,\"hidePanelTitles\":false}",
+    "timeRestore": false,
+    "kibanaSavedObjectMeta": {
+      "searchSourceJSON": "{\"query\":{\"query\":\"\",\"language\":\"kuery\"},\"filter\":[]}"
+    }
+  },
+  "references": [
+    { "id": "log-pipeline-all-search", "name": "panel_1", "type": "search" },
+    { "id": "log-pipeline-errors-search", "name": "panel_2", "type": "search" }
+  ]
+}

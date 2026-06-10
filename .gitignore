@@ -1,2 +1,5 @@
 java/target/
 rust/target/
+
+# Local observability secrets (Grafana admin password)
+.env.observability

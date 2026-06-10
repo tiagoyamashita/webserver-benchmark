@@ -69,6 +69,17 @@ Until Filebeat (or another Beat) sends events through Logstash, indices may not 
 
 **Filter by app in Discover:** `service: "exercises-java"` · `service: "exercises-python"` · `service: "exercises-rust"` · `service: "exercises-react-node"` · `service: "exercises-postgres"`. By file path: `log.file.path: *react-node*` · `log.file.path: *postgresql*`.
 
+### Log pipeline monitoring (Filebeat → Logstash)
+
+| Layer | What | Where |
+|-------|------|--------|
+| **Filebeat** | HTTP stats on `:5066` (Compose internal) | `filebeat/filebeat-compose.yml` (`http.enabled`) |
+| **Prometheus** | `beat-exporter` + `logstash-exporter` scrape jobs | `prometheus/prometheus.yml` |
+| **Grafana** | “Log pipeline” row on apps dashboard + **`exercises-log-pipeline.json`** | Alert rules in `grafana/provisioning/alerting/log-pipeline.yaml` |
+| **Kibana** | Dashboard + saved searches | Run once: `kibana/import-log-pipeline.ps1` (or `.sh`) → **Exercises — Log pipeline (Kibana)** |
+
+When Grafana alerts fire, unshipped lines remain on disk under **`apps/*/logs/`** until the pipeline recovers. Use the alert time window to grep those files and compare with Kibana **`logstash-*`**.
+
 To stop:
 
 ```bash

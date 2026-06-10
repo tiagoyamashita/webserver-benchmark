@@ -1,0 +1,275 @@
+# Grafana unified alerting — log pipeline (Filebeat → Logstash → Elasticsearch).
+# Alerts appear under Alerting → Alert rules → Exercises; history is kept for later review.
+# No contact point is provisioned (local/lab); add email/Slack in Grafana UI if needed.
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: exercises-log-pipeline
+    folder: Exercises
+    interval: 1m
+    rules:
+      - uid: ex-logpipe-filebeat-down
+        title: Filebeat metrics scrape down
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: up{job="exercises-filebeat"}
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [1]
+                    type: lt
+                  operator:
+                    type: and
+                  query:
+                    params: [C]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 2m
+        annotations:
+          description: |
+            Filebeat or beat-exporter is unreachable. New lines may accumulate on disk:
+            apps/java/logs/demo-app.json.log, apps/python/logs/demo-app.json.log,
+            apps/rust/logs/demo-app.json.log, apps/react-node/logs/demo-app.json.log,
+            apps/postgres/logs/postgresql-*.json
+            After recovery, grep those files for the outage window and compare with Kibana Discover (logstash-*).
+          summary: Log pipeline entry (Filebeat) unhealthy
+        labels:
+          severity: warning
+
+      - uid: ex-logpipe-logstash-down
+        title: Logstash metrics scrape down
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: up{job="exercises-logstash"}
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [1]
+                    type: lt
+                  operator:
+                    type: and
+                  query:
+                    params: [C]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 2m
+        annotations:
+          description: |
+            Logstash monitoring API or logstash-exporter is down. Filebeat may buffer or fail to ship.
+            Check: podman compose -f docker-compose.observability.yml logs logstash filebeat --tail 100
+            Unshipped logs remain in apps/*/logs/ on the host until the pipeline recovers.
+          summary: Logstash pipeline unhealthy
+        labels:
+          severity: warning
+
+      - uid: ex-logpipe-filebeat-failures
+        title: Filebeat publish or output failures
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: increase(filebeat_libbeat_pipeline_events{type="failed"}[5m]) + increase(filebeat_libbeat_output_events{type="failed"}[5m])
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [C]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Alerting
+        for: 2m
+        annotations:
+          description: |
+            Filebeat reported failed events in the last 5 minutes. Some log lines may not have reached Logstash/Elasticsearch.
+            Inspect local JSON logs under apps/*/logs/ for the alert time range, then re-check Kibana (logstash-*) after the pipeline is healthy.
+          summary: Filebeat failed to ship some events
+        labels:
+          severity: warning
+
+      - uid: ex-logpipe-stall
+        title: Logstash not outputting while Filebeat publishes
+        condition: F
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: rate(filebeat_libbeat_pipeline_events{type="published"}[5m])
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: rate(logstash_pipeline_events_out{pipeline="main"}[5m])
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+          - refId: D
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0.01]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [D]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: D
+              type: threshold
+          - refId: E
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0.001]
+                    type: lt
+                  operator:
+                    type: and
+                  query:
+                    params: [E]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: E
+              type: threshold
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: $D && $E
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: math
+          - refId: F
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [F]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: C
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: F
+              type: threshold
+        noDataState: OK
+        execErrState: Alerting
+        for: 5m
+        annotations:
+          description: |
+            Filebeat is reading/publishing log lines but Logstash main pipeline is not writing to Elasticsearch.
+            Logs written during this window are likely still on disk under apps/*/logs/.
+            Open Kibana Discover (logstash-*) and compare @timestamp gaps with local file mtimes.
+          summary: Log pipeline stalled (Filebeat → Logstash)
+        labels:
+          severity: critical
