@@ -4,7 +4,7 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <meta name="color-scheme" content="dark light"/>
-    <title>Hello Python — stack connectivity</title>
+    <title>Hello Python — stack dashboard</title>
     <style>
       :root {
         color-scheme: dark;
@@ -13,9 +13,9 @@
         --muted: #a3a3a8;
         --border: #3f3f46;
         --th-bg: #27272a;
+        --nav-bg: #1c1c1f;
         --code-bg: #27272a;
         --code-text: #e4e4e7;
-        --accent: #38bdf8;
         --ok: #4ade80;
         --warn: #fbbf24;
         --err: #f87171;
@@ -28,23 +28,112 @@
           --muted: #555;
           --border: #ccc;
           --th-bg: #ececec;
+          --nav-bg: #e8e8e8;
           --code-bg: #eee;
           --code-text: #222;
-          --accent: #0284c7;
           --ok: #0d6d0d;
+          --warn: #b45309;
+          --err: #b91c1c;
         }
       }
+      * { box-sizing: border-box; }
       body {
         font-family: system-ui, -apple-system, sans-serif;
-        margin: 1.5rem;
-        max-width: min(52rem, calc(100vw - 3rem));
+        margin: 1rem;
+        max-width: min(62rem, calc(100vw - 2rem));
         background: var(--bg);
         color: var(--text);
       }
-      h1 { font-size: 1.35rem; font-weight: 650; margin: 0 0 0.35rem; }
-      .hint { color: var(--muted); font-size: 0.9rem; line-height: 1.45; margin: 0 0 1rem; }
+      h1 { font-size: 1.5rem; font-weight: 700; margin: 0 0 0.35rem; }
+      .page-subtitle { color: var(--muted); font-size: 0.9rem; margin: 0 0 1rem; line-height: 1.45; }
       code { font-family: ui-monospace, monospace; font-size: 0.88em; padding: 0.12rem 0.35rem; border-radius: 4px; background: var(--code-bg); color: var(--code-text); }
-      .toolbar { margin: 0 0 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+      .dashboard {
+        display: flex;
+        flex-direction: row;
+        align-items: stretch;
+        min-height: calc(100vh - 6rem);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+        background: rgba(128, 128, 128, 0.04);
+      }
+      .sidebar {
+        flex: 0 0 13.5rem;
+        width: 13.5rem;
+        min-width: 13.5rem;
+        padding: 0.75rem 0.6rem;
+        border-right: 1px solid var(--border);
+        background: var(--nav-bg);
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .sidebar-title {
+        margin: 0 0 0.6rem;
+        padding: 0 0.5rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .sidebar-btn {
+        display: block;
+        width: 100%;
+        cursor: pointer;
+        text-align: left;
+        padding: 0.55rem 0.65rem;
+        margin-bottom: 0.2rem;
+        font-size: 0.88rem;
+        font-weight: 600;
+        border-radius: 6px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--muted);
+        text-decoration: none;
+      }
+      .sidebar-btn:hover {
+        color: var(--text);
+        background: rgba(128, 128, 128, 0.15);
+      }
+      .sidebar-btn[aria-current="page"] {
+        color: var(--text);
+        background: var(--bg);
+        border-color: var(--border);
+      }
+      .sidebar-section {
+        margin: 0.85rem 0 0.35rem;
+        padding: 0 0.5rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .sidebar-btn.sub {
+        padding-left: 1.1rem;
+        font-size: 0.84rem;
+        font-weight: 500;
+      }
+      .main-panel {
+        flex: 1 1 auto;
+        min-width: 0;
+        padding: 1rem 1.15rem;
+      }
+      .view-panel { display: none; }
+      .view-panel[aria-hidden="false"] { display: block; }
+      .panel-lead, .form-hint {
+        margin: 0 0 1rem;
+        font-size: 0.88rem;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+      .form-heading {
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 0 0 0.5rem;
+      }
+      .toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 1rem; align-items: center; }
       .btn {
         cursor: pointer;
         padding: 0.35rem 0.75rem;
@@ -63,9 +152,8 @@
       .btn.react-node { border-color: #60a5fa; color: #60a5fa; }
       .connectivity {
         border: 1px solid var(--border);
-        border-radius: 10px;
+        border-radius: 8px;
         overflow: hidden;
-        background: rgba(128, 128, 128, 0.05);
       }
       table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
       th, td { padding: 0.5rem 0.65rem; text-align: left; border-bottom: 1px solid var(--border); vertical-align: middle; }
@@ -78,97 +166,305 @@
       .status-ok { color: var(--ok); font-weight: 600; }
       .status-warn { color: var(--warn); font-weight: 600; }
       .status-err { color: var(--err); font-weight: 600; }
+      .field-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 0.65rem;
+        align-items: center;
+      }
+      .field-row label { font-size: 0.85rem; min-width: 4.5rem; color: var(--muted); }
+      .field-row input {
+        flex: 1 1 12rem;
+        min-width: 10rem;
+        padding: 0.35rem 0.5rem;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        color: var(--text);
+        font-size: 0.88rem;
+      }
+      .result-box {
+        margin: 0.65rem 0 0;
+        font-size: 0.82rem;
+        font-family: ui-monospace, monospace;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      @media (max-width: 36rem) {
+        .dashboard { flex-direction: column; }
+        .sidebar {
+          width: 100%;
+          min-width: 0;
+          flex: none;
+          border-right: none;
+          border-bottom: 1px solid var(--border);
+          flex-direction: row;
+          flex-wrap: wrap;
+          gap: 0.25rem;
+          align-items: center;
+        }
+        .sidebar-title, .sidebar-section { width: 100%; }
+        .sidebar-btn { width: auto; flex: 1 1 auto; }
+        .sidebar-btn.sub { padding-left: 0.65rem; }
+      }
     </style>
   </head>
   <body>
     <h1 id="stack-heading">Hello Python</h1>
-    <p class="hint">
-      Stack connectivity from this server: <strong>Open</strong> uses your browser;
-      <strong>GET</strong> runs an outbound probe from Python (Compose DNS when containerized).
-      React Node <code>:5174</code> · Grafana <code>:3000</code>.
-    </p>
-    <div class="toolbar">
-      <button type="button" class="btn primary" id="ping-all">Ping all</button>
-      <a class="btn" href="{{ url_for('tests_dashboard') }}">pytest dashboard →</a>
+    <p class="page-subtitle">Use the menu on the left to open connectivity checks or action forms.</p>
+
+    <div class="dashboard">
+      <nav class="sidebar" aria-label="Dashboard menu">
+        <p class="sidebar-title">Menu</p>
+        <button type="button" class="sidebar-btn" id="nav-connectivity" aria-current="page" data-view="view-connectivity">Connectivity</button>
+        <p class="sidebar-section">Actions</p>
+        <button type="button" class="sidebar-btn sub" id="nav-list-items" data-view="view-list-items">List items</button>
+        <button type="button" class="sidebar-btn sub" id="nav-create-item" data-view="view-create-item">Create item</button>
+        <p class="sidebar-section">Tools</p>
+        <a class="sidebar-btn sub" href="{{ url_for('tests_dashboard') }}">pytest dashboard</a>
+      </nav>
+
+      <div class="main-panel">
+        <section id="view-connectivity" class="view-panel" aria-hidden="false">
+          <p class="panel-lead">
+            Stack connectivity from this server: <strong>Open</strong> uses your browser;
+            <strong>GET</strong> runs an outbound probe from Python (Compose DNS when containerized).
+          </p>
+          <div class="toolbar">
+            <button type="button" class="btn primary" id="ping-all">Ping all services</button>
+          </div>
+          <section class="connectivity" id="stack-services" aria-labelledby="stack-heading">
+            <table>
+              <thead>
+                <tr><th scope="col">Service</th><th scope="col">Actions</th><th scope="col">Response</th></tr>
+              </thead>
+              <tbody>
+                <tr data-target="postgres">
+                  <td>Postgres</td>
+                  <td class="actions">
+                    <button type="button" class="btn stack-ping-btn" data-target="postgres">Ping</button>
+                  </td>
+                  <td class="status-cell"><span class="status-pending">—</span></td>
+                </tr>
+                <tr data-target="java">
+                  <td>Java</td>
+                  <td class="actions">
+                    <a class="btn" href="{{ stack_links.java_browser_url }}" target="_blank" rel="noopener noreferrer">Open</a>
+                    <button type="button" class="btn stack-ping-btn" data-target="java">GET</button>
+                  </td>
+                  <td class="status-cell"><span class="status-pending">—</span></td>
+                </tr>
+                <tr data-target="rust">
+                  <td>Rust</td>
+                  <td class="actions">
+                    <a class="btn" href="{{ stack_links.rust_browser_url }}" target="_blank" rel="noopener noreferrer">Open</a>
+                    <button type="button" class="btn stack-ping-btn" data-target="rust">GET</button>
+                  </td>
+                  <td class="status-cell"><span class="status-pending">—</span></td>
+                </tr>
+                <tr data-target="prometheus">
+                  <td>Prometheus</td>
+                  <td class="actions">
+                    <a class="btn" href="{{ stack_links.prometheus_browser_url }}" target="_blank" rel="noopener noreferrer">Open</a>
+                    <button type="button" class="btn stack-ping-btn" data-target="prometheus">GET</button>
+                  </td>
+                  <td class="status-cell"><span class="status-pending">—</span></td>
+                </tr>
+                <tr data-target="grafana">
+                  <td>Grafana</td>
+                  <td class="actions">
+                    <a class="btn grafana" href="{{ stack_links.grafana_browser_url }}" target="_blank" rel="noopener noreferrer">Open</a>
+                    <button type="button" class="btn stack-ping-btn" data-target="grafana">GET</button>
+                  </td>
+                  <td class="status-cell"><span class="status-pending">—</span></td>
+                </tr>
+                <tr data-target="elasticsearch">
+                  <td>Elasticsearch</td>
+                  <td class="actions">
+                    <a class="btn" href="{{ stack_links.elasticsearch_browser_url }}" target="_blank" rel="noopener noreferrer">Open</a>
+                    <button type="button" class="btn stack-ping-btn" data-target="elasticsearch">GET</button>
+                  </td>
+                  <td class="status-cell"><span class="status-pending">—</span></td>
+                </tr>
+                <tr data-target="kibana">
+                  <td>Kibana</td>
+                  <td class="actions">
+                    <a class="btn" href="{{ stack_links.kibana_browser_url }}" target="_blank" rel="noopener noreferrer">Open</a>
+                    <button type="button" class="btn stack-ping-btn" data-target="kibana">GET</button>
+                  </td>
+                  <td class="status-cell"><span class="status-pending">—</span></td>
+                </tr>
+                <tr data-target="react-node">
+                  <td>React Node</td>
+                  <td class="actions">
+                    <a class="btn react-node" href="{{ stack_links.react_node_browser_url }}" target="_blank" rel="noopener noreferrer">Open</a>
+                    <button type="button" class="btn stack-ping-btn" data-target="react-node">GET</button>
+                  </td>
+                  <td class="status-cell"><span class="status-pending">—</span></td>
+                </tr>
+              </tbody>
+            </table>
+            <p id="stack-ping-status" class="stack-ping-status" role="status" aria-live="polite"></p>
+          </section>
+        </section>
+
+        <section id="view-list-items" class="view-panel" aria-hidden="true">
+          <h2 class="form-heading">List items</h2>
+          <p class="form-hint">Loads rows from the shared PostgreSQL <code>items</code> table via <code>GET /api/items</code>.</p>
+          <div class="toolbar">
+            <button type="button" class="btn primary" id="refresh-items">Refresh list</button>
+          </div>
+          <div class="connectivity">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">ID</th>
+                  <th scope="col">Name</th>
+                  <th scope="col">Created</th>
+                </tr>
+              </thead>
+              <tbody id="items-table-body">
+                <tr id="items-empty-row">
+                  <td colspan="3" class="status-pending">Open this view or click Refresh to load items.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <pre id="list-items-error" class="result-box status-err" aria-live="polite"></pre>
+        </section>
+
+        <section id="view-create-item" class="view-panel" aria-hidden="true">
+          <h2 class="form-heading">Create item</h2>
+          <p class="form-hint">Persists a row to the shared PostgreSQL <code>items</code> table via <code>POST /api/items</code>.</p>
+          <form id="create-item-form">
+            <div class="field-row">
+              <label for="item-name">Name</label>
+              <input type="text" id="item-name" name="name" required autocomplete="off" placeholder="Item name"/>
+            </div>
+            <button type="submit" class="btn primary">Save item</button>
+          </form>
+          <pre id="create-item-result" class="result-box" aria-live="polite"></pre>
+        </section>
+      </div>
     </div>
-    <section class="connectivity" id="stack-services" aria-labelledby="stack-heading">
-      <table>
-        <thead>
-          <tr><th scope="col">Service</th><th scope="col">Actions</th><th scope="col">Response</th></tr>
-        </thead>
-        <tbody>
-          <tr data-target="postgres">
-            <td>Postgres</td>
-            <td class="actions">
-              <button type="button" class="btn stack-ping-btn" data-target="postgres">Ping</button>
-            </td>
-            <td class="status-cell"><span class="status-pending">—</span></td>
-          </tr>
-          <tr data-target="java">
-            <td>Java</td>
-            <td class="actions">
-              <a class="btn" href="{{ stack_links.java_browser_url }}" target="_blank" rel="noopener noreferrer">Open</a>
-              <button type="button" class="btn stack-ping-btn" data-target="java">GET</button>
-            </td>
-            <td class="status-cell"><span class="status-pending">—</span></td>
-          </tr>
-          <tr data-target="rust">
-            <td>Rust</td>
-            <td class="actions">
-              <a class="btn" href="{{ stack_links.rust_browser_url }}" target="_blank" rel="noopener noreferrer">Open</a>
-              <button type="button" class="btn stack-ping-btn" data-target="rust">GET</button>
-            </td>
-            <td class="status-cell"><span class="status-pending">—</span></td>
-          </tr>
-          <tr data-target="prometheus">
-            <td>Prometheus</td>
-            <td class="actions">
-              <a class="btn" href="{{ stack_links.prometheus_browser_url }}" target="_blank" rel="noopener noreferrer">Open</a>
-              <button type="button" class="btn stack-ping-btn" data-target="prometheus">GET</button>
-            </td>
-            <td class="status-cell"><span class="status-pending">—</span></td>
-          </tr>
-          <tr data-target="grafana">
-            <td>Grafana</td>
-            <td class="actions">
-              <a class="btn grafana" href="{{ stack_links.grafana_browser_url }}" target="_blank" rel="noopener noreferrer">Open</a>
-              <button type="button" class="btn stack-ping-btn" data-target="grafana">GET</button>
-            </td>
-            <td class="status-cell"><span class="status-pending">—</span></td>
-          </tr>
-          <tr data-target="elasticsearch">
-            <td>Elasticsearch</td>
-            <td class="actions">
-              <a class="btn" href="{{ stack_links.elasticsearch_browser_url }}" target="_blank" rel="noopener noreferrer">Open</a>
-              <button type="button" class="btn stack-ping-btn" data-target="elasticsearch">GET</button>
-            </td>
-            <td class="status-cell"><span class="status-pending">—</span></td>
-          </tr>
-          <tr data-target="kibana">
-            <td>Kibana</td>
-            <td class="actions">
-              <a class="btn" href="{{ stack_links.kibana_browser_url }}" target="_blank" rel="noopener noreferrer">Open</a>
-              <button type="button" class="btn stack-ping-btn" data-target="kibana">GET</button>
-            </td>
-            <td class="status-cell"><span class="status-pending">—</span></td>
-          </tr>
-          <tr data-target="react-node">
-            <td>React Node</td>
-            <td class="actions">
-              <a class="btn react-node" href="{{ stack_links.react_node_browser_url }}" target="_blank" rel="noopener noreferrer">Open</a>
-              <button type="button" class="btn stack-ping-btn" data-target="react-node">GET</button>
-            </td>
-            <td class="status-cell"><span class="status-pending">—</span></td>
-          </tr>
-        </tbody>
-      </table>
-      <p id="stack-ping-status" class="stack-ping-status" role="status" aria-live="polite"></p>
-    </section>
+
+    <script>
+      (function () {
+        var navButtons = document.querySelectorAll(".sidebar-btn[data-view]");
+        var viewPanels = document.querySelectorAll(".view-panel");
+
+        function showView(viewId, navId) {
+          viewPanels.forEach(function (panel) {
+            panel.setAttribute("aria-hidden", panel.id === viewId ? "false" : "true");
+          });
+          navButtons.forEach(function (btn) {
+            if (btn.id === navId) {
+              btn.setAttribute("aria-current", "page");
+            } else {
+              btn.removeAttribute("aria-current");
+            }
+          });
+          if (viewId === "view-list-items") {
+            loadItems();
+          }
+        }
+
+        navButtons.forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            showView(btn.getAttribute("data-view"), btn.id);
+          });
+        });
+
+        function loadItems() {
+          var tbody = document.getElementById("items-table-body");
+          var errEl = document.getElementById("list-items-error");
+          if (!tbody) return;
+          errEl.textContent = "";
+          tbody.innerHTML = '<tr><td colspan="3" class="status-pending">Loading…</td></tr>';
+          fetch("/api/items", { credentials: "same-origin", cache: "no-store" })
+            .then(function (res) {
+              return res.json().then(function (data) {
+                if (!res.ok) {
+                  throw new Error(data.error || ("HTTP " + res.status));
+                }
+                return data;
+              });
+            })
+            .then(function (items) {
+              if (!items.length) {
+                tbody.innerHTML = '<tr><td colspan="3" class="status-pending">No items yet.</td></tr>';
+                return;
+              }
+              tbody.innerHTML = items.map(function (item) {
+                return '<tr><td>' + item.id + '</td><td>' + escapeHtml(item.name) + '</td><td>' + escapeHtml(item.createdAt) + '</td></tr>';
+              }).join("");
+            })
+            .catch(function (err) {
+              tbody.innerHTML = '<tr><td colspan="3" class="status-err">Failed to load</td></tr>';
+              errEl.textContent = String(err.message || err);
+            });
+        }
+
+        var refreshItems = document.getElementById("refresh-items");
+        if (refreshItems) {
+          refreshItems.addEventListener("click", loadItems);
+        }
+
+        var createForm = document.getElementById("create-item-form");
+        if (createForm) {
+          createForm.addEventListener("submit", function (ev) {
+            ev.preventDefault();
+            var nameInput = document.getElementById("item-name");
+            var resultEl = document.getElementById("create-item-result");
+            var name = nameInput && nameInput.value ? nameInput.value.trim() : "";
+            if (!name) {
+              resultEl.textContent = "name must not be blank";
+              resultEl.className = "result-box status-err";
+              return;
+            }
+            resultEl.textContent = "Saving…";
+            resultEl.className = "result-box";
+            fetch("/api/items", {
+              method: "POST",
+              credentials: "same-origin",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ name: name })
+            })
+              .then(function (res) {
+                return res.json().then(function (data) {
+                  if (!res.ok) {
+                    throw new Error(data.error || ("HTTP " + res.status));
+                  }
+                  return data;
+                });
+              })
+              .then(function (item) {
+                resultEl.textContent = "Created item #" + item.id + ": " + item.name;
+                resultEl.className = "result-box";
+                if (nameInput) nameInput.value = "";
+              })
+              .catch(function (err) {
+                resultEl.textContent = String(err.message || err);
+                resultEl.className = "result-box status-err";
+              });
+          });
+        }
+
+        function escapeHtml(text) {
+          return String(text)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+        }
+      })();
+    </script>
     <script>
       (function () {
         if (!window.fetch) return;
-        var section = document.getElementById('stack-services');
-        var statusEl = document.getElementById('stack-ping-status');
+        var section = document.getElementById("stack-services");
+        var statusEl = document.getElementById("stack-ping-status");
         if (!section || !statusEl) return;
 
         function setRowStatus(target, html) {
@@ -186,21 +482,21 @@
           if (d.status != null) {
             return '<span class="status-warn">HTTP ' + d.status + '</span>';
           }
-          var err = d.error != null ? String(d.error) : 'Failed';
-          return '<span class="status-err">' + err.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</span>';
+          var err = d.error != null ? String(d.error) : "Failed";
+          return '<span class="status-err">' + err.replace(/&/g, "&amp;").replace(/</g, "&lt;") + "</span>";
         }
 
         function readStackPingJson(res) {
           return res.text().then(function (text) {
-            var trimmed = text ? text.trim() : '';
+            var trimmed = text ? text.trim() : "";
             if (!trimmed) {
               return {
                 ok: res.ok,
                 data: {
                   ok: false,
                   error: res.ok
-                    ? 'Empty response from server'
-                    : 'HTTP ' + res.status + ' (empty body — server may be restarting)',
+                    ? "Empty response from server"
+                    : "HTTP " + res.status + " (empty body — server may be restarting)",
                 },
               };
             }
@@ -211,7 +507,7 @@
                 ok: false,
                 data: {
                   ok: false,
-                  error: 'Invalid JSON from /stack-ping (HTTP ' + res.status + ')',
+                  error: "Invalid JSON from /stack-ping (HTTP " + res.status + ")",
                 },
               };
             }
@@ -220,46 +516,46 @@
 
         function ping(target) {
           setRowStatus(target, '<span class="status-pending">Pinging…</span>');
-          statusEl.textContent = 'Requesting ' + target + '…';
-          return fetch('/stack-ping/' + encodeURIComponent(target), {
-            method: 'GET',
-            credentials: 'same-origin',
-            cache: 'no-store'
+          statusEl.textContent = "Requesting " + target + "…";
+          return fetch("/stack-ping/" + encodeURIComponent(target), {
+            method: "GET",
+            credentials: "same-origin",
+            cache: "no-store",
           })
             .then(readStackPingJson)
             .then(function (r) {
               var d = r.data || {};
               setRowStatus(target, formatJsonRow(r, d));
-              var u = d.url != null ? String(d.url) : '';
+              var u = d.url != null ? String(d.url) : "";
               if (r.ok && d.ok === true) {
-                var okLabel = d.status == null ? 'Postgres OK' : 'OK (HTTP ' + d.status + ')';
-                statusEl.textContent = target + ': ' + okLabel + (u ? ' → ' + u : '');
+                var okLabel = d.status == null ? "Postgres OK" : "OK (HTTP " + d.status + ")";
+                statusEl.textContent = target + ": " + okLabel + (u ? " → " + u : "");
               } else {
-                var err = d.error != null ? String(d.error) : 'Outbound GET failed';
-                statusEl.textContent = target + ': ' + err + (u ? ' → ' + u : '');
+                var err = d.error != null ? String(d.error) : "Outbound GET failed";
+                statusEl.textContent = target + ": " + err + (u ? " → " + u : "");
               }
             })
             .catch(function (err) {
-              setRowStatus(target, '<span class="status-err">' + String(err.message || err) + '</span>');
-              statusEl.textContent = target + ': ' + String(err.message || err);
+              setRowStatus(target, '<span class="status-err">' + String(err.message || err) + "</span>");
+              statusEl.textContent = target + ": " + String(err.message || err);
             });
         }
 
-        section.addEventListener('click', function (ev) {
-          var btn = ev.target.closest ? ev.target.closest('.stack-ping-btn') : null;
+        section.addEventListener("click", function (ev) {
+          var btn = ev.target.closest ? ev.target.closest(".stack-ping-btn") : null;
           if (!btn) return;
-          var target = btn.getAttribute('data-target');
+          var target = btn.getAttribute("data-target");
           if (target) void ping(target);
         });
 
-        var pingAll = document.getElementById('ping-all');
+        var pingAll = document.getElementById("ping-all");
         if (pingAll) {
-          pingAll.addEventListener('click', function () {
-            var targets = ['postgres', 'java', 'rust', 'prometheus', 'grafana', 'elasticsearch', 'kibana', 'react-node'];
+          pingAll.addEventListener("click", function () {
+            var targets = ["postgres", "java", "rust", "prometheus", "grafana", "elasticsearch", "kibana", "react-node"];
             targets.forEach(function (t) {
               setRowStatus(t, '<span class="status-pending">Pinging…</span>');
             });
-            statusEl.textContent = 'Pinging all services…';
+            statusEl.textContent = "Pinging all services…";
             void Promise.all(targets.map(ping));
           });
         }

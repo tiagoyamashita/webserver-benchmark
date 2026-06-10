@@ -6,6 +6,9 @@ def test_stack_landing_page(client):
     assert r.status_code == 200
     assert b"Hello Python" in r.data
     assert b"stack-services" in r.data
+    assert b"Dashboard menu" in r.data
+    assert b"view-list-items" in r.data
+    assert b"view-create-item" in r.data
 
 
 def test_tests_dashboard_route(client):

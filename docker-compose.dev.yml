@@ -26,11 +26,12 @@ services:
     build:
       context: ./apps/python
       dockerfile: Dockerfile
+    entrypoint: ["/usr/local/bin/docker-entrypoint-dev.sh"]
     volumes:
       - ./apps/python:/app
     environment:
       FLASK_ENV: development
-      FLASK_DEBUG: "1"
+      FLASK_DEBUG: !override "1"
       EXERCISES_OBSERVABILITY: "1"
       LOG_PATH: /app/logs
       APP_STACK_JAVA_BASE_URL: http://java:8080

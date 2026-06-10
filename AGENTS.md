@@ -1,5 +1,11 @@
 # Agent notes
 
+## Skills (project)
+
+| Skill | When to use |
+|-------|-------------|
+| `.cursor/skills/persist-postgres-item/` | Create/list items in shared Postgres `items` table; Python/Java/Rust/React Node `POST /api/items` |
+
 ## Podman / Compose
 
 The user runs **Podman Compose in a separate terminal**. Assume containers may already be up.

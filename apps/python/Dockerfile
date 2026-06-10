@@ -15,6 +15,10 @@ RUN pip install --no-deps .
 
 RUN mkdir -p reports logs
 
+COPY docker-entrypoint-dev.sh /usr/local/bin/docker-entrypoint-dev.sh
+RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint-dev.sh \
+  && chmod +x /usr/local/bin/docker-entrypoint-dev.sh
+
 ENV FLASK_RUN_HOST=0.0.0.0
 ENV FLASK_RUN_PORT=5000
 ENV EXERCISES_PROJECT_ROOT=/app
