@@ -5,6 +5,7 @@
 | Skill | When to use |
 |-------|-------------|
 | `.cursor/skills/persist-postgres-item/` | Create/list items in shared Postgres `items` table; Python/Java/Rust/React Node `POST /api/items` |
+| `.cursor/skills/controller-logging/` | Controller request/success/error logging; INFO/WARN/ERROR/TRACE; ELK replication params |
 
 ## Podman / Compose
 

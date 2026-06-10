@@ -180,6 +180,15 @@ async fn list_items(
     Extension(request_id): Extension<crate::request_id::RequestId>,
 ) -> impl IntoResponse {
     let Some(pool) = state.pg_pool.clone() else {
+        tracing::warn!(
+            source = "src/app.rs",
+            controller = "list_items",
+            method = "GET",
+            path = "/api/items",
+            request_id = %request_id.0,
+            reason = "postgres-not-configured",
+            "list_items database not configured"
+        );
         return (
             StatusCode::SERVICE_UNAVAILABLE,
             Json(serde_json::json!({
@@ -199,6 +208,16 @@ async fn create_item(
     Query(query): Query<crate::items::CreateItemQuery>,
 ) -> impl IntoResponse {
     let Some(pool) = state.pg_pool.clone() else {
+        tracing::warn!(
+            source = "src/app.rs",
+            controller = "create_item",
+            method = "POST",
+            path = "/api/items",
+            name = %query.name,
+            request_id = %request_id.0,
+            reason = "postgres-not-configured",
+            "create_item database not configured"
+        );
         return (
             StatusCode::SERVICE_UNAVAILABLE,
             Json(serde_json::json!({
@@ -214,10 +233,35 @@ async fn create_item(
 }
 
 async fn welcome_redirect() -> Redirect {
+    tracing::info!(
+        source = "src/app.rs",
+        controller = "welcome_redirect",
+        method = "GET",
+        path = "/welcome",
+        "welcome_redirect request received"
+    );
+    tracing::info!(
+        source = "src/app.rs",
+        controller = "welcome_redirect",
+        redirect = "/",
+        "welcome_redirect succeeded"
+    );
     Redirect::to("/")
 }
 
 async fn health() -> impl IntoResponse {
+    tracing::info!(
+        source = "src/app.rs",
+        controller = "health",
+        method = "GET",
+        path = "/health",
+        "health request received"
+    );
+    tracing::info!(
+        source = "src/app.rs",
+        controller = "health",
+        "health succeeded"
+    );
     (
         [(
             header::CONTENT_TYPE,
@@ -229,8 +273,22 @@ async fn health() -> impl IntoResponse {
 
 async fn observability_sample_log() -> impl IntoResponse {
     tracing::info!(
+        source = "src/app.rs",
+        controller = "observability_sample_log",
+        method = "GET",
+        path = "/api/observability/sample-log",
+        "observability_sample_log request received"
+    );
+    tracing::info!(
+        source = "src/app.rs",
+        controller = "observability_sample_log",
         service = "exercises-rust",
         "Observability sample event (JSON log file -> Filebeat -> Logstash -> Elasticsearch)"
+    );
+    tracing::info!(
+        source = "src/app.rs",
+        controller = "observability_sample_log",
+        "observability_sample_log succeeded"
     );
     (
         [(
@@ -239,6 +297,77 @@ async fn observability_sample_log() -> impl IntoResponse {
         )],
         "logged",
     )
+}
+
+async fn stack_landing(State(state): State<AppState>) -> Result<Html<String>, StatusCode> {
+    tracing::info!(
+        source = "src/app.rs",
+        controller = "stack_landing",
+        method = "GET",
+        path = "/",
+        "stack_landing request received"
+    );
+    let page = StackLandingPage {
+        stack_links: state.stack_links.browser_view(),
+    };
+    let ctx = Context::from_serialize(&page).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let html = state
+        .tera
+        .render("landing.html", &ctx)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    tracing::info!(
+        source = "src/app.rs",
+        controller = "stack_landing",
+        template = "landing.html",
+        "stack_landing succeeded"
+    );
+    Ok(Html(html))
+}
+
+async fn tests_dashboard(State(state): State<AppState>) -> Result<Html<String>, StatusCode> {
+    tracing::info!(
+        source = "src/app.rs",
+        controller = "tests_dashboard",
+        method = "GET",
+        path = "/tests",
+        "tests_dashboard request received"
+    );
+    let flash = crate::flash::take_flash(&state.project_root);
+    let rows = crate::junit::load_latest_results(&state.project_root);
+    let resolved = crate::junit::resolve_existing_report_path_for_ui(&state.project_root);
+    let has_report_file = resolved.is_some();
+    let report_sources = if let Some(ref p) = resolved {
+        vec![p.to_string_lossy().into_owned()]
+    } else {
+        crate::junit::existing_report_hints(&state.project_root)
+    };
+    let report_xml_resolved = resolved
+        .as_ref()
+        .map(|p| p.to_string_lossy().into_owned())
+        .unwrap_or_else(|| crate::junit::report_xml_missing_hint(&state.project_root));
+    let page = HomePage {
+        test_results: rows,
+        report_sources,
+        has_report_file,
+        report_xml_resolved,
+        project_root: state.project_root.to_string_lossy().into_owned(),
+        test_run_message: flash.message,
+        test_run_error: flash.error,
+        test_run_log_tail: flash.log_tail,
+    };
+    let ctx = Context::from_serialize(&page).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let html = state
+        .tera
+        .render("home.html", &ctx)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    tracing::info!(
+        source = "src/app.rs",
+        controller = "tests_dashboard",
+        result_count = page.test_results.len(),
+        has_report_file = has_report_file,
+        "tests_dashboard succeeded"
+    );
+    Ok(Html(html))
 }
 
 pub async fn serve() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -322,50 +451,6 @@ struct StackLandingPage {
     stack_links: crate::stack_ping::StackLinksView,
 }
 
-async fn stack_landing(State(state): State<AppState>) -> Result<Html<String>, StatusCode> {
-    let page = StackLandingPage {
-        stack_links: state.stack_links.browser_view(),
-    };
-    let ctx = Context::from_serialize(&page).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let html = state
-        .tera
-        .render("landing.html", &ctx)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Html(html))
-}
-
-async fn tests_dashboard(State(state): State<AppState>) -> Result<Html<String>, StatusCode> {
-    let flash = crate::flash::take_flash(&state.project_root);
-    let rows = crate::junit::load_latest_results(&state.project_root);
-    let resolved = crate::junit::resolve_existing_report_path_for_ui(&state.project_root);
-    let has_report_file = resolved.is_some();
-    let report_sources = if let Some(ref p) = resolved {
-        vec![p.to_string_lossy().into_owned()]
-    } else {
-        crate::junit::existing_report_hints(&state.project_root)
-    };
-    let report_xml_resolved = resolved
-        .as_ref()
-        .map(|p| p.to_string_lossy().into_owned())
-        .unwrap_or_else(|| crate::junit::report_xml_missing_hint(&state.project_root));
-    let page = HomePage {
-        test_results: rows,
-        report_sources,
-        has_report_file,
-        report_xml_resolved,
-        project_root: state.project_root.to_string_lossy().into_owned(),
-        test_run_message: flash.message,
-        test_run_error: flash.error,
-        test_run_log_tail: flash.log_tail,
-    };
-    let ctx = Context::from_serialize(&page).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let html = state
-        .tera
-        .render("home.html", &ctx)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Html(html))
-}
-
 #[derive(Deserialize, Default)]
 pub struct RunForm {
     pub nodeid: Option<String>,
@@ -373,11 +458,26 @@ pub struct RunForm {
 
 async fn run_tests_post(State(state): State<AppState>, Form(form): Form<RunForm>) -> impl IntoResponse {
     let filter = form.nodeid.as_deref().filter(|s| !s.trim().is_empty());
+    tracing::info!(
+        source = "src/app.rs",
+        controller = "run_tests_post",
+        method = "POST",
+        path = "/tests/run",
+        nodeid = ?filter,
+        "run_tests_post request received"
+    );
     let result = crate::runner::run_nextest(&state.project_root, filter);
     let mut flash = crate::flash::RunFlash::default();
     let (code, log) = match result {
         Ok(x) => x,
         Err(e) => {
+            tracing::error!(
+                source = "src/app.rs",
+                controller = "run_tests_post",
+                nodeid = ?filter,
+                error = %e,
+                "run_tests_post failed"
+            );
             flash.error = Some(format!(
                 "Could not run cargo nextest ({e}). Install: cargo install --locked cargo-nextest"
             ));
@@ -398,8 +498,22 @@ async fn run_tests_post(State(state): State<AppState>, Form(form): Form<RunForm>
             Some("cargo-nextest is required. Install: cargo install --locked cargo-nextest".into());
     } else if code == 0 {
         flash.message = Some("cargo nextest finished (exit code 0).".into());
+        tracing::info!(
+            source = "src/app.rs",
+            controller = "run_tests_post",
+            nodeid = ?filter,
+            exit_code = code,
+            "run_tests_post succeeded"
+        );
     } else {
         flash.error = Some(format!("cargo nextest finished (exit code {code})."));
+        tracing::warn!(
+            source = "src/app.rs",
+            controller = "run_tests_post",
+            nodeid = ?filter,
+            exit_code = code,
+            "run_tests_post finished with errors"
+        );
     }
     crate::flash::write_flash(&state.project_root, &flash);
     Redirect::to("/tests")
@@ -412,8 +526,23 @@ pub struct SourceQ {
 }
 
 async fn test_source(State(state): State<AppState>, Query(q): Query<SourceQ>) -> impl IntoResponse {
+    tracing::info!(
+        source = "src/app.rs",
+        controller = "test_source",
+        method = "GET",
+        path = "/tests/source",
+        className = %q.class_name,
+        "test_source request received"
+    );
     match crate::source::read_rust_source(&state.project_root, &q.class_name) {
         Some((path, content)) => {
+            tracing::info!(
+                source = "src/app.rs",
+                controller = "test_source",
+                className = %q.class_name,
+                path = %path,
+                "test_source succeeded"
+            );
             #[derive(Serialize)]
             struct Out {
                 path: String,
@@ -421,10 +550,18 @@ async fn test_source(State(state): State<AppState>, Query(q): Query<SourceQ>) ->
             }
             Json(Out { path, content }).into_response()
         }
-        None => (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": "not found"})),
-        )
-            .into_response(),
+        None => {
+            tracing::warn!(
+                source = "src/app.rs",
+                controller = "test_source",
+                className = %q.class_name,
+                "test_source not found"
+            );
+            (
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({"error": "not found"})),
+            )
+                .into_response()
+        }
     }
 }

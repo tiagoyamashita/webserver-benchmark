@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/dashboard/items")
 public class RustItemRelayApiController {
 
+  private static final String SOURCE =
+      "src/main/java/com/example/demo/web/RustItemRelayApiController.java";
   private static final Logger log = LoggerFactory.getLogger(RustItemRelayApiController.class);
 
   private final RustItemRelayService rustItemRelayService;
@@ -26,11 +28,32 @@ public class RustItemRelayApiController {
   /** AJAX from home page: calls Rust {@code POST /api/items?name=…} and returns JSON for display. */
   @PostMapping(value = "/add-via-rust", produces = MediaType.APPLICATION_JSON_VALUE)
   public Map<String, Object> addViaRustJson(@RequestParam("name") String name) {
-    log.debug(
-        "Dashboard UI add-via-rust API request",
+    log.info(
+        "RustItemRelayApiController.addViaRustJson request received",
+        kv("source", SOURCE),
+        kv("controller", "RustItemRelayApiController"),
+        kv("method", "POST"),
+        kv("path", "/dashboard/items/add-via-rust"),
+        kv("name", name),
         kv("ui_event", "dashboard.ui"),
-        kv("action", "add-item-via-rust"),
-        kv("transport", "json"));
-    return rustItemRelayService.addItemViaRust(name);
+        kv("action", "add-item-via-rust"));
+    Map<String, Object> result = rustItemRelayService.addItemViaRust(name);
+    if (Boolean.FALSE.equals(result.get("ok"))) {
+      log.warn(
+          "RustItemRelayApiController.addViaRustJson failed",
+          kv("source", SOURCE),
+          kv("name", name),
+          kv("error", result.get("error")),
+          kv("rustUrl", result.get("rustUrl")),
+          kv("status", result.get("status")));
+    } else {
+      log.info(
+          "RustItemRelayApiController.addViaRustJson succeeded",
+          kv("source", SOURCE),
+          kv("name", name),
+          kv("rustUrl", result.get("rustUrl")),
+          kv("status", result.get("status")));
+    }
+    return result;
   }
 }

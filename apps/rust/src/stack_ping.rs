@@ -240,7 +240,14 @@ pub async fn stack_ping_handler(
     State(state): State<AppState>,
 ) -> impl IntoResponse {
     let target = target.trim().to_string();
-    tracing::info!(%target, "Rust stack ping GET");
+    tracing::info!(
+        source = "src/stack_ping.rs",
+        controller = "stack_ping_handler",
+        method = "GET",
+        path = "/stack-ping/{target}",
+        target = %target,
+        "stack_ping_handler request received"
+    );
     let stack_name = target.clone();
     let stack = state.stack_links.clone();
     let result = tokio::task::spawn_blocking(move || stack.ping(&target))
@@ -252,5 +259,27 @@ pub async fn stack_ping_handler(
             status: None,
             error: Some(format!("join error: {e}")),
         });
+    if result.ok {
+        tracing::info!(
+            source = "src/stack_ping.rs",
+            controller = "stack_ping_handler",
+            target = %result.stack,
+            ok = result.ok,
+            status = ?result.status,
+            url = %result.url,
+            "stack_ping_handler succeeded"
+        );
+    } else {
+        tracing::warn!(
+            source = "src/stack_ping.rs",
+            controller = "stack_ping_handler",
+            target = %result.stack,
+            ok = result.ok,
+            status = ?result.status,
+            error = ?result.error,
+            url = %result.url,
+            "stack_ping_handler downstream unreachable"
+        );
+    }
     Json(result)
 }

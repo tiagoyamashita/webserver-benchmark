@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/dashboard/stack-ping")
 public class StackPingController {
 
+  private static final String SOURCE =
+      "src/main/java/com/example/demo/web/StackPingController.java";
   private static final Logger log = LoggerFactory.getLogger(StackPingController.class);
 
   private final StackPingService stackPingService;
@@ -64,18 +66,50 @@ public class StackPingController {
   @GetMapping("/all")
   public Map<String, Object> pingAll() {
     log.info(
-        "Dashboard UI button click",
+        "StackPingController.pingAll request received",
+        kv("source", SOURCE),
+        kv("controller", "StackPingController"),
+        kv("method", "GET"),
+        kv("path", "/dashboard/stack-ping/all"),
         kv("ui_event", "dashboard.ui"),
         kv("action", "stack-ping-all"));
-    return stackPingService.pingAll();
+    Map<String, Object> result = stackPingService.pingAll();
+    log.info(
+        "StackPingController.pingAll succeeded",
+        kv("source", SOURCE),
+        kv("resultCount", result.get("results") instanceof java.util.List<?> list ? list.size() : null));
+    return result;
   }
 
   private Map<String, Object> ping(String target, java.util.function.Supplier<Map<String, Object>> run) {
     log.info(
-        "Dashboard UI button click",
+        "StackPingController.ping request received",
+        kv("source", SOURCE),
+        kv("controller", "StackPingController"),
+        kv("method", "GET"),
+        kv("path", "/dashboard/stack-ping/" + target),
+        kv("target", target),
         kv("ui_event", "dashboard.ui"),
-        kv("action", "stack-ping"),
-        kv("target", target));
-    return run.get();
+        kv("action", "stack-ping"));
+    Map<String, Object> result = run.get();
+    Object ok = result.get("ok");
+    if (Boolean.FALSE.equals(ok)) {
+      log.warn(
+          "StackPingController.ping downstream unreachable",
+          kv("source", SOURCE),
+          kv("target", target),
+          kv("ok", ok),
+          kv("status", result.get("status")),
+          kv("error", result.get("error")),
+          kv("url", result.get("url")));
+    } else {
+      log.info(
+          "StackPingController.ping succeeded",
+          kv("source", SOURCE),
+          kv("target", target),
+          kv("ok", ok),
+          kv("status", result.get("status")));
+    }
+    return result;
   }
 }

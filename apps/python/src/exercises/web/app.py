@@ -9,6 +9,7 @@ from pathlib import Path
 from flask import Flask, Response, g, jsonify, redirect, render_template, request, session, url_for
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, generate_latest
 
+from exercises.web.controller_logging import log_error, log_received, log_succeeded, log_warn
 from exercises.web.items_api import register_items_routes
 from exercises.web.observability_logging import observability_enabled
 from exercises.web.request_id import resolve_request_id
@@ -28,6 +29,8 @@ _HTTP_REQUESTS = Counter(
     ["method", "endpoint"],
 )
 _HTTP_REQUEST_LOG = logging.getLogger("http.request")
+_APP_SOURCE = "src/exercises/web/app.py"
+_APP_LOG = logging.getLogger(__name__)
 
 
 def resolve_project_root() -> Path:
@@ -101,11 +104,15 @@ def create_app() -> Flask:
 
     @app.route("/")
     def stack_landing() -> str:
+        log_received(_APP_LOG, "stack_landing", _APP_SOURCE, "GET", "/")
         links = StackLinks.from_env()
-        return render_template("landing.html", stack_links=links.browser_view())
+        html = render_template("landing.html", stack_links=links.browser_view())
+        log_succeeded(_APP_LOG, "stack_landing", _APP_SOURCE, template="landing.html")
+        return html
 
     @app.route("/tests")
     def tests_dashboard() -> str:
+        log_received(_APP_LOG, "tests_dashboard", _APP_SOURCE, "GET", "/tests")
         root: Path = app.config["PROJECT_ROOT"]
         jpath = report_xml_path(root)
         has_report_file = jpath.is_file()
@@ -117,7 +124,7 @@ def create_app() -> Flask:
         test_run_message = session.pop("test_run_message", None)
         test_run_error = session.pop("test_run_error", None)
         test_run_log_tail = session.pop("test_run_log_tail", None)
-        return render_template(
+        page = render_template(
             "home.html",
             test_results=test_results,
             report_sources=report_sources,
@@ -128,23 +135,64 @@ def create_app() -> Flask:
             test_run_error=test_run_error,
             test_run_log_tail=test_run_log_tail,
         )
+        log_succeeded(
+            _APP_LOG,
+            "tests_dashboard",
+            _APP_SOURCE,
+            result_count=len(test_results),
+            has_report_file=has_report_file,
+        )
+        return page
 
     @app.get("/stack-ping/<target>")
     def stack_ping(target: str):
+        log_received(
+            _APP_LOG,
+            "stack_ping",
+            _APP_SOURCE,
+            "GET",
+            "/stack-ping/{target}",
+            target=target,
+        )
         links = StackLinks.from_env()
-        return jsonify(links.ping(target))
+        result = links.ping(target)
+        if result.get("ok") is False:
+            log_warn(
+                _APP_LOG,
+                "stack_ping",
+                _APP_SOURCE,
+                "stack_ping downstream unreachable",
+                target=target,
+                ok=result.get("ok"),
+                status=result.get("status"),
+                error=result.get("error"),
+                url=result.get("url"),
+            )
+        else:
+            log_succeeded(
+                _APP_LOG,
+                "stack_ping",
+                _APP_SOURCE,
+                target=target,
+                ok=result.get("ok"),
+                status=result.get("status"),
+            )
+        return jsonify(result)
 
     @app.post("/tests/run")
     def run_tests() -> Response:
         root: Path = app.config["PROJECT_ROOT"]
         node = (request.form.get("nodeid") or "").strip() or None
+        log_received(_APP_LOG, "run_tests", _APP_SOURCE, "POST", "/tests/run", nodeid=node)
         try:
             rc, log = run_pytest(root, node_id=node)
         except subprocess.TimeoutExpired:
+            log_warn(_APP_LOG, "run_tests", _APP_SOURCE, "run_tests timed out", nodeid=node)
             session["test_run_error"] = "Pytest timed out."
             session["test_run_log_tail"] = ""
             return redirect(url_for("tests_dashboard"))
         except OSError as e:
+            log_error(_APP_LOG, "run_tests", _APP_SOURCE, "run_tests failed", exc=e, nodeid=node)
             session["test_run_error"] = f"Could not run pytest: {e}"
             session["test_run_log_tail"] = ""
             return redirect(url_for("tests_dashboard"))
@@ -159,18 +207,37 @@ def create_app() -> Flask:
             return redirect(url_for("tests_dashboard"))
         if rc == 0:
             session["test_run_message"] = "Pytest finished (exit code 0)."
+            log_succeeded(_APP_LOG, "run_tests", _APP_SOURCE, nodeid=node, exit_code=rc)
         else:
             session["test_run_error"] = f"Pytest finished (exit code {rc})."
+            log_warn(
+                _APP_LOG,
+                "run_tests",
+                _APP_SOURCE,
+                "run_tests finished with errors",
+                nodeid=node,
+                exit_code=rc,
+            )
         return redirect(url_for("tests_dashboard"))
 
     @app.get("/tests/source")
     def test_source():
         cn = (request.args.get("className") or "").strip()
+        log_received(
+            _APP_LOG,
+            "test_source",
+            _APP_SOURCE,
+            "GET",
+            "/tests/source",
+            className=cn,
+        )
         root: Path = app.config["PROJECT_ROOT"]
         payload = read_test_source(root, cn)
         if payload is None:
+            log_warn(_APP_LOG, "test_source", _APP_SOURCE, "test_source not found", className=cn)
             return jsonify(error="not found"), 404
         path, content = payload
+        log_succeeded(_APP_LOG, "test_source", _APP_SOURCE, className=cn, path=path)
         return jsonify(path=path, content=content)
 
     @app.get("/metrics")
@@ -181,9 +248,18 @@ def create_app() -> Flask:
     @app.get("/api/observability/sample-log")
     def observability_sample_log() -> str:
         """Emit one INFO JSON log line for Filebeat / ELK verification."""
-        logging.getLogger(__name__).info(
-            "Observability sample event (JSON log file -> Filebeat -> Logstash -> Elasticsearch)"
+        log_received(
+            _APP_LOG,
+            "observability_sample_log",
+            _APP_SOURCE,
+            "GET",
+            "/api/observability/sample-log",
         )
+        _APP_LOG.info(
+            "Observability sample event (JSON log file -> Filebeat -> Logstash -> Elasticsearch)",
+            extra={"source": _APP_SOURCE, "controller": "observability_sample_log"},
+        )
+        log_succeeded(_APP_LOG, "observability_sample_log", _APP_SOURCE)
         return "logged"
 
     return app
