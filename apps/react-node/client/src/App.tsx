@@ -15,15 +15,19 @@ const SERVICES: ServiceRow[] = [
   { id: "kibana", label: "Kibana" },
 ];
 
+type ViewId = "connectivity" | "list-items" | "create-item";
+
 type RowState = ProbeResult | { pending: true } | null;
 
 export default function App() {
+  const [activeView, setActiveView] = useState<ViewId>("connectivity");
   const [rows, setRows] = useState<Record<string, RowState>>({});
   const [items, setItems] = useState<Item[]>([]);
   const [itemsError, setItemsError] = useState<string | null>(null);
   const [itemsPending, setItemsPending] = useState(false);
   const [newItemName, setNewItemName] = useState("");
   const [createPending, setCreatePending] = useState(false);
+  const [createMessage, setCreateMessage] = useState<string | null>(null);
 
   const pingOne = useCallback(async (id: string) => {
     setRows((prev) => ({ ...prev, [id]: { pending: true } }));
@@ -51,27 +55,29 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    void loadItems();
-  }, [loadItems]);
+    if (activeView === "list-items") {
+      void loadItems();
+    }
+  }, [activeView, loadItems]);
 
   const submitItem = useCallback(async () => {
     const name = newItemName.trim();
     if (!name) {
-      setItemsError("name must not be blank");
+      setCreateMessage("name must not be blank");
       return;
     }
     setCreatePending(true);
-    setItemsError(null);
+    setCreateMessage(null);
     try {
-      await createItem(name);
+      const item = await createItem(name);
       setNewItemName("");
-      await loadItems();
+      setCreateMessage(`Created item #${item.id}: ${item.name}`);
     } catch (error) {
-      setItemsError(error instanceof Error ? error.message : String(error));
+      setCreateMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setCreatePending(false);
     }
-  }, [loadItems, newItemName]);
+  }, [newItemName]);
 
   function renderCell(id: string) {
     const state = rows[id];
@@ -83,97 +89,170 @@ export default function App() {
   return (
     <main>
       <h1>React Node</h1>
-      <p className="subtitle">
-        Stack connectivity from this Express server: each <strong>Ping</strong> runs an outbound{" "}
-        <code>GET</code> and shows the HTTP status (or error) and how long it took.
-      </p>
-      <div className="toolbar">
-        <button type="button" className="btn primary" onClick={() => void pingAll()}>
-          Ping all
-        </button>
-      </div>
-      <section className="connectivity" aria-label="Stack connectivity">
-        <table>
-          <thead>
-            <tr>
-              <th scope="col">Service</th>
-              <th scope="col">Test</th>
-              <th scope="col">Response</th>
-            </tr>
-          </thead>
-          <tbody>
-            {SERVICES.map((service) => (
-              <tr key={service.id} data-target={service.id}>
-                <td>{service.label}</td>
-                <td>
-                  <button type="button" className="btn" onClick={() => void pingOne(service.id)}>
-                    Ping
-                  </button>
-                </td>
-                <td className="status-cell">{renderCell(service.id)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
+      <p className="page-subtitle">Use the menu on the left to open connectivity checks or action forms.</p>
 
-      <section className="items-panel" aria-label="Postgres items via Java API">
-        <h2>Postgres items</h2>
-        <p className="subtitle">
-          Loaded via Express → Java <code>GET /api/items</code> (Flyway seed + shared{" "}
-          <code>items</code> table).
-        </p>
-        <div className="toolbar">
-          <button type="button" className="btn" onClick={() => void loadItems()} disabled={itemsPending}>
-            {itemsPending ? "Loading…" : "Refresh"}
+      <div className="dashboard">
+        <nav className="sidebar" aria-label="Dashboard menu">
+          <p className="sidebar-title">Menu</p>
+          <button
+            type="button"
+            className="sidebar-btn"
+            aria-current={activeView === "connectivity" ? "page" : undefined}
+            onClick={() => setActiveView("connectivity")}
+          >
+            Connectivity
           </button>
+          <p className="sidebar-section">Actions</p>
+          <button
+            type="button"
+            className="sidebar-btn sub"
+            aria-current={activeView === "list-items" ? "page" : undefined}
+            onClick={() => setActiveView("list-items")}
+          >
+            List items
+          </button>
+          <button
+            type="button"
+            className="sidebar-btn sub"
+            aria-current={activeView === "create-item" ? "page" : undefined}
+            onClick={() => setActiveView("create-item")}
+          >
+            Create item
+          </button>
+        </nav>
+
+        <div className="main-panel">
+          <section
+            className="view-panel"
+            aria-hidden={activeView !== "connectivity"}
+            hidden={activeView !== "connectivity"}
+          >
+            <p className="panel-lead">
+              Each <strong>Ping</strong> runs an outbound <code>GET</code> from this Express server and
+              shows the HTTP status (or error) and how long it took.
+            </p>
+            <div className="toolbar">
+              <button type="button" className="btn primary" onClick={() => void pingAll()}>
+                Ping all services
+              </button>
+            </div>
+            <div className="connectivity" aria-label="Stack connectivity">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Service</th>
+                    <th scope="col">Test</th>
+                    <th scope="col">Response</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {SERVICES.map((service) => (
+                    <tr key={service.id} data-target={service.id}>
+                      <td>{service.label}</td>
+                      <td>
+                        <button type="button" className="btn" onClick={() => void pingOne(service.id)}>
+                          Ping
+                        </button>
+                      </td>
+                      <td className="status-cell">{renderCell(service.id)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section
+            className="view-panel"
+            aria-hidden={activeView !== "list-items"}
+            hidden={activeView !== "list-items"}
+          >
+            <h2 className="form-heading">List items</h2>
+            <p className="form-hint">
+              Loads rows from the shared PostgreSQL <code>items</code> table via Express → Java{" "}
+              <code>GET /api/items</code>.
+            </p>
+            <div className="toolbar">
+              <button
+                type="button"
+                className="btn primary"
+                onClick={() => void loadItems()}
+                disabled={itemsPending}
+              >
+                {itemsPending ? "Loading…" : "Refresh list"}
+              </button>
+            </div>
+            {itemsError ? <p className="items-error">{itemsError}</p> : null}
+            <div className="connectivity">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">ID</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Created</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="status-pending">
+                        {itemsPending ? "Loading…" : "No items yet — open Create item or click Refresh."}
+                      </td>
+                    </tr>
+                  ) : (
+                    items.map((item) => (
+                      <tr key={item.id}>
+                        <td>{item.id}</td>
+                        <td>{item.name}</td>
+                        <td>{item.createdAt}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section
+            className="view-panel"
+            aria-hidden={activeView !== "create-item"}
+            hidden={activeView !== "create-item"}
+          >
+            <h2 className="form-heading">Create item</h2>
+            <p className="form-hint">
+              Persists a row to the shared PostgreSQL <code>items</code> table via Express → Java{" "}
+              <code>POST /api/items</code>.
+            </p>
+            <form
+              className="items-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void submitItem();
+              }}
+            >
+              <label htmlFor="new-item-name">Name</label>
+              <input
+                id="new-item-name"
+                value={newItemName}
+                onChange={(event) => setNewItemName(event.target.value)}
+                placeholder="Item name"
+                autoComplete="off"
+              />
+              <button type="submit" className="btn primary" disabled={createPending}>
+                {createPending ? "Saving…" : "Save item"}
+              </button>
+            </form>
+            {createMessage ? (
+              <pre
+                className={`result-box${createMessage.startsWith("Created") ? "" : " status-err"}`}
+                aria-live="polite"
+              >
+                {createMessage}
+              </pre>
+            ) : null}
+          </section>
         </div>
-        {itemsError ? <p className="items-error">{itemsError}</p> : null}
-        <table>
-          <thead>
-            <tr>
-              <th scope="col">ID</th>
-              <th scope="col">Name</th>
-              <th scope="col">Created</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={3} className="status-pending">
-                  {itemsPending ? "Loading…" : "No items yet"}
-                </td>
-              </tr>
-            ) : (
-              items.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.id}</td>
-                  <td>{item.name}</td>
-                  <td>{item.createdAt}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-        <form
-          className="items-form"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void submitItem();
-          }}
-        >
-          <label htmlFor="new-item-name">Add item</label>
-          <input
-            id="new-item-name"
-            value={newItemName}
-            onChange={(event) => setNewItemName(event.target.value)}
-            placeholder="Item name"
-          />
-          <button type="submit" className="btn primary" disabled={createPending}>
-            {createPending ? "Saving…" : "Create"}
-          </button>
-        </form>
-      </section>
+      </div>
     </main>
   );
 }

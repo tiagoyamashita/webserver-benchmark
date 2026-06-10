@@ -15,6 +15,11 @@ export default defineConfig({
     host: true,
     // Compose stack pings use Host: react-node:5174 (Java/Python/Rust server-side GET).
     allowedHosts: true,
+    // Podman/Docker bind mounts on Windows often miss file events without polling.
+    watch: {
+      usePolling: true,
+      interval: 500,
+    },
   },
   test: {
     environment: "jsdom",
