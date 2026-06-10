@@ -14,7 +14,8 @@
     "express": "^4.21.2",
     "pg": "^8.13.1",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",
@@ -26,6 +27,7 @@
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "@types/supertest": "^6.0.2",
+    "@types/swagger-ui-express": "^4.1.8",
     "@vitejs/plugin-react": "^4.3.4",
     "jsdom": "^25.0.1",
     "supertest": "^7.0.0",

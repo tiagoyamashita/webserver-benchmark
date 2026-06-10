@@ -4,6 +4,8 @@ use axum::middleware::{self, Next};
 use axum::response::{Html, IntoResponse, Json, Redirect, Response};
 use axum::routing::{get, post};
 use axum::Router;
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 use prometheus::{Encoder, Opts, TextEncoder};
 use serde::Deserialize;
 use serde::Serialize;
@@ -418,6 +420,10 @@ pub async fn serve() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 /// HTTP router (used by `serve` and integration tests).
 pub fn build_router(state: AppState) -> Router {
     Router::new()
+        .merge(
+            SwaggerUi::new("/swagger-ui")
+                .url("/api-docs/openapi.json", crate::openapi::ApiDoc::openapi()),
+        )
         .route("/", get(stack_landing))
         .route("/tests", get(tests_dashboard))
         .route("/health", get(health))

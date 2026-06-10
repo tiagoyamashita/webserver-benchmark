@@ -11,6 +11,7 @@ from prometheus_client import CONTENT_TYPE_LATEST, Counter, generate_latest
 
 from exercises.web.controller_logging import log_error, log_received, log_succeeded, log_warn
 from exercises.web.items_api import register_items_routes
+from exercises.web.openapi_routes import register_openapi_routes
 from exercises.web.observability_logging import observability_enabled
 from exercises.web.request_id import resolve_request_id
 from exercises.web.junit_report import (
@@ -68,6 +69,7 @@ def create_app() -> Flask:
     app.secret_key = os.environ.get("SECRET_KEY", "dev-exercises-web")
     app.config["PROJECT_ROOT"] = resolve_project_root()
     register_items_routes(app)
+    register_openapi_routes(app)
 
     @app.before_request
     def _record_request_start() -> None:

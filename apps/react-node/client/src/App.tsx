@@ -15,7 +15,7 @@ const SERVICES: ServiceRow[] = [
   { id: "kibana", label: "Kibana" },
 ];
 
-type ViewId = "connectivity" | "list-items" | "create-item";
+type ViewId = "connectivity" | "list-items" | "create-item" | "openapi";
 
 type RowState = ProbeResult | { pending: true } | null;
 
@@ -28,6 +28,7 @@ export default function App() {
   const [newItemName, setNewItemName] = useState("");
   const [createPending, setCreatePending] = useState(false);
   const [createMessage, setCreateMessage] = useState<string | null>(null);
+  const [openapiSrc, setOpenapiSrc] = useState<string | null>(null);
 
   const pingOne = useCallback(async (id: string) => {
     setRows((prev) => ({ ...prev, [id]: { pending: true } }));
@@ -58,7 +59,10 @@ export default function App() {
     if (activeView === "list-items") {
       void loadItems();
     }
-  }, [activeView, loadItems]);
+    if (activeView === "openapi" && !openapiSrc) {
+      setOpenapiSrc("/swagger-ui");
+    }
+  }, [activeView, loadItems, openapiSrc]);
 
   const submitItem = useCallback(async () => {
     const name = newItemName.trim();
@@ -118,6 +122,15 @@ export default function App() {
             onClick={() => setActiveView("create-item")}
           >
             Create item
+          </button>
+          <p className="sidebar-section">API</p>
+          <button
+            type="button"
+            className="sidebar-btn sub"
+            aria-current={activeView === "openapi" ? "page" : undefined}
+            onClick={() => setActiveView("openapi")}
+          >
+            OpenAPI
           </button>
         </nav>
 
@@ -249,6 +262,28 @@ export default function App() {
               >
                 {createMessage}
               </pre>
+            ) : null}
+          </section>
+
+          <section
+            className="view-panel"
+            aria-hidden={activeView !== "openapi"}
+            hidden={activeView !== "openapi"}
+          >
+            <h2 className="form-heading">OpenAPI</h2>
+            <p className="form-hint">
+              Interactive REST docs (Swagger UI) for <code>/api/items</code> list and create (proxies to Java).
+              Health, probe, and observability routes are excluded. JSON spec:{" "}
+              <code>/api-docs/openapi.json</code>.
+            </p>
+            {openapiSrc ? (
+              <iframe
+                className="openapi-frame"
+                title="Swagger UI"
+                src={openapiSrc}
+                loading="lazy"
+                referrerPolicy="same-origin"
+              />
             ) : null}
           </section>
         </div>

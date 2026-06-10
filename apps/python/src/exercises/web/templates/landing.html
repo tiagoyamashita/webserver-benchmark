@@ -191,6 +191,15 @@
         white-space: pre-wrap;
         word-break: break-word;
       }
+      .openapi-frame {
+        display: block;
+        width: 100%;
+        min-height: 32rem;
+        height: calc(100vh - 12rem);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--bg);
+      }
       @media (max-width: 36rem) {
         .dashboard { flex-direction: column; }
         .sidebar {
@@ -221,6 +230,8 @@
         <p class="sidebar-section">Actions</p>
         <button type="button" class="sidebar-btn sub" id="nav-list-items" data-view="view-list-items">List items</button>
         <button type="button" class="sidebar-btn sub" id="nav-create-item" data-view="view-create-item">Create item</button>
+        <p class="sidebar-section">API</p>
+        <button type="button" class="sidebar-btn sub" id="nav-openapi" data-view="view-openapi">OpenAPI</button>
         <p class="sidebar-section">Tools</p>
         <a class="sidebar-btn sub" href="{{ url_for('tests_dashboard') }}">pytest dashboard</a>
       </nav>
@@ -346,6 +357,21 @@
           </form>
           <pre id="create-item-result" class="result-box" aria-live="polite"></pre>
         </section>
+
+        <section id="view-openapi" class="view-panel" aria-hidden="true">
+          <h2 class="form-heading">OpenAPI</h2>
+          <p class="form-hint">
+            Interactive REST docs (Swagger UI) for <code>/api/items</code> CRUD.
+            Dashboard and observability routes are excluded. JSON spec: <code>/api-docs/openapi.json</code>.
+          </p>
+          <iframe
+            id="openapi-frame"
+            class="openapi-frame"
+            title="Swagger UI"
+            loading="lazy"
+            referrerpolicy="same-origin"
+          ></iframe>
+        </section>
       </div>
     </div>
 
@@ -367,6 +393,12 @@
           });
           if (viewId === "view-list-items") {
             loadItems();
+          }
+          if (viewId === "view-openapi") {
+            var openapiFrame = document.getElementById("openapi-frame");
+            if (openapiFrame && !openapiFrame.getAttribute("src")) {
+              openapiFrame.setAttribute("src", "/swagger-ui");
+            }
           }
         }
 

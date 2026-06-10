@@ -3,15 +3,16 @@ use axum::response::IntoResponse;
 use axum::Json;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+use utoipa::ToSchema;
 
 const SOURCE: &str = "src/items.rs";
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct CreateItemQuery {
     pub name: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct ItemResponse {
     pub id: i64,
     pub name: String,
@@ -19,7 +20,7 @@ pub struct ItemResponse {
     pub created_at: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct CreateItemResponse {
     pub ok: bool,
     pub name: String,

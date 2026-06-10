@@ -6,6 +6,7 @@ pub mod request_id;
 pub mod stack_ping;
 pub mod tracing_init;
 pub mod items;
+pub mod openapi;
 pub mod flash;
 pub mod junit;
 pub mod runner;

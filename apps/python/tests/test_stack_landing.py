@@ -9,6 +9,8 @@ def test_stack_landing_page(client):
     assert b"Dashboard menu" in r.data
     assert b"view-list-items" in r.data
     assert b"view-create-item" in r.data
+    assert b"view-openapi" in r.data
+    assert b"nav-openapi" in r.data
 
 
 def test_tests_dashboard_route(client):

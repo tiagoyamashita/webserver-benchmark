@@ -286,6 +286,16 @@ code {
   word-break: break-word;
 }
 
+.openapi-frame {
+  display: block;
+  width: 100%;
+  min-height: 32rem;
+  height: calc(100vh - 12rem);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
 @media (max-width: 36rem) {
   .dashboard {
     flex-direction: column;

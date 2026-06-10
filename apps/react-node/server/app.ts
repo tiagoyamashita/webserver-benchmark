@@ -14,6 +14,7 @@ import {
   observabilityEnabled,
   writeLog,
 } from "./observability-logging.js";
+import { registerOpenApiRoutes } from "./openapi.js";
 import { probeById } from "./probe.js";
 import { requestIdMiddleware } from "./request-id.js";
 
@@ -44,6 +45,8 @@ export function createApp(options: CreateAppOptions = {}): Express {
   const app = express();
   app.use(express.json());
   app.use(requestIdMiddleware);
+
+  registerOpenApiRoutes(app);
 
   if (observabilityEnabled()) {
     app.use((req: Request, res: Response, next: NextFunction) => {
