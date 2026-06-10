@@ -2,12 +2,14 @@ package com.example.demo.web;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Hidden
 @RestController
 public class DashboardMetaController {
 
@@ -28,9 +30,9 @@ public class DashboardMetaController {
             "title", "Java APP",
             "template", "index.html",
             "path", "/",
-            "version", 6,
+            "version", 7,
             "features",
-                "sidebar,connectivity-ping,ping-all,user-create,user-list,item-list,item-create,rust-item-relay");
+                "sidebar,connectivity-ping,ping-all,user-create,user-list,item-list,item-create,rust-item-relay,openapi");
     log.info(
         "DashboardMetaController.meta succeeded",
         kv("source", SOURCE),

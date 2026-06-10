@@ -1,12 +1,14 @@
 package com.example.demo.observability;
 
+import io.swagger.v3.oas.annotations.Hidden;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Hidden
 @RestController
 @RequestMapping("/api/observability")
 public class ObservabilitySampleController {

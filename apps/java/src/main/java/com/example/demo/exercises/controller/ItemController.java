@@ -6,6 +6,7 @@ import com.example.demo.exercises.db.Item;
 import com.example.demo.exercises.db.ItemRepository;
 import com.example.demo.exercises.validation.CreateItemRequest;
 import com.example.demo.exercises.validation.UpdateItemRequest;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.slf4j.Logger;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
  * REST CRUD API for {@link com.example.demo.exercises.db.Item}. Integration-tested with MockMvc +
  * JPA; see {@code com.example.demo.exercises.controller.ItemController} (test package).
  */
+@Tag(name = "Items", description = "CRUD for the shared PostgreSQL `items` table")
 @RestController
 @RequestMapping("/api/items")
 public class ItemController {
