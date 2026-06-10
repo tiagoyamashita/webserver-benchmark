@@ -213,6 +213,8 @@
         <p class="sidebar-section">Actions</p>
         <button type="button" class="sidebar-btn sub" id="nav-create-user" data-view="view-create-user">Create user</button>
         <button type="button" class="sidebar-btn sub" id="nav-list-users" data-view="view-list-users">List users</button>
+        <button type="button" class="sidebar-btn sub" id="nav-list-items" data-view="view-list-items">List items</button>
+        <button type="button" class="sidebar-btn sub" id="nav-create-item" data-view="view-create-item">Create item</button>
         <button type="button" class="sidebar-btn sub" id="nav-rust-relay" data-view="view-rust-relay">Rust item relay</button>
       </nav>
 
@@ -290,6 +292,44 @@
           <pre id="list-users-error" class="result-box status-err" aria-live="polite"></pre>
         </section>
 
+        <section id="view-list-items" class="view-panel" aria-hidden="true">
+          <h2 class="form-heading">List items</h2>
+          <p class="form-hint">Loads rows from the shared PostgreSQL <code>items</code> table via <code>GET /api/items</code>.</p>
+          <div class="toolbar">
+            <button type="button" class="btn primary" id="refresh-items">Refresh list</button>
+          </div>
+          <div class="connectivity">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">ID</th>
+                  <th scope="col">Name</th>
+                  <th scope="col">Created</th>
+                </tr>
+              </thead>
+              <tbody id="items-table-body">
+                <tr id="items-empty-row">
+                  <td colspan="3" class="status-pending">Open this view or click Refresh to load items.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <pre id="list-items-error" class="result-box status-err" aria-live="polite"></pre>
+        </section>
+
+        <section id="view-create-item" class="view-panel" aria-hidden="true">
+          <h2 class="form-heading">Create item</h2>
+          <p class="form-hint">Persists a row to the shared PostgreSQL <code>items</code> table via <code>POST /api/items</code>.</p>
+          <form id="create-item-form">
+            <div class="field-row">
+              <label for="item-name">Name</label>
+              <input type="text" id="item-name" name="name" required autocomplete="off" placeholder="Item name"/>
+            </div>
+            <button type="submit" class="btn primary">Save item</button>
+          </form>
+          <pre id="create-item-result" class="result-box" aria-live="polite"></pre>
+        </section>
+
         <section id="view-rust-relay" class="view-panel" aria-hidden="true">
           <h2 class="form-heading">Rust item relay</h2>
           <p class="form-hint">Calls Rust <code>POST /api/items</code> so the item is inserted into PostgreSQL from the Rust service.</p>
@@ -322,6 +362,9 @@
           });
           if (viewId === "view-list-users") {
             loadUsers();
+          }
+          if (viewId === "view-list-items") {
+            loadItems();
           }
         }
 
@@ -472,6 +515,87 @@
 
         if (refreshUsersBtn) {
           refreshUsersBtn.addEventListener("click", loadUsers);
+        }
+
+        var itemsTableBody = document.getElementById("items-table-body");
+        var listItemsError = document.getElementById("list-items-error");
+        var refreshItemsBtn = document.getElementById("refresh-items");
+
+        function loadItems() {
+          if (!itemsTableBody) return;
+          itemsTableBody.innerHTML =
+            '<tr><td colspan="3" class="status-pending">Loading…</td></tr>';
+          if (listItemsError) listItemsError.textContent = "";
+          fetch("/api/items", { method: "GET", credentials: "same-origin", headers: { Accept: "application/json" } })
+            .then(function (res) {
+              return res.json().then(function (data) {
+                return { httpOk: res.ok, status: res.status, data: data };
+              });
+            })
+            .then(function (r) {
+              if (!r.httpOk) {
+                itemsTableBody.innerHTML = "";
+                if (listItemsError) {
+                  listItemsError.textContent = "HTTP " + r.status + "\n" + JSON.stringify(r.data, null, 2);
+                }
+                return;
+              }
+              var rows = Array.isArray(r.data) ? r.data : [];
+              if (rows.length === 0) {
+                itemsTableBody.innerHTML =
+                  '<tr><td colspan="3" class="status-pending">No items yet — create one from the Create item action.</td></tr>';
+                return;
+              }
+              itemsTableBody.innerHTML = rows
+                .map(function (item) {
+                  return (
+                    "<tr><td>" +
+                    escapeHtml(item.id) +
+                    "</td><td>" +
+                    escapeHtml(item.name) +
+                    "</td><td>" +
+                    escapeHtml(item.createdAt) +
+                    "</td></tr>"
+                  );
+                })
+                .join("");
+            })
+            .catch(function (err) {
+              itemsTableBody.innerHTML = "";
+              if (listItemsError) listItemsError.textContent = String(err.message || err);
+            });
+        }
+
+        if (refreshItemsBtn) {
+          refreshItemsBtn.addEventListener("click", loadItems);
+        }
+
+        var itemForm = document.getElementById("create-item-form");
+        var itemResult = document.getElementById("create-item-result");
+        if (itemForm && itemResult) {
+          itemForm.addEventListener("submit", function (ev) {
+            ev.preventDefault();
+            var name = (document.getElementById("item-name").value || "").trim();
+            if (!name) { itemResult.textContent = "Name is required."; return; }
+            itemResult.textContent = "Saving…";
+            fetch("/api/items", {
+              method: "POST",
+              credentials: "same-origin",
+              headers: { Accept: "application/json", "Content-Type": "application/json" },
+              body: JSON.stringify({ name: name })
+            })
+              .then(function (res) { return res.json().then(function (data) { return { httpOk: res.ok, status: res.status, data: data }; }); })
+              .then(function (r) {
+                if (r.httpOk) {
+                  var item = r.data || {};
+                  itemResult.textContent = "Saved item id=" + item.id + " name=" + item.name;
+                  itemForm.reset();
+                  return;
+                }
+                itemResult.textContent = "HTTP " + r.status + "\n" + JSON.stringify(r.data, null, 2);
+              })
+              .catch(function (err) { itemResult.textContent = String(err.message || err); });
+          });
         }
 
         if (userForm && userResult) {
