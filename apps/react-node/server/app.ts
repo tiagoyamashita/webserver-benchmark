@@ -14,6 +14,7 @@ import {
   observabilityEnabled,
   writeLog,
 } from "./observability-logging.js";
+import { metricsHandler, metricsMiddleware } from "./metrics.js";
 import { registerOpenApiRoutes } from "./openapi.js";
 import { probeById } from "./probe.js";
 import { requestIdMiddleware } from "./request-id.js";
@@ -45,6 +46,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
   const app = express();
   app.use(express.json());
   app.use(requestIdMiddleware);
+  app.use(metricsMiddleware);
 
   registerOpenApiRoutes(app);
 
@@ -63,6 +65,10 @@ export function createApp(options: CreateAppOptions = {}): Express {
       next();
     });
   }
+
+  app.get("/metrics", (req, res) => {
+    void metricsHandler(req, res);
+  });
 
   app.get("/api/health", (_req: Request, res: Response) => {
     logReceived("health", SOURCE, "GET", "/api/health");
