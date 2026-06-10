@@ -9,7 +9,7 @@ Optional **Grafana OSS** setup for dashboards (metrics, logs, or anything you wi
 | `docker-compose.yml` | Runs Grafana on port **3000** with provisioning mounts |
 | `provisioning/datasources/` | Data source definitions loaded at startup |
 | `provisioning/dashboards/` | Dashboard sidecar config (loads JSON from `dashboards/`) |
-| `dashboards/` | Dashboard JSON (e.g. **`exercises-java-python-rust.json`** — Java / Python / Rust over Prometheus; **`exercises-postgres.json`** — shared `items` table) |
+| `dashboards/` | Dashboard JSON (e.g. **`exercises-java-python-rust.json`** — Prometheus metrics; **`exercises-postgres.json`** — shared `items` table; **`exercises-requests-logs.json`** — HTTP status + Postgres SQL from Elasticsearch) |
 
 ## Bundled dashboard (root compose)
 
@@ -56,7 +56,7 @@ Grafana does **not** auto-discover your Java/Python/Rust HTTP ports. “Servers�
 - Edit **`provisioning/datasources/datasources.yml`** to add Loki, extra Prometheus targets, etc. ([Grafana provisioning](https://grafana.com/docs/grafana/latest/administration/provisioning/)).
 - Drop dashboard JSON under **`dashboards/`**; Grafana picks them up via **`provisioning/dashboards/dashboards.yml`**.
 
-The shipped **`datasources.yml`** provisions **Prometheus** (**`http://prometheus:9090`**, default), **PostgreSQL** (**`postgres:5432`**, database **`demo`** — requires the apps stack), and **TestData**. **Elasticsearch** is **commented** — uncomment when ELK runs in the same Compose project. The shipped **`dashboards/exercises-java-python-rust.json`** is a starter overview for the three app scrape jobs; **`exercises-postgres.json`** queries the shared **`items`** table. Restart Grafana after edits.
+The shipped **`datasources.yml`** provisions **Prometheus** (default), **PostgreSQL** (**`postgres:5432`**, database **`demo`**), **Elasticsearch** (**`http://elasticsearch:9200`**, index **`logstash-*`** — requires **`docker-compose.observability.yml`** + Filebeat), and **TestData**. Dashboards: **`exercises-java-python-rust.json`** (Prometheus), **`exercises-postgres.json`** (SQL table), **`exercises-requests-logs.json`** (HTTP **`status`** coloring + Postgres **`statement`** logs from ELK). Restart Grafana after edits.
 
 ## Embedding in an `<iframe>`
 

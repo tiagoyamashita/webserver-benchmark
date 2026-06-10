@@ -26,7 +26,7 @@ def database_url_from_env() -> str | None:
 
 
 @contextmanager
-def connection() -> Iterator["psycopg.Connection"]:
+def connection(request_id: str | None = None) -> Iterator["psycopg.Connection"]:
     url = database_url_from_env()
     if not url:
         raise DatabaseNotConfiguredError(
@@ -40,4 +40,10 @@ def connection() -> Iterator["psycopg.Connection"]:
             "(podman compose build python)"
         ) from exc
     with psycopg.connect(url) as conn:
+        if request_id:
+            from exercises.web.request_id import postgres_application_name
+
+            app_name = postgres_application_name("exercises-python", request_id)
+            with conn.cursor() as cur:
+                cur.execute("SET application_name TO %s", (app_name,))
         yield conn

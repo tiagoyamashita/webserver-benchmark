@@ -38,7 +38,19 @@ pub struct ItemRow {
     pub created_at: String,
 }
 
-pub async fn list_items(pool: &PgPool) -> Result<Vec<ItemRow>, sqlx::Error> {
+pub async fn stamp_request_id(pool: &PgPool, request_id: &str) -> Result<(), sqlx::Error> {
+    let app_name = crate::request_id::postgres_application_name("exercises-rust", request_id);
+    sqlx::query("SELECT set_config('application_name', $1, false)")
+        .bind(app_name)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
+pub async fn list_items(pool: &PgPool, request_id: Option<&str>) -> Result<Vec<ItemRow>, sqlx::Error> {
+    if let Some(id) = request_id {
+        stamp_request_id(pool, id).await?;
+    }
     let rows: Vec<(i64, String, chrono::DateTime<chrono::Utc>)> = sqlx::query_as(
         "SELECT id, name, created_at FROM items ORDER BY id",
     )
@@ -55,7 +67,14 @@ pub async fn list_items(pool: &PgPool) -> Result<Vec<ItemRow>, sqlx::Error> {
         .collect())
 }
 
-pub async fn insert_item(pool: &PgPool, name: &str) -> Result<InsertedItem, sqlx::Error> {
+pub async fn insert_item(
+    pool: &PgPool,
+    name: &str,
+    request_id: Option<&str>,
+) -> Result<InsertedItem, sqlx::Error> {
+    if let Some(id) = request_id {
+        stamp_request_id(pool, id).await?;
+    }
     let row: (i64, String, chrono::DateTime<chrono::Utc>) = sqlx::query_as(
         "INSERT INTO items (name, created_at) VALUES ($1, NOW()) RETURNING id, name, created_at",
     )

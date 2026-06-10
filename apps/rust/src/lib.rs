@@ -2,6 +2,7 @@
 
 pub mod app;
 pub mod db;
+pub mod request_id;
 pub mod stack_ping;
 pub mod tracing_init;
 pub mod items;

@@ -1,4 +1,4 @@
-use axum::extract::{Form, Query, Request, State};
+use axum::extract::{Extension, Form, Query, Request, State};
 use axum::http::{header, HeaderValue, StatusCode};
 use axum::middleware::{self, Next};
 use axum::response::{Html, IntoResponse, Json, Redirect, Response};
@@ -64,12 +64,28 @@ fn route_endpoint_label(path: &str) -> &'static str {
 }
 
 async fn record_http_request_metrics(req: Request, next: Next) -> Response {
+    let start = std::time::Instant::now();
     let method = req.method().to_string();
+    let path = req.uri().path().to_string();
     let endpoint = route_endpoint_label(req.uri().path());
+    let request_id = req
+        .extensions()
+        .get::<crate::request_id::RequestId>()
+        .map(|id| id.0.clone());
     let res = next.run(req).await;
+    let status = res.status().as_u16();
+    let ms = start.elapsed().as_millis();
     HTTP_REQUESTS
         .with_label_values(&[method.as_str(), endpoint])
         .inc();
+    tracing::info!(
+        method = %method,
+        path = %path,
+        status = status,
+        ms = %ms,
+        request_id = ?request_id,
+        "{method} {path} {status}"
+    );
     res
 }
 
@@ -159,7 +175,10 @@ pub fn load_tera(project_root: &Path) -> std::io::Result<Tera> {
     Ok(tera)
 }
 
-async fn list_items(State(state): State<AppState>) -> impl IntoResponse {
+async fn list_items(
+    State(state): State<AppState>,
+    Extension(request_id): Extension<crate::request_id::RequestId>,
+) -> impl IntoResponse {
     let Some(pool) = state.pg_pool.clone() else {
         return (
             StatusCode::SERVICE_UNAVAILABLE,
@@ -169,11 +188,14 @@ async fn list_items(State(state): State<AppState>) -> impl IntoResponse {
         )
             .into_response();
     };
-    crate::items::list_items(pool).await.into_response()
+    crate::items::list_items(pool, Some(&request_id.0))
+        .await
+        .into_response()
 }
 
 async fn create_item(
     State(state): State<AppState>,
+    Extension(request_id): Extension<crate::request_id::RequestId>,
     Query(query): Query<crate::items::CreateItemQuery>,
 ) -> impl IntoResponse {
     let Some(pool) = state.pg_pool.clone() else {
@@ -186,7 +208,9 @@ async fn create_item(
         )
             .into_response();
     };
-    crate::items::create_item(pool, query).await.into_response()
+    crate::items::create_item(pool, query, Some(&request_id.0))
+        .await
+        .into_response()
 }
 
 async fn welcome_redirect() -> Redirect {
@@ -276,6 +300,7 @@ pub fn build_router(state: AppState) -> Router {
         .route("/api/items", get(list_items).post(create_item))
         .route("/metrics", get(metrics))
         .layer(middleware::from_fn(record_http_request_metrics))
+        .layer(middleware::from_fn(crate::request_id::assign_request_id))
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .with_state(state)
 }

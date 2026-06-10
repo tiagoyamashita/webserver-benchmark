@@ -15,6 +15,8 @@ class _JsonLineFormatter(logging.Formatter):
         super().__init__()
         self._service = service
 
+    _EXTRA_KEYS = frozenset({"method", "path", "status", "ms", "request_id"})
+
     def format(self, record: logging.LogRecord) -> str:
         payload = {
             "@timestamp": datetime.now(timezone.utc).isoformat(),
@@ -23,6 +25,9 @@ class _JsonLineFormatter(logging.Formatter):
             "message": record.getMessage(),
             "service": self._service,
         }
+        for key in self._EXTRA_KEYS:
+            if hasattr(record, key):
+                payload[key] = getattr(record, key)
         if record.exc_info:
             payload["error"] = self.formatException(record.exc_info)
         return json.dumps(payload, ensure_ascii=False)

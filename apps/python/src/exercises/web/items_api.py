@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from flask import Flask, jsonify, request
+from flask import Flask, g, jsonify, request
 
 from exercises.web.db import DatabaseNotConfiguredError, connection
 
@@ -27,10 +27,13 @@ def _read_name(payload: dict | None) -> str | None:
 
 
 def register_items_routes(app: Flask) -> None:
+    def _request_id() -> str | None:
+        return getattr(g, "request_id", None)
+
     @app.get("/api/items")
     def list_items():
         try:
-            with connection() as conn:
+            with connection(request_id=_request_id()) as conn:
                 with conn.cursor() as cur:
                     cur.execute("SELECT id, name, created_at FROM items ORDER BY id")
                     rows = cur.fetchall()
@@ -44,7 +47,7 @@ def register_items_routes(app: Flask) -> None:
         if not name:
             return jsonify(error="name must not be blank"), 400
         try:
-            with connection() as conn:
+            with connection(request_id=_request_id()) as conn:
                 with conn.cursor() as cur:
                     cur.execute(
                         "INSERT INTO items (name, created_at) VALUES (%s, NOW()) "
@@ -60,7 +63,7 @@ def register_items_routes(app: Flask) -> None:
     @app.get("/api/items/<int:item_id>")
     def get_item(item_id: int):
         try:
-            with connection() as conn:
+            with connection(request_id=_request_id()) as conn:
                 with conn.cursor() as cur:
                     cur.execute(
                         "SELECT id, name, created_at FROM items WHERE id = %s",
@@ -80,7 +83,7 @@ def register_items_routes(app: Flask) -> None:
         if not name:
             return jsonify(error="name must not be blank"), 400
         try:
-            with connection() as conn:
+            with connection(request_id=_request_id()) as conn:
                 with conn.cursor() as cur:
                     cur.execute(
                         "UPDATE items SET name = %s WHERE id = %s "
@@ -98,7 +101,7 @@ def register_items_routes(app: Flask) -> None:
     @app.delete("/api/items/<int:item_id>")
     def delete_item(item_id: int):
         try:
-            with connection() as conn:
+            with connection(request_id=_request_id()) as conn:
                 with conn.cursor() as cur:
                     cur.execute("DELETE FROM items WHERE id = %s RETURNING id", (item_id,))
                     row = cur.fetchone()

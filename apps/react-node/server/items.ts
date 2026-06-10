@@ -9,9 +9,17 @@ function itemsBaseUrl(): string {
   return value.replace(/\/$/, "");
 }
 
-export async function fetchItems(fetchImpl: typeof fetch = fetch): Promise<Item[]> {
+export async function fetchItems(
+  fetchImpl: typeof fetch = fetch,
+  requestId?: string,
+): Promise<Item[]> {
+  const headers: Record<string, string> = {};
+  if (requestId) {
+    headers["X-Request-ID"] = requestId;
+  }
   const response = await fetchImpl(`${itemsBaseUrl()}/api/items`, {
     method: "GET",
+    headers,
     redirect: "follow",
     signal: AbortSignal.timeout(15_000),
   });
@@ -25,10 +33,15 @@ export async function fetchItems(fetchImpl: typeof fetch = fetch): Promise<Item[
 export async function createItem(
   name: string,
   fetchImpl: typeof fetch = fetch,
+  requestId?: string,
 ): Promise<Item> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (requestId) {
+    headers["X-Request-ID"] = requestId;
+  }
   const response = await fetchImpl(`${itemsBaseUrl()}/api/items`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({ name }),
     redirect: "follow",
     signal: AbortSignal.timeout(15_000),

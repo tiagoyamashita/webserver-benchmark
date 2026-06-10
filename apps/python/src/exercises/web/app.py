@@ -3,12 +3,15 @@ from __future__ import annotations
 import logging
 import os
 import subprocess
+import time
 from pathlib import Path
 
-from flask import Flask, Response, jsonify, redirect, render_template, request, session, url_for
+from flask import Flask, Response, g, jsonify, redirect, render_template, request, session, url_for
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, generate_latest
 
 from exercises.web.items_api import register_items_routes
+from exercises.web.observability_logging import observability_enabled
+from exercises.web.request_id import resolve_request_id
 from exercises.web.junit_report import (
     existing_report_hints,
     load_latest_results,
@@ -24,6 +27,7 @@ _HTTP_REQUESTS = Counter(
     "HTTP requests handled by the exercises Flask app",
     ["method", "endpoint"],
 )
+_HTTP_REQUEST_LOG = logging.getLogger("http.request")
 
 
 def resolve_project_root() -> Path:
@@ -62,9 +66,33 @@ def create_app() -> Flask:
     app.config["PROJECT_ROOT"] = resolve_project_root()
     register_items_routes(app)
 
+    @app.before_request
+    def _record_request_start() -> None:
+        g.request_id = resolve_request_id(request)
+        g._req_start = time.perf_counter()
+
     @app.after_request
     def after_request_hooks(response):
         _HTTP_REQUESTS.labels(request.method, request.endpoint or "unknown").inc()
+        request_id = getattr(g, "request_id", None)
+        if request_id:
+            response.headers["X-Request-ID"] = request_id
+        if observability_enabled():
+            start = getattr(g, "_req_start", None)
+            ms = int((time.perf_counter() - start) * 1000) if start is not None else 0
+            _HTTP_REQUEST_LOG.info(
+                "%s %s %s",
+                request.method,
+                request.path,
+                response.status_code,
+                extra={
+                    "method": request.method,
+                    "path": request.path,
+                    "status": response.status_code,
+                    "ms": ms,
+                    "request_id": request_id,
+                },
+            )
         if request.endpoint in ("stack_landing", "tests_dashboard"):
             response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
             response.headers["Pragma"] = "no-cache"

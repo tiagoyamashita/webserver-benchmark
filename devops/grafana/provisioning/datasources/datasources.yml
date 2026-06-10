@@ -38,17 +38,17 @@ datasources:
       postgresVersion: 1600
       timescaledb: false
 
-  # --- Uncomment when ELK is running from the *same* root compose project (or elk/ compose) ---
-  # - name: Elasticsearch
-  #   type: elasticsearch
-  #   uid: elasticsearch
-  #   access: proxy
-  #   url: http://elasticsearch:9200
-  #   database: "[logstash-]YYYY.MM.DD"
-  #   jsonData:
-  #     timeField: "@timestamp"
-  #     esVersion: "8.0.0"
-  #     logMessageField: message
-  #     logLevelField: fields.level
-  #   isDefault: false
-  #   editable: true
+  # Requires docker-compose.observability.yml (ELK + Filebeat) on network exercises.
+  - name: Elasticsearch
+    type: elasticsearch
+    uid: elasticsearch
+    access: proxy
+    url: http://elasticsearch:9200
+    database: "[logstash-]YYYY.MM.DD"
+    jsonData:
+      timeField: "@timestamp"
+      esVersion: "8.0.0"
+      logMessageField: message
+      logLevelField: level
+    isDefault: false
+    editable: true

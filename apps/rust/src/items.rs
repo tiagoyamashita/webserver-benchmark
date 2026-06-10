@@ -30,8 +30,8 @@ pub struct CreateItemResponse {
 }
 
 /// `GET /api/items` — lists rows from Postgres `items` (Flyway schema + seed from Java).
-pub async fn list_items(pool: PgPool) -> impl IntoResponse {
-    match crate::db::list_items(&pool).await {
+pub async fn list_items(pool: PgPool, request_id: Option<&str>) -> impl IntoResponse {
+    match crate::db::list_items(&pool, request_id).await {
         Ok(rows) => (
             StatusCode::OK,
             Json(
@@ -54,7 +54,7 @@ pub async fn list_items(pool: PgPool) -> impl IntoResponse {
 }
 
 /// `POST /api/items?name=...` — inserts into Postgres `items` (Flyway schema from Java).
-pub async fn create_item(pool: PgPool, query: CreateItemQuery) -> impl IntoResponse {
+pub async fn create_item(pool: PgPool, query: CreateItemQuery, request_id: Option<&str>) -> impl IntoResponse {
     let name = query.name.trim().to_string();
     if name.is_empty() {
         return (
@@ -70,7 +70,7 @@ pub async fn create_item(pool: PgPool, query: CreateItemQuery) -> impl IntoRespo
             .into_response();
     }
 
-    match crate::db::insert_item(&pool, &name).await {
+    match crate::db::insert_item(&pool, &name, request_id).await {
         Ok(row) => (
             StatusCode::CREATED,
             Json(CreateItemResponse {

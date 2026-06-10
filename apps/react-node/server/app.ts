@@ -8,6 +8,7 @@ import {
   writeLog,
 } from "./observability-logging.js";
 import { probeById } from "./probe.js";
+import { requestIdMiddleware } from "./request-id.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -34,6 +35,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
   const { isProduction = process.env.NODE_ENV === "production", fetchImpl } = options;
   const app = express();
   app.use(express.json());
+  app.use(requestIdMiddleware);
 
   if (observabilityEnabled()) {
     app.use((req: Request, res: Response, next: NextFunction) => {
@@ -44,6 +46,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
           path: req.originalUrl,
           status: res.statusCode,
           ms: Date.now() - start,
+          request_id: req.requestId,
         });
       });
       next();
@@ -73,9 +76,9 @@ export function createApp(options: CreateAppOptions = {}): Express {
     res.json(result);
   });
 
-  app.get("/api/items", async (_req: Request, res: Response) => {
+  app.get("/api/items", async (req: Request, res: Response) => {
     try {
-      const items = await fetchItems(fetchImpl);
+      const items = await fetchItems(fetchImpl, req.requestId);
       res.json(items);
     } catch (error) {
       res.status(502).json({
@@ -91,7 +94,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
       return;
     }
     try {
-      const item = await createItem(name, fetchImpl);
+      const item = await createItem(name, fetchImpl, req.requestId);
       res.status(201).json(item);
     } catch (error) {
       res.status(502).json({
