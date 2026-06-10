@@ -1,5 +1,11 @@
+use chrono::NaiveDateTime;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
+
+fn format_created_at(ts: NaiveDateTime) -> String {
+    // Schema uses TIMESTAMP (no tz); treat stored values as UTC for JSON (matches other apps).
+    ts.and_utc().to_rfc3339()
+}
 
 /// Same env vars as the Java `postgres` profile / root Compose `java` service.
 pub fn database_url_from_env() -> Option<String> {
@@ -51,7 +57,7 @@ pub async fn list_items(pool: &PgPool, request_id: Option<&str>) -> Result<Vec<I
     if let Some(id) = request_id {
         stamp_request_id(pool, id).await?;
     }
-    let rows: Vec<(i64, String, chrono::DateTime<chrono::Utc>)> = sqlx::query_as(
+    let rows: Vec<(i64, String, NaiveDateTime)> = sqlx::query_as(
         "SELECT id, name, created_at FROM items ORDER BY id",
     )
     .fetch_all(pool)
@@ -62,7 +68,7 @@ pub async fn list_items(pool: &PgPool, request_id: Option<&str>) -> Result<Vec<I
         .map(|(id, name, created_at)| ItemRow {
             id,
             name,
-            created_at: created_at.to_rfc3339(),
+            created_at: format_created_at(created_at),
         })
         .collect())
 }
@@ -75,7 +81,7 @@ pub async fn insert_item(
     if let Some(id) = request_id {
         stamp_request_id(pool, id).await?;
     }
-    let row: (i64, String, chrono::DateTime<chrono::Utc>) = sqlx::query_as(
+    let row: (i64, String, NaiveDateTime) = sqlx::query_as(
         "INSERT INTO items (name, created_at) VALUES ($1, NOW()) RETURNING id, name, created_at",
     )
     .bind(name)
@@ -85,6 +91,6 @@ pub async fn insert_item(
     Ok(InsertedItem {
         id: row.0,
         name: row.1,
-        created_at: row.2.to_rfc3339(),
+        created_at: format_created_at(row.2),
     })
 }

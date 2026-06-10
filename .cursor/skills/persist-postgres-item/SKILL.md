@@ -32,7 +32,7 @@ Set in `docker-compose.apps.yml` for python, rust, java (postgres profile), reac
 |-----|-----|----------|
 | **Python** | Dashboard → **Actions → Create item**, or API | `POST /api/items` JSON `{"name":"..."}` |
 | **Java** | Items API | `POST /api/items` |
-| **Rust** | Query param | `POST /api/items?name=...` |
+| **Rust** | Dashboard → **Actions → Create item**, or API | `POST /api/items?name=...` |
 | **React Node** | Dashboard → **Actions → Create item** (proxies Java) | `POST /api/items` |
 
 ## Python implementation (reference)
