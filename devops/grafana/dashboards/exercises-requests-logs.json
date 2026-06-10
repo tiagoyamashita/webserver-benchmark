@@ -385,7 +385,7 @@
                 "id": "links",
                 "value": [
                   {
-                    "title": "Correlate HTTP + SQL",
+                    "title": "Show HTTP request",
                     "url": "/d/exercises-requests-logs?var-correlation_id=${__value.raw}&from=${__url_time_range_from}&to=${__url_time_range_to}"
                   }
                 ]
@@ -554,8 +554,295 @@
         "y": 19
       },
       "id": 101,
-      "panels": [],
+      "panels": [
+        {
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "elasticsearch"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [
+                {
+                  "options": {
+                    "ERROR": {
+                      "color": "red",
+                      "index": 0,
+                      "text": "ERROR"
+                    },
+                    "FATAL": {
+                      "color": "red",
+                      "index": 1,
+                      "text": "FATAL"
+                    },
+                    "LOG": {
+                      "color": "#a8b5a8",
+                      "index": 2,
+                      "text": "OK"
+                    },
+                    "WARNING": {
+                      "color": "yellow",
+                      "index": 3,
+                      "text": "WARN"
+                    }
+                  },
+                  "type": "value"
+                }
+              ],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "text",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "op"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-text"
+                    }
+                  },
+                  {
+                    "id": "mappings",
+                    "value": [
+                      {
+                        "options": {
+                          "DELETE": {
+                            "color": "red",
+                            "index": 0
+                          },
+                          "INSERT": {
+                            "color": "green",
+                            "index": 1
+                          },
+                          "SELECT": {
+                            "color": "blue",
+                            "index": 2
+                          },
+                          "UPDATE": {
+                            "color": "yellow",
+                            "index": 3
+                          }
+                        },
+                        "type": "value"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "links",
+                    "value": [
+                      {
+                        "title": "Show HTTP request",
+                        "url": "/d/exercises-requests-logs?var-correlation_id=${__data.fields.request_id}&from=${__url_time_range_from}&to=${__url_time_range_to}"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "outcome"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-text"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "/^(origin|message|request_id)$/"
+                },
+                "properties": [
+                  {
+                    "id": "links",
+                    "value": [
+                      {
+                        "title": "Show HTTP request",
+                        "url": "/d/exercises-requests-logs?var-correlation_id=${__data.fields.request_id}&from=${__url_time_range_from}&to=${__url_time_range_to}"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 10,
+            "w": 24,
+            "x": 0,
+            "y": 20
+          },
+          "id": 4,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true,
+            "sortBy": [
+              {
+                "desc": true,
+                "displayName": "@timestamp"
+              }
+            ]
+          },
+          "pluginVersion": "11.5.2",
+          "targets": [
+            {
+              "bucketAggs": [],
+              "datasource": {
+                "type": "elasticsearch",
+                "uid": "elasticsearch"
+              },
+              "metrics": [
+                {
+                  "id": "1",
+                  "settings": {
+                    "limit": "200",
+                    "orderBy": "Desc",
+                    "orderByTime": "true"
+                  },
+                  "type": "logs"
+                }
+              ],
+              "query": "service:\"exercises-postgres\" AND application_name.keyword:*exercises-* AND (ps:SELECT OR ps:INSERT OR ps:UPDATE OR ps:DELETE OR message:*statement*) AND NOT message:*SELECT 1*",
+              "refId": "A",
+              "timeField": "@timestamp"
+            }
+          ],
+          "title": "Recent SQL operations",
+          "transformations": [
+            {
+              "id": "extractFields",
+              "options": {
+                "format": "regexp",
+                "regexp": "^(?<origin>exercises-[^;]+);req=(?<request_id>.+)$",
+                "source": "application_name"
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "_id": true,
+                  "_index": true,
+                  "_source": true,
+                  "_type": true,
+                  "agent": true,
+                  "application_name": true,
+                  "ecs": true,
+                  "highlight": true,
+                  "host": true,
+                  "input": true,
+                  "log": true,
+                  "service": true,
+                  "sort": true,
+                  "tags": true
+                },
+                "indexByName": {
+                  "@timestamp": 0,
+                  "origin": 1,
+                  "request_id": 2,
+                  "ps": 3,
+                  "message": 4,
+                  "error_severity": 5
+                },
+                "renameByName": {
+                  "error_severity": "outcome",
+                  "ps": "op"
+                }
+              }
+            }
+          ],
+          "type": "table"
+        },
+        {
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "elasticsearch"
+          },
+          "gridPos": {
+            "h": 10,
+            "w": 24,
+            "x": 0,
+            "y": 30
+          },
+          "id": 5,
+          "options": {
+            "dedupStrategy": "none",
+            "enableLogDetails": true,
+            "prettifyLogMessage": true,
+            "showCommonLabels": false,
+            "showLabels": true,
+            "showTime": true,
+            "sortOrder": "Descending",
+            "wrapLogMessage": true
+          },
+          "targets": [
+            {
+              "bucketAggs": [],
+              "datasource": {
+                "type": "elasticsearch",
+                "uid": "elasticsearch"
+              },
+              "metrics": [
+                {
+                  "id": "1",
+                  "settings": {
+                    "limit": "500",
+                    "orderBy": "Desc",
+                    "orderByTime": "true"
+                  },
+                  "type": "logs"
+                }
+              ],
+              "query": "service:\"exercises-postgres\" AND NOT (message:*Skipping* OR message:*redirecting* OR message:*Future* OR message:*ending*log*output* OR message:*stderr* OR message:*received*fast*shutdown* OR message:*aborting*active*transactions* OR message:*database*system*shut*down* OR message:*shutting*down* OR message:*starting*PostgreSQL*)",
+              "refId": "A",
+              "timeField": "@timestamp"
+            }
+          ],
+          "title": "Postgres log stream",
+          "type": "logs"
+        }
+      ],
       "title": "PostgreSQL SQL",
+      "type": "row"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 20
+      },
+      "id": 102,
+      "panels": [],
+      "title": "SQL → HTTP",
       "type": "row"
     },
     {
@@ -609,6 +896,55 @@
           {
             "matcher": {
               "id": "byName",
+              "options": "op"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "DELETE": {
+                        "color": "red",
+                        "index": 0
+                      },
+                      "INSERT": {
+                        "color": "green",
+                        "index": 1
+                      },
+                      "SELECT": {
+                        "color": "blue",
+                        "index": 2
+                      },
+                      "UPDATE": {
+                        "color": "yellow",
+                        "index": 3
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Show HTTP request",
+                    "url": "/d/exercises-requests-logs?var-correlation_id=${__data.fields.request_id}&from=${__url_time_range_from}&to=${__url_time_range_to}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
               "options": "outcome"
             },
             "properties": [
@@ -622,27 +958,31 @@
           },
           {
             "matcher": {
-              "id": "byName",
-              "options": "error_severity"
+              "id": "byRegexp",
+              "options": "/^(origin|message|request_id)$/"
             },
             "properties": [
               {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-text"
-                }
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Show HTTP request",
+                    "url": "/d/exercises-requests-logs?var-correlation_id=${__data.fields.request_id}&from=${__url_time_range_from}&to=${__url_time_range_to}"
+                  }
+                ]
               }
             ]
           }
         ]
       },
+      "description": "Latest Postgres CRUD lines stamped with `exercises-<app>;req=<Request ID>`. Click any row to load the originating HTTP request below.",
       "gridPos": {
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 20
+        "y": 21
       },
-      "id": 4,
+      "id": 7,
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -673,20 +1013,28 @@
             {
               "id": "1",
               "settings": {
-                "limit": "200",
+                "limit": "300",
                 "orderBy": "Desc",
                 "orderByTime": "true"
               },
               "type": "logs"
             }
           ],
-          "query": "service:\"exercises-postgres\" AND (message:*statement* OR message:*duration* OR error_severity:ERROR OR error_severity:FATAL)",
+          "query": "service:\"exercises-postgres\" AND application_name.keyword:*exercises-* AND (ps:SELECT OR ps:INSERT OR ps:UPDATE OR ps:DELETE OR message:*statement*) AND NOT message:*SELECT 1*",
           "refId": "A",
           "timeField": "@timestamp"
         }
       ],
-      "title": "SQL statements & outcomes",
+      "title": "Recent SQL operations",
       "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "format": "regexp",
+            "regexp": "^(?<origin>exercises-[^;]+);req=(?<request_id>.+)$",
+            "source": "application_name"
+          }
+        },
         {
           "id": "organize",
           "options": {
@@ -696,6 +1044,7 @@
               "_source": true,
               "_type": true,
               "agent": true,
+              "application_name": true,
               "ecs": true,
               "highlight": true,
               "host": true,
@@ -707,16 +1056,15 @@
             },
             "indexByName": {
               "@timestamp": 0,
-              "application_name": 1,
-              "error_severity": 2,
-              "message": 3,
-              "duration_ms": 4,
-              "dbname": 5,
-              "user": 6
+              "origin": 1,
+              "request_id": 2,
+              "ps": 3,
+              "message": 4,
+              "error_severity": 5
             },
             "renameByName": {
               "error_severity": "outcome",
-              "application_name": "request_id (from app)"
+              "ps": "op"
             }
           }
         }
@@ -728,95 +1076,12 @@
         "type": "elasticsearch",
         "uid": "elasticsearch"
       },
-      "gridPos": {
-        "h": 10,
-        "w": 24,
-        "x": 0,
-        "y": 30
-      },
-      "id": 5,
-      "options": {
-        "dedupStrategy": "none",
-        "enableLogDetails": true,
-        "prettifyLogMessage": true,
-        "showCommonLabels": false,
-        "showLabels": true,
-        "showTime": true,
-        "sortOrder": "Descending",
-        "wrapLogMessage": true
-      },
-      "targets": [
-        {
-          "bucketAggs": [],
-          "datasource": {
-            "type": "elasticsearch",
-            "uid": "elasticsearch"
-          },
-          "metrics": [
-            {
-              "id": "1",
-              "settings": {
-                "limit": "500",
-                "orderBy": "Desc",
-                "orderByTime": "true"
-              },
-              "type": "logs"
-            }
-          ],
-          "query": "service:\"exercises-postgres\" AND NOT (message:*Skipping* OR message:*redirecting* OR message:*Future* OR message:*ending*log*output* OR message:*stderr* OR message:*received*fast*shutdown* OR message:*aborting*active*transactions* OR message:*database*system*shut*down* OR message:*shutting*down* OR message:*starting*PostgreSQL*)",
-          "refId": "A",
-          "timeField": "@timestamp"
-        }
-      ],
-      "title": "Postgres log stream",
-      "type": "logs"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 40
-      },
-      "id": 102,
-      "panels": [],
-      "title": "Correlate HTTP + SQL",
-      "type": "row"
-    },
-    {
-      "gridPos": {
-        "h": 3,
-        "w": 24,
-        "x": 0,
-        "y": 41
-      },
-      "id": 103,
-      "options": {
-        "code": {
-          "language": "html",
-          "showLineNumbers": false,
-          "showMiniMap": false
-        },
-        "content": "<div style=\"display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:4px 8px;\"><label for=\"correlation-id-input\" style=\"font-size:14px;font-weight:500;color:#ccccdc;white-space:nowrap;\">Request ID</label><input id=\"correlation-id-input\" type=\"text\" value=\"${correlation_id}\" autocomplete=\"off\" spellcheck=\"false\" placeholder=\"Paste X-Request-ID\" style=\"flex:1;min-width:240px;max-width:480px;padding:6px 10px;border:1px solid #464646;border-radius:2px;background:#111217;color:#ccccdc;font-size:13px;\" /><button type=\"button\" onclick=\"window.top.location.href='/d/exercises-requests-logs?var-correlation_id='+encodeURIComponent(document.getElementById('correlation-id-input').value)+'&from=${__from}&to=${__to}'\" style=\"padding:6px 12px;border:1px solid #464646;border-radius:2px;background:#2b2b2f;color:#ccccdc;font-size:13px;cursor:pointer;\">Apply</button></div><p style=\"margin:4px 8px 0;font-size:12px;color:#8e8e8e;\">X-Request-ID from app HTTP logs. Click a <strong>request_id</strong> in <strong>Recent HTTP requests</strong> to fill this automatically.</p>",
-        "mode": "html"
-      },
-      "pluginVersion": "11.5.2",
-      "title": "",
-      "transparent": true,
-      "type": "text"
-    },
-    {
-      "datasource": {
-        "type": "elasticsearch",
-        "uid": "elasticsearch"
-      },
-      "description": "HTTP access and controller logs for the Request ID above.",
+      "description": "Originating HTTP request for the SQL row you clicked. Empty until you pick a row above.",
       "gridPos": {
         "h": 8,
-        "w": 12,
+        "w": 24,
         "x": 0,
-        "y": 44
+        "y": 31
       },
       "id": 6,
       "options": {
@@ -856,118 +1121,8 @@
           "timeField": "@timestamp"
         }
       ],
-      "title": "HTTP logs for Request ID",
+      "title": "HTTP request for selected SQL",
       "type": "logs"
-    },
-    {
-      "datasource": {
-        "type": "elasticsearch",
-        "uid": "elasticsearch"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [
-            {
-              "options": {
-                "ERROR": {
-                  "color": "red",
-                  "index": 0,
-                  "text": "ERROR"
-                },
-                "FATAL": {
-                  "color": "red",
-                  "index": 1,
-                  "text": "FATAL"
-                },
-                "LOG": {
-                  "color": "#a8b5a8",
-                  "index": 2,
-                  "text": "OK"
-                },
-                "WARNING": {
-                  "color": "yellow",
-                  "index": 3,
-                  "text": "WARN"
-                }
-              },
-              "type": "value"
-            }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "text",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "error_severity"
-            },
-            "properties": [
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-text"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "description": "Matches Postgres `application_name` values stamped as `service;req=<Request ID>` by the apps.",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 44
-      },
-      "id": 7,
-      "options": {
-        "cellHeight": "sm",
-        "footer": {
-          "countRows": false,
-          "fields": "",
-          "reducer": [
-            "sum"
-          ],
-          "show": false
-        },
-        "showHeader": true
-      },
-      "targets": [
-        {
-          "bucketAggs": [],
-          "datasource": {
-            "type": "elasticsearch",
-            "uid": "elasticsearch"
-          },
-          "metrics": [
-            {
-              "id": "1",
-              "settings": {
-                "limit": "100",
-                "orderBy": "Desc",
-                "orderByTime": "true"
-              },
-              "type": "logs"
-            }
-          ],
-          "query": "service:\"exercises-postgres\" AND application_name:*req=$correlation_id*",
-          "refId": "A",
-          "timeField": "@timestamp"
-        }
-      ],
-      "title": "Postgres SQL for Request ID",
-      "type": "table"
     }
   ],
   "refresh": "30s",
@@ -987,7 +1142,7 @@
           "text": "",
           "value": ""
         },
-        "description": "X-Request-ID from app HTTP logs (set in Correlate HTTP + SQL section or via request_id links).",
+        "description": "Set when you click a SQL row (or request_id link). Drives the HTTP panel below.",
         "hide": 2,
         "label": "Request ID",
         "name": "correlation_id",
@@ -1012,5 +1167,5 @@
   "timezone": "browser",
   "title": "Exercises HTTP requests & SQL logs",
   "uid": "exercises-requests-logs",
-  "version": 34
+  "version": 38
 }
