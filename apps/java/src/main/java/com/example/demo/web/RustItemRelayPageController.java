@@ -28,13 +28,16 @@ public class RustItemRelayPageController {
   /** HTML form submit from the home page (redirects back with a flash message). */
   @PostMapping(value = "/add-via-rust", consumes = "application/x-www-form-urlencoded")
   public String addViaRustForm(@RequestParam("name") String name, RedirectAttributes redirect) {
+    String requestId = RequestIdContext.get();
+    String idForLog = requestId != null ? requestId : "";
     log.info(
-        "RustItemRelayPageController.addViaRustForm request received",
+        "RustItemRelayPageController.addViaRustForm request received request_id={}",
+        idForLog,
         kv("source", SOURCE),
         kv("controller", "RustItemRelayPageController"),
         kv("method", "POST"),
         kv("path", "/dashboard/items/add-via-rust"),
-        kv("request_id", RequestIdContext.get()),
+        kv("request_id", requestId),
         kv("name", name),
         kv("ui_event", "dashboard.ui"),
         kv("action", "add-item-via-rust"),
@@ -42,19 +45,21 @@ public class RustItemRelayPageController {
     var result = rustItemRelayService.addItemViaRust(name);
     if (Boolean.TRUE.equals(result.get("ok"))) {
       log.info(
-          "RustItemRelayPageController.addViaRustForm succeeded",
+          "RustItemRelayPageController.addViaRustForm succeeded request_id={}",
+          idForLog,
           kv("source", SOURCE),
           kv("controller", "RustItemRelayPageController"),
-          kv("request_id", RequestIdContext.get()),
+          kv("request_id", requestId),
           kv("name", name.trim()));
       redirect.addFlashAttribute("itemAddMessage", "Added via Rust: " + name.trim());
     } else {
       Object err = result.get("error");
       log.warn(
-          "RustItemRelayPageController.addViaRustForm failed",
+          "RustItemRelayPageController.addViaRustForm failed request_id={}",
+          idForLog,
           kv("source", SOURCE),
           kv("controller", "RustItemRelayPageController"),
-          kv("request_id", RequestIdContext.get()),
+          kv("request_id", requestId),
           kv("name", name),
           kv("error", err));
       redirect.addFlashAttribute(

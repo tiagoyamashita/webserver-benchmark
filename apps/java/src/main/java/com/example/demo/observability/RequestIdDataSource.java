@@ -27,10 +27,9 @@ public class RequestIdDataSource extends DelegatingDataSource {
 
   private static Connection stamp(Connection connection) throws SQLException {
     String requestId = RequestIdContext.get();
-    if (requestId == null) {
-      return connection;
-    }
-    String appName = postgresApplicationName(SERVICE, requestId);
+    // Always reset application_name so pooled connections never keep a previous request's ;req=…
+    String appName =
+        requestId != null ? postgresApplicationName(SERVICE, requestId) : SERVICE;
     try (Statement statement = connection.createStatement()) {
       statement.executeUpdate("SET application_name TO '" + escape(appName) + "'");
     }

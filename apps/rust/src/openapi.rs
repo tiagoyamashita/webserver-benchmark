@@ -16,7 +16,8 @@ pub struct ApiError {
     path = "/api/items",
     tag = "Items",
     params(
-        ("X-Request-ID" = Option<String>, Header, description = "Correlation id for logs and Postgres trace; generated if omitted; echoed in response")
+        ("X-Request-ID" = Option<String>, Header, description = "Correlation id for logs and Postgres trace; generated if omitted; echoed in response"),
+        ("X-Request-Origin" = Option<String>, Header, description = "Upstream service when relayed (e.g. exercises-java); logged as request_origin for tracing")
     ),
     responses(
         (status = 200, description = "All items", body = [ItemResponse]),
@@ -34,7 +35,8 @@ fn items_list() {}
     tag = "Items",
     params(
         ("name" = String, Query, description = "Item name"),
-        ("X-Request-ID" = Option<String>, Header, description = "Correlation id for logs and Postgres trace; generated if omitted; echoed in response")
+        ("X-Request-ID" = Option<String>, Header, description = "Correlation id for logs and Postgres trace; generated if omitted; echoed in response"),
+        ("X-Request-Origin" = Option<String>, Header, description = "Upstream service when relayed (e.g. exercises-java); logged as request_origin for tracing")
     ),
     responses(
         (status = 201, description = "Created", body = CreateItemResponse),

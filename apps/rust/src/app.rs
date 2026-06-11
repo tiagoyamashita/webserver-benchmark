@@ -75,19 +75,35 @@ async fn record_http_request_metrics(req: Request, next: Next) -> Response {
         .get::<crate::request_id::RequestId>()
         .map(|id| id.0.clone())
         .unwrap_or_default();
+    let request_origin = req
+        .extensions()
+        .get::<crate::request_id::RequestOrigin>()
+        .and_then(|origin| origin.0.clone())
+        .unwrap_or_default();
+    let request_id_source = req
+        .extensions()
+        .get::<crate::request_id::RequestIdSource>()
+        .copied()
+        .unwrap_or(crate::request_id::RequestIdSource::Generated);
     let res = next.run(req).await;
     let status = res.status().as_u16();
     let ms = start.elapsed().as_millis();
     HTTP_REQUESTS
         .with_label_values(&[method.as_str(), endpoint])
         .inc();
+    let id_source = match request_id_source {
+        crate::request_id::RequestIdSource::ReceivedHeader => "header",
+        crate::request_id::RequestIdSource::Generated => "generated",
+    };
     tracing::info!(
         method = %method,
         path = %path,
         status = status,
         ms = %ms,
         request_id = %request_id,
-        "{method} {path} {status}"
+        request_id_source = id_source,
+        request_origin = %request_origin,
+        "{method} {path} {status} request_id={request_id}"
     );
     res
 }
@@ -208,6 +224,8 @@ async fn list_items(
 async fn create_item(
     State(state): State<AppState>,
     Extension(request_id): Extension<crate::request_id::RequestId>,
+    Extension(request_id_source): Extension<crate::request_id::RequestIdSource>,
+    Extension(request_origin): Extension<crate::request_id::RequestOrigin>,
     Query(query): Query<crate::items::CreateItemQuery>,
 ) -> impl IntoResponse {
     let Some(pool) = state.pg_pool.clone() else {
@@ -230,9 +248,15 @@ async fn create_item(
         )
             .into_response();
     };
-    crate::items::create_item(pool, query, Some(&request_id.0))
-        .await
-        .into_response()
+    crate::items::create_item(
+        pool,
+        query,
+        Some(&request_id.0),
+        request_origin.0.as_deref(),
+        request_id_source,
+    )
+    .await
+    .into_response()
 }
 
 async fn welcome_redirect(

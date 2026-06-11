@@ -44,8 +44,14 @@ pub struct ItemRow {
     pub created_at: String,
 }
 
-pub async fn stamp_request_id(conn: &mut sqlx::PgConnection, request_id: &str) -> Result<(), sqlx::Error> {
-    let app_name = crate::request_id::postgres_application_name("exercises-rust", request_id);
+pub async fn stamp_application_name(
+    conn: &mut sqlx::PgConnection,
+    request_id: Option<&str>,
+) -> Result<(), sqlx::Error> {
+    let app_name = match request_id {
+        Some(id) => crate::request_id::postgres_application_name("exercises-rust", id),
+        None => "exercises-rust".to_string(),
+    };
     sqlx::query("SELECT set_config('application_name', $1, false)")
         .bind(app_name)
         .execute(conn)
@@ -55,9 +61,7 @@ pub async fn stamp_request_id(conn: &mut sqlx::PgConnection, request_id: &str) -
 
 pub async fn list_items(pool: &PgPool, request_id: Option<&str>) -> Result<Vec<ItemRow>, sqlx::Error> {
     let mut conn = pool.acquire().await?;
-    if let Some(id) = request_id {
-        stamp_request_id(&mut conn, id).await?;
-    }
+    stamp_application_name(&mut conn, request_id).await?;
     let rows: Vec<(i64, String, NaiveDateTime)> = sqlx::query_as(
         "SELECT id, name, created_at FROM items ORDER BY id",
     )
@@ -80,9 +84,7 @@ pub async fn insert_item(
     request_id: Option<&str>,
 ) -> Result<InsertedItem, sqlx::Error> {
     let mut conn = pool.acquire().await?;
-    if let Some(id) = request_id {
-        stamp_request_id(&mut conn, id).await?;
-    }
+    stamp_application_name(&mut conn, request_id).await?;
     let row: (i64, String, NaiveDateTime) = sqlx::query_as(
         "INSERT INTO items (name, created_at) VALUES ($1, NOW()) RETURNING id, name, created_at",
     )

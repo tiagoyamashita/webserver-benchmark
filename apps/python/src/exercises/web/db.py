@@ -40,14 +40,17 @@ def connection(request_id: str | None = None) -> Iterator["psycopg.Connection"]:
             "(podman compose build python)"
         ) from exc
     with psycopg.connect(url) as conn:
-        if request_id:
-            from exercises.web.request_id import postgres_application_name
+        from exercises.web.request_id import postgres_application_name
 
-            app_name = postgres_application_name("exercises-python", request_id)
-            # SET does not accept $1 placeholders; set_config does (same as Rust sqlx).
-            with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT set_config('application_name', %s, false)",
-                    (app_name,),
-                )
+        app_name = (
+            postgres_application_name("exercises-python", request_id)
+            if request_id
+            else "exercises-python"
+        )
+        # SET does not accept $1 placeholders; set_config does (same as Rust sqlx).
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT set_config('application_name', %s, false)",
+                (app_name,),
+            )
         yield conn

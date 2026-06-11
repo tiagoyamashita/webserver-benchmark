@@ -7,8 +7,19 @@ use axum::response::Response;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+pub const ORIGIN_HEADER: &str = "x-request-origin";
+
 #[derive(Clone, Debug)]
 pub struct RequestId(pub String);
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RequestIdSource {
+    ReceivedHeader,
+    Generated,
+}
+
+#[derive(Clone, Debug)]
+pub struct RequestOrigin(pub Option<String>);
 
 pub fn postgres_application_name(service: &str, request_id: &str) -> String {
     let value = format!("{service};req={request_id}");
@@ -19,20 +30,38 @@ pub fn postgres_application_name(service: &str, request_id: &str) -> String {
     }
 }
 
-pub fn resolve_request_id(header: Option<&HeaderValue>) -> RequestId {
+pub fn resolve_request_id(header: Option<&HeaderValue>) -> (RequestId, RequestIdSource) {
     if let Some(value) = header {
         if let Ok(text) = value.to_str() {
             let trimmed = text.trim();
-            if (8..=64).contains(&trimmed.len())
-                && trimmed
-                    .chars()
-                    .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
-            {
-                return RequestId(trimmed.to_string());
+            if is_safe_token(trimmed) {
+                return (RequestId(trimmed.to_string()), RequestIdSource::ReceivedHeader);
             }
         }
     }
-    RequestId(generate_request_id())
+    (
+        RequestId(generate_request_id()),
+        RequestIdSource::Generated,
+    )
+}
+
+pub fn resolve_request_origin(header: Option<&HeaderValue>) -> RequestOrigin {
+    let origin = header.and_then(|value| value.to_str().ok()).and_then(|text| {
+        let trimmed = text.trim();
+        if trimmed.starts_with("exercises-") && is_safe_token(trimmed) {
+            Some(trimmed.to_string())
+        } else {
+            None
+        }
+    });
+    RequestOrigin(origin)
+}
+
+fn is_safe_token(value: &str) -> bool {
+    (8..=64).contains(&value.len())
+        && value
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
 }
 
 fn generate_request_id() -> String {
@@ -46,9 +75,12 @@ fn generate_request_id() -> String {
 }
 
 pub async fn assign_request_id(mut req: Request, next: Next) -> Response {
-    let request_id = resolve_request_id(req.headers().get("x-request-id"));
+    let (request_id, source) = resolve_request_id(req.headers().get("x-request-id"));
+    let origin = resolve_request_origin(req.headers().get(ORIGIN_HEADER));
     let id = request_id.0.clone();
     req.extensions_mut().insert(request_id);
+    req.extensions_mut().insert(source);
+    req.extensions_mut().insert(origin);
     let mut res = next.run(req).await;
     if let Ok(value) = HeaderValue::from_str(&id) {
         res.headers_mut().insert("x-request-id", value);

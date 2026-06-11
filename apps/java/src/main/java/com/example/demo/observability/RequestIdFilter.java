@@ -18,20 +18,28 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class RequestIdFilter extends OncePerRequestFilter {
 
   private static final String HEADER = "X-Request-ID";
+  private static final String PAGE_HEADER = "X-Dashboard-Page";
   private static final Pattern SAFE =
       Pattern.compile("^[a-zA-Z0-9._-]{8,64}$");
+  private static final Pattern PAGE_SAFE =
+      Pattern.compile("^[a-zA-Z0-9._-]{1,64}$");
 
   @Override
   protected void doFilterInternal(
       HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
       throws ServletException, IOException {
     String requestId = resolveRequestId(request);
+    String dashboardPage = resolveDashboardPage(request);
     RequestIdContext.set(requestId);
+    if (dashboardPage != null) {
+      DashboardPageContext.set(dashboardPage);
+    }
     response.setHeader(HEADER, requestId);
     try {
       filterChain.doFilter(request, response);
     } finally {
       RequestIdContext.clear();
+      DashboardPageContext.clear();
     }
   }
 
@@ -44,5 +52,16 @@ public class RequestIdFilter extends OncePerRequestFilter {
       }
     }
     return UUID.randomUUID().toString();
+  }
+
+  static String resolveDashboardPage(HttpServletRequest request) {
+    String incoming = request.getHeader(PAGE_HEADER);
+    if (incoming != null) {
+      String trimmed = incoming.trim();
+      if (PAGE_SAFE.matcher(trimmed).matches()) {
+        return trimmed;
+      }
+    }
+    return null;
   }
 }

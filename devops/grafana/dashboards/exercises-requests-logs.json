@@ -18,14 +18,328 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "links": [],
+  "links": [
+    {
+      "icon": "times",
+      "targetBlank": false,
+      "title": "Clear selection",
+      "type": "link",
+      "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id="
+    }
+  ],
   "panels": [
     {
       "datasource": {
         "type": "elasticsearch",
         "uid": "elasticsearch"
       },
-      "description": "HTTP access/controller lines and Postgres SQL execute logs. Probe traffic (health, metrics, GET /) is hidden.",
+      "description": "Recent HTTP and Postgres activity. Click a row to load matching logs in the panel below.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "links": [
+            {
+              "title": "Show correlated logs below",
+              "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__data.fields.correlate_id}",
+              "oneClick": true,
+              "targetBlank": false
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "path"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "path_rust"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "sql"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "DELETE": {
+                        "color": "red",
+                        "index": 0
+                      },
+                      "INSERT": {
+                        "color": "green",
+                        "index": 1
+                      },
+                      "SELECT": {
+                        "color": "blue",
+                        "index": 2
+                      },
+                      "UPDATE": {
+                        "color": "yellow",
+                        "index": 3
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "message"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 480
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "status"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "status_rust"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "correlate_id"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 280
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Show correlated logs below",
+                    "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__value.raw}",
+                    "oneClick": true,
+                    "targetBlank": false
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 14,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "@timestamp"
+          }
+        ]
+      },
+      "pluginVersion": "11.5.2",
+      "targets": [
+        {
+          "bucketAggs": [],
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "elasticsearch"
+          },
+          "metrics": [
+            {
+              "id": "1",
+              "settings": {
+                "size": "300"
+              },
+              "type": "raw_data"
+            }
+          ],
+          "query": "((service:\"exercises-java\" OR service:\"exercises-rust\" OR service:\"exercises-python\" OR service:\"exercises-react-node\") AND (_exists_:path OR _exists_:fields.path OR _exists_:controller OR _exists_:request_id OR _exists_:fields.request_id OR _exists_:status OR _exists_:fields.status) AND NOT (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\" OR fields.path:\"/health\" OR fields.path:\"/api/health\" OR fields.path:\"/metrics\" OR fields.path:\"/actuator/prometheus\" OR fields.path:\"/api/observability/health\" OR controller:health OR fields.controller:health OR ((path:\"/\" OR fields.path:\"/\") AND (method:GET OR fields.method:GET)))) OR (service:\"exercises-postgres\" AND (message:*execute* OR message:statement*) AND NOT message:duration* AND NOT message:*set_config* AND NOT message:*SELECT 1* AND NOT message:*connection* AND NOT message:*disconnection*)",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ],
+      "title": "Request & SQL logs",
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "format": "regexp",
+            "regexp": "^(?<origin>exercises-[^;]+);req=(?<request_id_pg>.+)$",
+            "source": "application_name"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "correlate_id",
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [
+                "request_id",
+                "fields.request_id",
+                "request_id_pg"
+              ],
+              "reducer": "firstNotNull"
+            },
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "_id": true,
+              "_index": true,
+              "_source": true,
+              "_type": true,
+              "agent": true,
+              "backend_type": true,
+              "dbname": true,
+              "ecs": true,
+              "error_severity": true,
+              "event": true,
+              "highlight": true,
+              "host": true,
+              "input": true,
+              "level": true,
+              "line_num": true,
+              "log": true,
+              "logger_name": true,
+              "pid": true,
+              "query_id": true,
+              "remote_host": true,
+              "remote_port": true,
+              "session_start": true,
+              "sort": true,
+              "springAppName": true,
+              "tags": true,
+              "txid": true,
+              "user": true,
+              "vxid": true
+            },
+            "indexByName": {
+              "@timestamp": 0,
+              "service": 1,
+              "path": 2,
+              "message": 3,
+              "fields.path": 4,
+              "method": 5,
+              "fields.method": 6,
+              "status": 7,
+              "fields.status": 8,
+              "ps": 9,
+              "session_id": 10,
+              "correlate_id": 11,
+              "request_id": 12,
+              "fields.request_id": 13,
+              "request_id_pg": 14,
+              "origin": 15,
+              "application_name": 16,
+              "controller": 17,
+              "detail": 18,
+              "ms": 19
+            },
+            "renameByName": {
+              "fields.method": "method_rust",
+              "fields.path": "path_rust",
+              "fields.request_id": "request_id_rust",
+              "fields.status": "status_rust",
+              "ps": "sql"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "elasticsearch"
+      },
+      "description": "HTTP handler/access lines and Postgres SQL for the request ID selected in the table above. Same columns and @timestamp sort as the table above.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -156,12 +470,12 @@
         ]
       },
       "gridPos": {
-        "h": 24,
+        "h": 10,
         "w": 24,
         "x": 0,
-        "y": 0
+        "y": 14
       },
-      "id": 1,
+      "id": 2,
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -192,17 +506,18 @@
             {
               "id": "1",
               "settings": {
-                "size": "300"
+                "size": "100"
               },
               "type": "raw_data"
             }
           ],
-          "query": "((service:\"exercises-java\" OR service:\"exercises-rust\" OR service:\"exercises-python\" OR service:\"exercises-react-node\") AND (_exists_:path OR _exists_:fields.path OR _exists_:controller OR _exists_:request_id OR _exists_:fields.request_id OR _exists_:status OR _exists_:fields.status) AND NOT (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\" OR fields.path:\"/health\" OR fields.path:\"/api/health\" OR fields.path:\"/metrics\" OR fields.path:\"/actuator/prometheus\" OR fields.path:\"/api/observability/health\" OR controller:health OR fields.controller:health OR ((path:\"/\" OR fields.path:\"/\") AND (method:GET OR fields.method:GET)))) OR (service:\"exercises-postgres\" AND (message:*execute* OR message:statement*) AND NOT message:duration* AND NOT message:*set_config* AND NOT message:*SELECT 1* AND NOT message:*connection* AND NOT message:*disconnection*)",
+          "query": "((service:\"exercises-java\" OR service:\"exercises-rust\" OR service:\"exercises-python\" OR service:\"exercises-react-node\") AND (request_id:\"$correlation_id\" OR fields.request_id:\"$correlation_id\") AND NOT (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\" OR fields.path:\"/health\" OR fields.path:\"/api/health\" OR fields.path:\"/metrics\" OR fields.path:\"/actuator/prometheus\" OR fields.path:\"/api/observability/health\" OR controller:health OR fields.controller:health OR ((path:\"/\" OR fields.path:\"/\") AND (method:GET OR fields.method:GET)))) OR (service:\"exercises-postgres\" AND (message:*execute* OR message:statement*) AND NOT message:duration* AND NOT message:*set_config* AND NOT message:*disconnection* AND NOT message:*connection* AND (request_id:\"$correlation_id\" OR application_name.keyword:exercises-java;req=$correlation_id OR application_name.keyword:exercises-rust;req=$correlation_id OR application_name.keyword:exercises-python;req=$correlation_id OR application_name.keyword:exercises-react-node;req=$correlation_id))",
           "refId": "A",
           "timeField": "@timestamp"
         }
       ],
-      "title": "Request & SQL logs",
+      "description": "Filtered by Selected request ID above. Paste the request_id from the dashboard after Add via Rust, or click a row in the top table. Use Clear selection if this panel shows too many rows.",
+      "title": "Correlated logs — ${correlation_id}",
       "transformations": [
         {
           "id": "extractFields",
@@ -210,6 +525,22 @@
             "format": "regexp",
             "regexp": "^(?<origin>exercises-[^;]+);req=(?<request_id_pg>.+)$",
             "source": "application_name"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "correlate_id",
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [
+                "request_id",
+                "fields.request_id",
+                "request_id_pg"
+              ],
+              "reducer": "firstNotNull"
+            },
+            "replaceFields": false
           }
         },
         {
@@ -249,22 +580,23 @@
               "@timestamp": 0,
               "service": 1,
               "path": 2,
-              "fields.path": 3,
-              "method": 4,
-              "fields.method": 5,
-              "status": 6,
-              "fields.status": 7,
-              "ps": 8,
-              "session_id": 9,
-              "request_id": 10,
-              "fields.request_id": 11,
-              "request_id_pg": 12,
-              "origin": 13,
-              "application_name": 14,
-              "controller": 15,
-              "detail": 16,
-              "ms": 17,
-              "message": 18
+              "message": 3,
+              "fields.path": 4,
+              "method": 5,
+              "fields.method": 6,
+              "status": 7,
+              "fields.status": 8,
+              "ps": 9,
+              "session_id": 10,
+              "correlate_id": 11,
+              "request_id": 12,
+              "fields.request_id": 13,
+              "request_id_pg": 14,
+              "origin": 15,
+              "application_name": 16,
+              "controller": 17,
+              "detail": 18,
+              "ms": 19
             },
             "renameByName": {
               "fields.method": "method_rust",
@@ -289,7 +621,29 @@
     "postgres"
   ],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "description": "Click a row in the top table, or paste an X-Request-ID. Use the Clear selection dashboard link to reset.",
+        "hide": 0,
+        "label": "Selected request ID",
+        "name": "correlation_id",
+        "options": [
+          {
+            "selected": true,
+            "text": "",
+            "value": ""
+          }
+        ],
+        "query": "",
+        "skipUrlSync": false,
+        "type": "textbox"
+      }
+    ]
   },
   "time": {
     "from": "now-6h",
@@ -299,5 +653,5 @@
   "timezone": "browser",
   "title": "Exercises HTTP requests & SQL logs",
   "uid": "exercises-requests-logs",
-  "version": 72
+  "version": 80
 }

@@ -214,6 +214,7 @@
   <body>
     <h1>Java APP</h1>
     <p class="page-subtitle">Use the menu on the left to open connectivity checks or action forms.</p>
+    <p class="page-subtitle">Browser session request ID: <code id="page-request-id"></code> (included on every API call from this page load)</p>
 
     <div class="dashboard">
       <nav class="sidebar" aria-label="Dashboard menu">
@@ -375,7 +376,35 @@
         var navButtons = document.querySelectorAll(".sidebar-btn[data-view]");
         var viewPanels = document.querySelectorAll(".view-panel");
 
+        function newRequestId() {
+          if (typeof crypto !== "undefined" && crypto.randomUUID) {
+            return crypto.randomUUID();
+          }
+          return "req-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+        }
+
+        var pageRequestId = newRequestId();
+        var currentView = "view-connectivity";
+        var pageRequestIdEl = document.getElementById("page-request-id");
+        if (pageRequestIdEl) {
+          pageRequestIdEl.textContent = pageRequestId;
+        }
+
+        function apiHeaders(extra) {
+          var headers = {
+            "X-Request-ID": pageRequestId,
+            "X-Dashboard-Page": currentView
+          };
+          if (extra) {
+            Object.keys(extra).forEach(function (key) {
+              headers[key] = extra[key];
+            });
+          }
+          return headers;
+        }
+
         function showView(viewId, navId) {
+          currentView = viewId;
           viewPanels.forEach(function (panel) {
             panel.setAttribute("aria-hidden", panel.id === viewId ? "false" : "true");
           });
@@ -443,7 +472,7 @@
           if (!route) return Promise.resolve();
           var t0 = performance.now();
           setStatus(target, '<span class="status-pending">Pinging…</span>');
-          return fetch(route, { method: "GET", credentials: "same-origin" })
+          return fetch(route, { method: "GET", credentials: "same-origin", headers: apiHeaders() })
             .then(function (res) { return res.json().then(function (data) { return { data: data }; }); })
             .then(function (r) {
               var d = r.data || {};
@@ -465,7 +494,7 @@
 
         document.getElementById("ping-all").addEventListener("click", function () {
           Object.keys(routes).forEach(function (t) { setStatus(t, '<span class="status-pending">Pinging…</span>'); });
-          fetch("/dashboard/stack-ping/all", { method: "GET", credentials: "same-origin" })
+          fetch("/dashboard/stack-ping/all", { method: "GET", credentials: "same-origin", headers: apiHeaders() })
             .then(function (res) { return res.json(); })
             .then(function (body) {
               (body && body.results ? body.results : []).forEach(function (d) {
@@ -503,7 +532,7 @@
           usersTableBody.innerHTML =
             '<tr><td colspan="4" class="status-pending">Loading…</td></tr>';
           if (listUsersError) listUsersError.textContent = "";
-          fetch("/api/users", { method: "GET", credentials: "same-origin", headers: { Accept: "application/json" } })
+          fetch("/api/users", { method: "GET", credentials: "same-origin", headers: apiHeaders({ Accept: "application/json" }) })
             .then(function (res) {
               return res.json().then(function (data) {
                 return { httpOk: res.ok, status: res.status, data: data };
@@ -558,7 +587,7 @@
           itemsTableBody.innerHTML =
             '<tr><td colspan="3" class="status-pending">Loading…</td></tr>';
           if (listItemsError) listItemsError.textContent = "";
-          fetch("/api/items", { method: "GET", credentials: "same-origin", headers: { Accept: "application/json" } })
+          fetch("/api/items", { method: "GET", credentials: "same-origin", headers: apiHeaders({ Accept: "application/json" }) })
             .then(function (res) {
               return res.json().then(function (data) {
                 return { httpOk: res.ok, status: res.status, data: data };
@@ -609,22 +638,27 @@
             ev.preventDefault();
             var name = (document.getElementById("item-name").value || "").trim();
             if (!name) { itemResult.textContent = "Name is required."; return; }
-            itemResult.textContent = "Saving…";
+            itemResult.textContent = "Saving…\nrequest_id=" + pageRequestId + "\ndashboard_page=" + currentView;
+            var headers = apiHeaders({ Accept: "application/json", "Content-Type": "application/json" });
             fetch("/api/items", {
               method: "POST",
               credentials: "same-origin",
-              headers: { Accept: "application/json", "Content-Type": "application/json" },
+              headers: headers,
               body: JSON.stringify({ name: name })
             })
               .then(function (res) { return res.json().then(function (data) { return { httpOk: res.ok, status: res.status, data: data }; }); })
               .then(function (r) {
                 if (r.httpOk) {
                   var item = r.data || {};
-                  itemResult.textContent = "Saved item id=" + item.id + " name=" + item.name;
+                  itemResult.textContent =
+                    "Saved item id=" + item.id + " name=" + item.name +
+                    "\nrequest_id=" + pageRequestId + "\ndashboard_page=" + currentView;
                   itemForm.reset();
                   return;
                 }
-                itemResult.textContent = "HTTP " + r.status + "\n" + JSON.stringify(r.data, null, 2);
+                itemResult.textContent =
+                  "HTTP " + r.status + "\nrequest_id=" + pageRequestId + "\ndashboard_page=" + currentView +
+                  "\n" + JSON.stringify(r.data, null, 2);
               })
               .catch(function (err) { itemResult.textContent = String(err.message || err); });
           });
@@ -636,22 +670,27 @@
             var name = (document.getElementById("user-name").value || "").trim();
             var email = (document.getElementById("user-email").value || "").trim();
             if (!name || !email) { userResult.textContent = "Name and email are required."; return; }
-            userResult.textContent = "Saving…";
+            userResult.textContent = "Saving…\nrequest_id=" + pageRequestId + "\ndashboard_page=" + currentView;
+            var headers = apiHeaders({ Accept: "application/json", "Content-Type": "application/json" });
             fetch("/api/users", {
               method: "POST",
               credentials: "same-origin",
-              headers: { Accept: "application/json", "Content-Type": "application/json" },
+              headers: headers,
               body: JSON.stringify({ name: name, email: email })
             })
               .then(function (res) { return res.json().then(function (data) { return { httpOk: res.ok, status: res.status, data: data }; }); })
               .then(function (r) {
                 if (r.httpOk) {
                   var u = r.data || {};
-                  userResult.textContent = "Saved user id=" + u.id + " name=" + u.name + " email=" + u.email;
+                  userResult.textContent =
+                    "Saved user id=" + u.id + " name=" + u.name + " email=" + u.email +
+                    "\nrequest_id=" + pageRequestId + "\ndashboard_page=" + currentView;
                   userForm.reset();
                   return;
                 }
-                userResult.textContent = "HTTP " + r.status + "\n" + JSON.stringify(r.data, null, 2);
+                userResult.textContent =
+                  "HTTP " + r.status + "\nrequest_id=" + pageRequestId + "\ndashboard_page=" + currentView +
+                  "\n" + JSON.stringify(r.data, null, 2);
               })
               .catch(function (err) { userResult.textContent = String(err.message || err); });
           });
@@ -664,14 +703,20 @@
           addBtn.addEventListener("click", function () {
             var name = (nameInput.value || "").trim();
             if (!name) { resultEl.textContent = "Enter an item name."; return; }
-            resultEl.textContent = "Calling Rust…";
+            resultEl.textContent =
+              "Calling Rust…\nrequest_id=" + pageRequestId + "\ndashboard_page=" + currentView;
+            var headers = apiHeaders({ Accept: "application/json" });
             fetch("/dashboard/items/add-via-rust?name=" + encodeURIComponent(name), {
-              method: "POST", credentials: "same-origin", headers: { Accept: "application/json" }
+              method: "POST",
+              credentials: "same-origin",
+              headers: headers
             })
               .then(function (res) { return res.json().then(function (data) { return { httpOk: res.ok, status: res.status, data: data }; }); })
               .then(function (r) {
                 var lines = ["Java relay HTTP " + r.status];
                 var d = r.data || {};
+                lines.push("request_id=" + (d.requestId || pageRequestId));
+                lines.push("dashboard_page=" + currentView);
                 if (d.rustUrl) lines.push("Rust: " + d.rustUrl);
                 if (d.status != null) lines.push("Rust response HTTP " + d.status);
                 if (d.rust) lines.push(JSON.stringify(d.rust, null, 2));

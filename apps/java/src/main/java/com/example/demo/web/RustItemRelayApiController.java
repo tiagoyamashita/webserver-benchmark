@@ -2,6 +2,7 @@ package com.example.demo.web;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
 
+import com.example.demo.observability.DashboardPageContext;
 import com.example.demo.observability.RequestIdContext;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -29,37 +30,43 @@ public class RustItemRelayApiController {
   /** AJAX from home page: calls Rust {@code POST /api/items?name=…} and returns JSON for display. */
   @PostMapping(value = "/add-via-rust", produces = MediaType.APPLICATION_JSON_VALUE)
   public Map<String, Object> addViaRustJson(@RequestParam("name") String name) {
+    String requestId = RequestIdContext.get();
+    String idForLog = requestId != null ? requestId : "";
     log.info(
-        "RustItemRelayApiController.addViaRustJson request received",
+        "RustItemRelayApiController.addViaRustJson request received request_id={}",
+        idForLog,
         kv("source", SOURCE),
         kv("controller", "RustItemRelayApiController"),
         kv("method", "POST"),
         kv("path", "/dashboard/items/add-via-rust"),
-        kv("request_id", RequestIdContext.get()),
+        kv("request_id", requestId),
+        kv("dashboard_page", DashboardPageContext.get()),
         kv("name", name),
         kv("ui_event", "dashboard.ui"),
         kv("action", "add-item-via-rust"));
     Map<String, Object> result = rustItemRelayService.addItemViaRust(name);
     if (Boolean.FALSE.equals(result.get("ok"))) {
       log.warn(
-          "RustItemRelayApiController.addViaRustJson failed",
+          "RustItemRelayApiController.addViaRustJson failed request_id={}",
+          idForLog,
           kv("source", SOURCE),
           kv("controller", "RustItemRelayApiController"),
           kv("method", "POST"),
           kv("path", "/dashboard/items/add-via-rust"),
-          kv("request_id", RequestIdContext.get()),
+          kv("request_id", requestId),
           kv("name", name),
           kv("error", result.get("error")),
           kv("rustUrl", result.get("rustUrl")),
           kv("status", result.get("status")));
     } else {
       log.info(
-          "RustItemRelayApiController.addViaRustJson succeeded",
+          "RustItemRelayApiController.addViaRustJson succeeded request_id={}",
+          idForLog,
           kv("source", SOURCE),
           kv("controller", "RustItemRelayApiController"),
           kv("method", "POST"),
           kv("path", "/dashboard/items/add-via-rust"),
-          kv("request_id", RequestIdContext.get()),
+          kv("request_id", requestId),
           kv("name", name),
           kv("rustUrl", result.get("rustUrl")),
           kv("status", result.get("status")));

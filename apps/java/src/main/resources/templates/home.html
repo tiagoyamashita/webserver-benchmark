@@ -192,6 +192,9 @@
     <p class="hint" style="margin: 0 0 0.75rem; font-size: 0.85rem;">
       Dashboard v2 — Stack services (Grafana, React Node), Rust→Postgres item relay.
     </p>
+    <p class="hint" style="margin: 0 0 0.75rem; font-size: 0.85rem;">
+      Browser session request ID: <code id="page-request-id"></code>
+    </p>
 
     <section class="stack-services" id="stack-services" aria-labelledby="stack-services-heading">
       <h2 class="section" id="stack-services-heading">Stack services</h2>
@@ -337,6 +340,38 @@
         var section = document.getElementById('stack-services');
         var statusEl = document.getElementById('stack-ping-status');
         if (!section || !statusEl) return;
+
+        function newRequestId() {
+          if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+            return crypto.randomUUID();
+          }
+          return 'req-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+        }
+
+        var pageRequestId = newRequestId();
+        var pageRequestIdEl = document.getElementById('page-request-id');
+        if (pageRequestIdEl) {
+          pageRequestIdEl.textContent = pageRequestId;
+        }
+
+        function apiHeaders(page, extra) {
+          var headers = {
+            'X-Request-ID': pageRequestId,
+            'X-Dashboard-Page': page
+          };
+          if (extra) {
+            Object.keys(extra).forEach(function (key) {
+              headers[key] = extra[key];
+            });
+          }
+          return headers;
+        }
+
+        window.exercisesPageSession = {
+          pageRequestId: pageRequestId,
+          apiHeaders: apiHeaders
+        };
+
         var routes = {
           postgres: /*[[@{/dashboard/stack-ping/postgres}]]*/ '/dashboard/stack-ping/postgres',
           rust: /*[[@{/dashboard/stack-ping/rust}]]*/ '/dashboard/stack-ping/rust',
@@ -354,7 +389,11 @@
           if (!target || !routes[target]) return;
           console.log('[dashboard] stack ping button click: ' + target);
           statusEl.textContent = 'Requesting ' + target + '…';
-          fetch(routes[target], { method: 'GET', credentials: 'same-origin' })
+          fetch(routes[target], {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: apiHeaders('home-stack-ping')
+          })
             .then(function (res) {
               return res.json().then(function (data) {
                 return { ok: res.ok, data: data };
@@ -386,6 +425,15 @@
         var resultEl = document.getElementById('rust-item-result');
         if (!addBtn || !nameInput || !resultEl) return;
         var addUrl = /*[[@{/dashboard/items/add-via-rust}]]*/ '/dashboard/items/add-via-rust';
+        var session = window.exercisesPageSession || {};
+        var pageRequestId = session.pageRequestId || '';
+        var apiHeaders = session.apiHeaders || function (page, extra) {
+          var headers = { 'X-Dashboard-Page': page };
+          if (extra) {
+            Object.keys(extra).forEach(function (key) { headers[key] = extra[key]; });
+          }
+          return headers;
+        };
 
         function showResult(text) {
           resultEl.textContent = text;
@@ -397,12 +445,12 @@
             showResult('Enter an item name.');
             return;
           }
-          showResult('Calling Rust…');
+          showResult('Calling Rust…\nrequest_id=' + pageRequestId + '\ndashboard_page=home-rust-relay');
           var url = addUrl + '?name=' + encodeURIComponent(name);
           fetch(url, {
             method: 'POST',
             credentials: 'same-origin',
-            headers: { Accept: 'application/json' }
+            headers: apiHeaders('home-rust-relay', { Accept: 'application/json' })
           })
             .then(function (res) {
               return res.json().then(function (data) {
@@ -415,6 +463,8 @@
               var lines = [];
               lines.push('Java relay HTTP ' + (r.httpOk ? 'OK' : 'error'));
               var d = r.data || {};
+              lines.push('request_id=' + (d.requestId || pageRequestId));
+              lines.push('dashboard_page=home-rust-relay');
               if (d.rustUrl) lines.push('Rust URL: ' + d.rustUrl);
               if (d.status != null) lines.push('Rust HTTP status: ' + d.status);
               if (d.rust) {
