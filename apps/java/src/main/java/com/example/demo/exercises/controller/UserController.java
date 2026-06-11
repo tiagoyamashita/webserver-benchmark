@@ -4,6 +4,7 @@ import static net.logstash.logback.argument.StructuredArguments.kv;
 
 import com.example.demo.exercises.db.User;
 import com.example.demo.exercises.db.UserRepository;
+import com.example.demo.observability.RequestIdContext;
 import com.example.demo.exercises.validation.CreateUserRequest;
 import com.example.demo.exercises.validation.UpdateUserRequest;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -46,6 +47,7 @@ public class UserController {
     log.info(
         "UserController.list request received",
         kv("source", SOURCE),
+        kv("request_id", RequestIdContext.get()),
         kv("controller", "UserController"),
         kv("method", "GET"),
         kv("path", "/api/users"));
@@ -57,8 +59,13 @@ public class UserController {
     log.info(
         "UserController.list succeeded",
         kv("source", SOURCE),
+        kv("request_id", RequestIdContext.get()),
         kv("count", result.size()));
-    log.trace("UserController.list result", kv("source", SOURCE), kv("users", result));
+    log.trace(
+        "UserController.list result",
+        kv("source", SOURCE),
+        kv("request_id", RequestIdContext.get()),
+        kv("users", result));
     return result;
   }
 
@@ -68,6 +75,7 @@ public class UserController {
     log.info(
         "UserController.create request received",
         kv("source", SOURCE),
+        kv("request_id", RequestIdContext.get()),
         kv("controller", "UserController"),
         kv("method", "POST"),
         kv("path", "/api/users"),
@@ -78,6 +86,7 @@ public class UserController {
     log.info(
         "UserController.create succeeded",
         kv("source", SOURCE),
+        kv("request_id", RequestIdContext.get()),
         kv("id", saved.getId()),
         kv("name", saved.getName()),
         kv("email", saved.getEmail()));
@@ -89,6 +98,7 @@ public class UserController {
     log.info(
         "UserController.getById request received",
         kv("source", SOURCE),
+        kv("request_id", RequestIdContext.get()),
         kv("controller", "UserController"),
         kv("method", "GET"),
         kv("path", "/api/users/{id}"),
@@ -99,6 +109,7 @@ public class UserController {
       log.warn(
           "UserController.getById not found",
           kv("source", SOURCE),
+        kv("request_id", RequestIdContext.get()),
           kv("id", id));
       return ResponseEntity.notFound().build();
     }
@@ -106,6 +117,7 @@ public class UserController {
     log.info(
         "UserController.getById succeeded",
         kv("source", SOURCE),
+        kv("request_id", RequestIdContext.get()),
         kv("id", id),
         kv("email", response != null ? response.email() : null));
     return found.get();
@@ -117,6 +129,7 @@ public class UserController {
     log.info(
         "UserController.replace request received",
         kv("source", SOURCE),
+        kv("request_id", RequestIdContext.get()),
         kv("controller", "UserController"),
         kv("method", "PUT"),
         kv("path", "/api/users/{id}"),
@@ -137,6 +150,7 @@ public class UserController {
       log.warn(
           "UserController.replace not found",
           kv("source", SOURCE),
+        kv("request_id", RequestIdContext.get()),
           kv("id", id),
           kv("name", body.name()),
           kv("email", body.email()));
@@ -146,6 +160,7 @@ public class UserController {
     log.info(
         "UserController.replace succeeded",
         kv("source", SOURCE),
+        kv("request_id", RequestIdContext.get()),
         kv("id", id),
         kv("email", response != null ? response.email() : null));
     return found.get();
@@ -157,6 +172,7 @@ public class UserController {
     log.info(
         "UserController.update request received",
         kv("source", SOURCE),
+        kv("request_id", RequestIdContext.get()),
         kv("controller", "UserController"),
         kv("method", "PATCH"),
         kv("path", "/api/users/{id}"),
@@ -177,6 +193,7 @@ public class UserController {
       log.warn(
           "UserController.update not found",
           kv("source", SOURCE),
+        kv("request_id", RequestIdContext.get()),
           kv("id", id),
           kv("name", body.name()),
           kv("email", body.email()));
@@ -186,6 +203,7 @@ public class UserController {
     log.info(
         "UserController.update succeeded",
         kv("source", SOURCE),
+        kv("request_id", RequestIdContext.get()),
         kv("id", id),
         kv("email", response != null ? response.email() : null));
     return found.get();
@@ -196,6 +214,7 @@ public class UserController {
     log.info(
         "UserController.delete request received",
         kv("source", SOURCE),
+        kv("request_id", RequestIdContext.get()),
         kv("controller", "UserController"),
         kv("method", "DELETE"),
         kv("path", "/api/users/{id}"),
@@ -204,6 +223,7 @@ public class UserController {
       log.warn(
           "UserController.delete not found",
           kv("source", SOURCE),
+        kv("request_id", RequestIdContext.get()),
           kv("id", id));
       return ResponseEntity.notFound().build();
     }
@@ -211,6 +231,7 @@ public class UserController {
     log.info(
         "UserController.delete succeeded",
         kv("source", SOURCE),
+        kv("request_id", RequestIdContext.get()),
         kv("id", id));
     return ResponseEntity.noContent().build();
   }

@@ -21,7 +21,7 @@
   "links": [],
   "panels": [
     {
-      "collapsed": false,
+      "collapsed": true,
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -106,7 +106,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 1
+        "y": 3
       },
       "id": 1,
       "options": {
@@ -385,8 +385,10 @@
                 "id": "links",
                 "value": [
                   {
-                    "title": "Show HTTP request",
-                    "url": "/d/exercises-requests-logs?var-correlation_id=${__value.raw}&from=${__url_time_range_from}&to=${__url_time_range_to}"
+                    "title": "Jump to HTTP logs",
+                    "url": "/d/exercises-requests-logs?time=${__data.fields[0].numeric}&time.window=15000&var-correlation_id=${__value.raw}&var-correlation_origin=${__data.fields[\"service\"]}",
+                    "targetBlank": false,
+                    "oneClick": true
                   }
                 ]
               }
@@ -412,7 +414,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 1
+        "y": 3
       },
       "id": 2,
       "options": {
@@ -502,13 +504,14 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 9
+        "y": 11
       },
       "id": 3,
       "options": {
         "dedupStrategy": "none",
         "displayedFields": [
           "service",
+          "request_id",
           "___LOG_LINE_BODY___"
         ],
         "enableLogDetails": true,
@@ -546,15 +549,59 @@
       "type": "logs"
     },
     {
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 1
+      },
+      "id": 9,
+      "options": {
+        "code": {
+          "language": "html",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "<div style=\"display:flex;align-items:center;gap:12px;flex-wrap:wrap;\"><span style=\"color:#8e8e8e;\">Selected:</span><code style=\"font-size:13px;\">${correlation_origin} · ${correlation_id}</code><a href=\"/d/exercises-requests-logs${__url_time_range}&amp;var-correlation_id=${correlation_id}&amp;var-correlation_origin=${correlation_origin}\" style=\"display:inline-block;padding:5px 14px;border-radius:3px;border:1px solid #464646;background:#2b2b2f;color:#ccccdc;text-decoration:none;font-size:13px;font-weight:500;line-height:1.2;\">Refresh</a><a href=\"/d/exercises-requests-logs?from=now-6h&amp;to=now&amp;var-correlation_id=&amp;var-correlation_origin=\" style=\"display:inline-block;padding:5px 14px;border-radius:3px;background:#3274d9;color:#fff;text-decoration:none;font-size:13px;font-weight:500;line-height:1.2;\">Reset</a></div>",
+        "mode": "html"
+      },
+      "pluginVersion": "11.5.2",
+      "title": "",
+      "transparent": true,
+      "type": "text"
+    },
+    {
       "collapsed": true,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 19
+        "y": 21
       },
       "id": 101,
       "panels": [
+        {
+          "gridPos": {
+            "h": 2,
+            "w": 24,
+            "x": 0,
+            "y": 22
+          },
+          "id": 10,
+          "options": {
+            "code": {
+              "language": "html",
+              "showLineNumbers": false,
+              "showMiniMap": false
+            },
+            "content": "<div style=\"display:flex;align-items:center;gap:12px;flex-wrap:wrap;\"><span style=\"color:#8e8e8e;\">Selected:</span><code style=\"font-size:13px;\">${correlation_origin} · ${correlation_id}</code><a href=\"/d/exercises-requests-logs${__url_time_range}&amp;var-correlation_id=${correlation_id}&amp;var-correlation_origin=${correlation_origin}\" style=\"display:inline-block;padding:5px 14px;border-radius:3px;border:1px solid #464646;background:#2b2b2f;color:#ccccdc;text-decoration:none;font-size:13px;font-weight:500;line-height:1.2;\">Refresh</a><a href=\"/d/exercises-requests-logs?from=now-6h&amp;to=now&amp;var-correlation_id=&amp;var-correlation_origin=\" style=\"display:inline-block;padding:5px 14px;border-radius:3px;background:#3274d9;color:#fff;text-decoration:none;font-size:13px;font-weight:500;line-height:1.2;\">Reset</a></div>",
+            "mode": "html"
+          },
+          "pluginVersion": "11.5.2",
+          "title": "",
+          "transparent": true,
+          "type": "text"
+        },
         {
           "datasource": {
             "type": "elasticsearch",
@@ -645,8 +692,10 @@
                     "id": "links",
                     "value": [
                       {
-                        "title": "Show HTTP request",
-                        "url": "/d/exercises-requests-logs?var-correlation_id=${__data.fields.request_id}&from=${__url_time_range_from}&to=${__url_time_range_to}"
+                        "title": "Jump to HTTP logs",
+                        "url": "/d/exercises-requests-logs?time=${__data.fields[0].numeric}&time.window=15000&var-correlation_id=${__data.fields[\"request_id\"]}&var-correlation_origin=${__data.fields[\"origin\"]}",
+                        "targetBlank": false,
+                        "oneClick": true
                       }
                     ]
                   }
@@ -669,15 +718,17 @@
               {
                 "matcher": {
                   "id": "byRegexp",
-                  "options": "/^(origin|message|request_id)$/"
+                  "options": "/^(origin|message|request_id|@timestamp)$/"
                 },
                 "properties": [
                   {
                     "id": "links",
                     "value": [
                       {
-                        "title": "Show HTTP request",
-                        "url": "/d/exercises-requests-logs?var-correlation_id=${__data.fields.request_id}&from=${__url_time_range_from}&to=${__url_time_range_to}"
+                        "title": "Jump to HTTP logs",
+                        "url": "/d/exercises-requests-logs?time=${__data.fields[0].numeric}&time.window=15000&var-correlation_id=${__data.fields[\"request_id\"]}&var-correlation_origin=${__data.fields[\"origin\"]}",
+                        "targetBlank": false,
+                        "oneClick": true
                       }
                     ]
                   }
@@ -689,7 +740,7 @@
             "h": 10,
             "w": 24,
             "x": 0,
-            "y": 20
+            "y": 24
           },
           "id": 4,
           "options": {
@@ -789,7 +840,7 @@
             "h": 10,
             "w": 24,
             "x": 0,
-            "y": 30
+            "y": 34
           },
           "id": 5,
           "options": {
@@ -820,7 +871,7 @@
                   "type": "logs"
                 }
               ],
-              "query": "service:\"exercises-postgres\" AND NOT (message:*Skipping* OR message:*redirecting* OR message:*Future* OR message:*ending*log*output* OR message:*stderr* OR message:*received*fast*shutdown* OR message:*aborting*active*transactions* OR message:*database*system*shut*down* OR message:*shutting*down* OR message:*starting*PostgreSQL*)",
+              "query": "service:\"exercises-postgres\" AND NOT message:duration* AND NOT (message:*Skipping* OR message:*redirecting* OR message:*Future* OR message:*ending*log*output* OR message:*stderr* OR message:*received*fast*shutdown* OR message:*aborting*active*transactions* OR message:*database*system*shut*down* OR message:*shutting*down* OR message:*starting*PostgreSQL*)",
               "refId": "A",
               "timeField": "@timestamp"
             }
@@ -838,12 +889,34 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 20
+        "y": 22
       },
       "id": 102,
       "panels": [],
       "title": "SQL → HTTP",
       "type": "row"
+    },
+    {
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 23
+      },
+      "id": 11,
+      "options": {
+        "code": {
+          "language": "html",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "<script>(function(){if(window.__exercisesRowAccordionInit){return;}window.__exercisesRowAccordionInit=true;var ROWS=[\"HTTP requests\",\"PostgreSQL SQL\",\"SQL \\u2192 HTTP\"];function toggleFor(title){return document.querySelector('[data-testid=\"dashboard-row-toggle-for-'+title+'\"]');}function isExpanded(title){var btn=toggleFor(title);if(!btn){return false;}if(btn.getAttribute(\"aria-expanded\")!==null){return btn.getAttribute(\"aria-expanded\")===\"true\";}var wrap=document.querySelector('[data-testid=\"dashboard-row-wrapper-for-'+title+'\"]');return wrap?wrap.querySelector('[data-testid=\"dashboard-panel-render-target\"]')!=null:false;}function setCollapsed(title,collapse){var btn=toggleFor(title);if(!btn){return;}var expanded=isExpanded(title);if(collapse&&expanded){btn.click();}if(!collapse&&!expanded){btn.click();}}function bind(){ROWS.forEach(function(title){var btn=toggleFor(title);if(!btn||btn.dataset.exercisesAccordionBound){return;}btn.dataset.exercisesAccordionBound=\"1\";btn.addEventListener(\"click\",function(){setTimeout(function(){if(!isExpanded(title)){return;}ROWS.forEach(function(other){if(other!==title){setCollapsed(other,true);}});},0);});});}bind();new MutationObserver(bind).observe(document.body,{childList:true,subtree:true});})();</script>",
+        "mode": "html"
+      },
+      "pluginVersion": "11.5.2",
+      "title": "",
+      "transparent": true,
+      "type": "text"
     },
     {
       "datasource": {
@@ -935,8 +1008,10 @@
                 "id": "links",
                 "value": [
                   {
-                    "title": "Show HTTP request",
-                    "url": "/d/exercises-requests-logs?var-correlation_id=${__data.fields.request_id}&from=${__url_time_range_from}&to=${__url_time_range_to}"
+                    "title": "Jump to HTTP logs",
+                    "url": "/d/exercises-requests-logs?time=${__data.fields[0].numeric}&time.window=15000&var-correlation_id=${__data.fields[\"request_id\"]}&var-correlation_origin=${__data.fields[\"origin\"]}",
+                    "targetBlank": false,
+                    "oneClick": true
                   }
                 ]
               }
@@ -959,15 +1034,17 @@
           {
             "matcher": {
               "id": "byRegexp",
-              "options": "/^(origin|message|request_id)$/"
+              "options": "/^(origin|message|request_id|@timestamp)$/"
             },
             "properties": [
               {
                 "id": "links",
                 "value": [
                   {
-                    "title": "Show HTTP request",
-                    "url": "/d/exercises-requests-logs?var-correlation_id=${__data.fields.request_id}&from=${__url_time_range_from}&to=${__url_time_range_to}"
+                    "title": "Jump to HTTP logs",
+                    "url": "/d/exercises-requests-logs?time=${__data.fields[0].numeric}&time.window=15000&var-correlation_id=${__data.fields[\"request_id\"]}&var-correlation_origin=${__data.fields[\"origin\"]}",
+                    "targetBlank": false,
+                    "oneClick": true
                   }
                 ]
               }
@@ -975,12 +1052,12 @@
           }
         ]
       },
-      "description": "Latest Postgres CRUD lines stamped with `exercises-<app>;req=<Request ID>`. Click any row to load the originating HTTP request below.",
+      "description": "Click **SELECT** / **INSERT** / etc. to load that request’s HTTP logs below (time centered on the SQL line).",
       "gridPos": {
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 21
+        "y": 24
       },
       "id": 7,
       "options": {
@@ -1076,28 +1153,83 @@
         "type": "elasticsearch",
         "uid": "elasticsearch"
       },
-      "description": "Originating HTTP request for the SQL row you clicked. Empty until you pick a row above.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              },
+              {
+                "color": "#a8b5a8",
+                "value": 200
+              },
+              {
+                "color": "yellow",
+                "value": 400
+              },
+              {
+                "color": "red",
+                "value": 500
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "message"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 420
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "description": "Handler logs for the SQL row you clicked (request received / succeeded only), scoped to ±7s around that SQL timestamp.",
       "gridPos": {
-        "h": 8,
+        "h": 6,
         "w": 24,
         "x": 0,
-        "y": 31
+        "y": 36
       },
       "id": 6,
       "options": {
-        "dedupStrategy": "none",
-        "displayedFields": [
-          "service",
-          "___LOG_LINE_BODY___"
-        ],
-        "enableLogDetails": true,
-        "prettifyLogMessage": true,
-        "showCommonLabels": false,
-        "showLabels": false,
-        "showTime": true,
-        "sortOrder": "Descending",
-        "wrapLogMessage": true
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "@timestamp"
+          }
+        ]
       },
+      "pluginVersion": "11.5.2",
       "targets": [
         {
           "bucketAggs": [],
@@ -1109,20 +1241,74 @@
             {
               "id": "1",
               "settings": {
-                "limit": "500",
-                "orderBy": "Desc",
+                "limit": "50",
+                "orderBy": "Asc",
                 "orderByTime": "true"
               },
               "type": "logs"
             }
           ],
-          "query": "_exists_:request_id AND request_id:\"$correlation_id\" AND _exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\"))",
+          "query": "_exists_:request_id AND request_id:\"$correlation_id\" AND service:\"$correlation_origin\" AND _exists_:controller AND (message:*request received* OR message:*succeeded* OR message:*failed* OR message:*not found*) AND NOT message:*result*",
           "refId": "A",
           "timeField": "@timestamp"
         }
       ],
-      "title": "HTTP request for selected SQL",
-      "type": "logs"
+      "title": "HTTP handler for selected SQL",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "_id": true,
+              "_index": true,
+              "_source": true,
+              "_type": true,
+              "agent": true,
+              "ecs": true,
+              "highlight": true,
+              "host": true,
+              "input": true,
+              "log": true,
+              "request_id": true,
+              "sort": true,
+              "tags": true
+            },
+            "indexByName": {
+              "@timestamp": 0,
+              "service": 1,
+              "controller": 2,
+              "method": 3,
+              "path": 4,
+              "message": 5,
+              "level": 6
+            },
+            "renameByName": {}
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 34
+      },
+      "id": 8,
+      "options": {
+        "code": {
+          "language": "html",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "<div style=\"display:flex;align-items:center;gap:12px;flex-wrap:wrap;\"><span style=\"color:#8e8e8e;\">Selected:</span><code style=\"font-size:13px;\">${correlation_origin} · ${correlation_id}</code><a href=\"/d/exercises-requests-logs${__url_time_range}&amp;var-correlation_id=${correlation_id}&amp;var-correlation_origin=${correlation_origin}\" style=\"display:inline-block;padding:5px 14px;border-radius:3px;border:1px solid #464646;background:#2b2b2f;color:#ccccdc;text-decoration:none;font-size:13px;font-weight:500;line-height:1.2;\">Refresh</a><a href=\"/d/exercises-requests-logs?from=now-6h&amp;to=now&amp;var-correlation_id=&amp;var-correlation_origin=\" style=\"display:inline-block;padding:5px 14px;border-radius:3px;background:#3274d9;color:#fff;text-decoration:none;font-size:13px;font-weight:500;line-height:1.2;\">Reset</a></div>",
+        "mode": "html"
+      },
+      "pluginVersion": "11.5.2",
+      "title": "",
+      "transparent": true,
+      "type": "text"
     }
   ],
   "refresh": "30s",
@@ -1142,10 +1328,31 @@
           "text": "",
           "value": ""
         },
-        "description": "Set when you click a SQL row (or request_id link). Drives the HTTP panel below.",
+        "description": "Set when you click a SQL row (or request_id link). Use Refresh/Reset in each section to reload or clear.",
         "hide": 2,
         "label": "Request ID",
         "name": "correlation_id",
+        "options": [
+          {
+            "selected": true,
+            "text": "",
+            "value": ""
+          }
+        ],
+        "query": "",
+        "skipUrlSync": false,
+        "type": "textbox"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "description": "Origin app service (exercises-java, etc.) set when you click a SQL row.",
+        "hide": 2,
+        "label": "Origin",
+        "name": "correlation_origin",
         "options": [
           {
             "selected": true,
@@ -1167,5 +1374,5 @@
   "timezone": "browser",
   "title": "Exercises HTTP requests & SQL logs",
   "uid": "exercises-requests-logs",
-  "version": 38
+  "version": 50
 }

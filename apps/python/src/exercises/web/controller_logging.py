@@ -79,8 +79,22 @@ def log_trace(
     )
 
 
+def _current_request_id() -> str | None:
+    try:
+        from flask import g
+
+        value = getattr(g, "request_id", None)
+        return value if isinstance(value, str) and value else None
+    except RuntimeError:
+        return None
+
+
 def _extra(source: str, handler: str, **fields: Any) -> dict[str, Any]:
     extra: dict[str, Any] = {"source": source, "controller": handler}
+    if "request_id" not in fields:
+        request_id = _current_request_id()
+        if request_id is not None:
+            extra["request_id"] = request_id
     for key, value in fields.items():
         if key in _RECORD_STANDARD:
             raise ValueError(f"reserved log record field: {key}")
