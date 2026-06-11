@@ -489,8 +489,8 @@
         "showHeader": true,
         "sortBy": [
           {
-            "desc": true,
-            "displayName": "@timestamp"
+            "desc": false,
+            "displayName": "event_time"
           }
         ]
       },
@@ -516,7 +516,7 @@
           "timeField": "@timestamp"
         }
       ],
-      "description": "Filtered by Selected request ID above. Paste the request_id from the dashboard after Add via Rust, or click a row in the top table. Use Clear selection if this panel shows too many rows.",
+      "description": "Filtered by Selected request ID above. Sorted oldest-first (Java → Rust → Postgres call stack). Times use application event time (@timestamp), not Filebeat ingestion delay.",
       "title": "Correlated logs — ${correlation_id}",
       "transformations": [
         {
@@ -537,6 +537,21 @@
                 "request_id",
                 "fields.request_id",
                 "request_id_pg"
+              ],
+              "reducer": "firstNotNull"
+            },
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "event_time",
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [
+                "timestamp",
+                "@timestamp"
               ],
               "reducer": "firstNotNull"
             },
@@ -572,31 +587,33 @@
               "sort": true,
               "springAppName": true,
               "tags": true,
+              "timestamp": true,
               "txid": true,
               "user": true,
               "vxid": true
             },
             "indexByName": {
               "@timestamp": 0,
-              "service": 1,
-              "path": 2,
-              "message": 3,
-              "fields.path": 4,
-              "method": 5,
-              "fields.method": 6,
-              "status": 7,
-              "fields.status": 8,
-              "ps": 9,
-              "session_id": 10,
-              "correlate_id": 11,
-              "request_id": 12,
-              "fields.request_id": 13,
-              "request_id_pg": 14,
-              "origin": 15,
-              "application_name": 16,
-              "controller": 17,
-              "detail": 18,
-              "ms": 19
+              "event_time": 1,
+              "service": 2,
+              "path": 3,
+              "message": 4,
+              "fields.path": 5,
+              "method": 6,
+              "fields.method": 7,
+              "status": 8,
+              "fields.status": 9,
+              "ps": 10,
+              "session_id": 11,
+              "correlate_id": 12,
+              "request_id": 13,
+              "fields.request_id": 14,
+              "request_id_pg": 15,
+              "origin": 16,
+              "application_name": 17,
+              "controller": 18,
+              "detail": 19,
+              "ms": 20
             },
             "renameByName": {
               "fields.method": "method_rust",
@@ -605,6 +622,18 @@
               "fields.status": "status_rust",
               "ps": "sql"
             }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": false,
+                "field": "event_time"
+              }
+            ]
           }
         }
       ],
@@ -653,5 +682,5 @@
   "timezone": "browser",
   "title": "Exercises HTTP requests & SQL logs",
   "uid": "exercises-requests-logs",
-  "version": 80
+  "version": 81
 }

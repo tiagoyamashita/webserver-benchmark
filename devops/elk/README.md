@@ -23,6 +23,7 @@ Modern deployments often add **Beats** (for example **Filebeat**) in front of Lo
 | `docker-compose.yml` | Single-node Elasticsearch + Logstash + **Kibana** |
 | `kibana/kibana.yml` | **Kibana** server + Elasticsearch host (explicit config file) |
 | `logstash/pipeline/logstash.conf` | Pipeline: Beats → Elasticsearch |
+| `filebeat/filebeat-compose.yml` | Compose Filebeat: tails app JSON logs; **timestamp processors** set `@timestamp` from each app's log field (`timestamp` or `@timestamp`) instead of harvest time |
 | `filebeat/filebeat.yml.example` | Sample Filebeat config: **what** to watch + where to send |
 
 ## Run locally (Podman or Docker)
