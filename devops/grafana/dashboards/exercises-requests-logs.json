@@ -407,7 +407,7 @@
           "timeField": "@timestamp"
         }
       ],
-      "title": "Recent requests (grouped by correlate_id)",
+      "title": "Request & SQL logs",
       "transformations": [
         {
           "id": "extractFields",
@@ -651,8 +651,32 @@
                   "lastNotNull"
                 ],
                 "operation": "aggregate"
+              },
+              "_epoch_ms": {
+                "aggregations": [
+                  "max"
+                ],
+                "operation": "aggregate"
+              },
+              "sort_key": {
+                "aggregations": [
+                  "max"
+                ],
+                "operation": "aggregate"
               }
             }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": true,
+                "field": "_epoch_ms"
+              }
+            ]
           }
         },
         {
@@ -1155,5 +1179,5 @@
   "timezone": "browser",
   "title": "Exercises HTTP requests & SQL logs",
   "uid": "exercises-requests-logs",
-  "version": 87
+  "version": 89
 }
