@@ -24,7 +24,7 @@
       "targetBlank": false,
       "title": "Clear selection",
       "type": "link",
-      "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=.*"
+      "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id="
     }
   ],
   "panels": [
@@ -33,7 +33,7 @@
         "type": "elasticsearch",
         "uid": "elasticsearch"
       },
-      "description": "Recent HTTP and Postgres activity. Click any cell in a row to hide other rows and show only that request's logs. Use Clear selection to show all again.",
+      "description": "One row per request ID (latest log line by event time → service order → log_seq). Click any cell to open the full timeline below.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -361,12 +361,518 @@
         ]
       },
       "gridPos": {
-        "h": 24,
+        "h": 12,
         "w": 24,
         "x": 0,
         "y": 0
       },
       "id": 1,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "event_time"
+          }
+        ]
+      },
+      "pluginVersion": "11.5.2",
+      "targets": [
+        {
+          "bucketAggs": [],
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "elasticsearch"
+          },
+          "metrics": [
+            {
+              "id": "1",
+              "settings": {
+                "size": "300"
+              },
+              "type": "raw_data"
+            }
+          ],
+          "query": "((service:\"exercises-java\" OR service:\"exercises-rust\" OR service:\"exercises-python\" OR service:\"exercises-react-node\") AND (_exists_:path OR _exists_:fields.path OR _exists_:controller OR _exists_:request_id OR _exists_:fields.request_id OR _exists_:status OR _exists_:fields.status) AND NOT (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\" OR fields.path:\"/health\" OR fields.path:\"/api/health\" OR fields.path:\"/metrics\" OR fields.path:\"/actuator/prometheus\" OR fields.path:\"/api/observability/health\" OR controller:health OR fields.controller:health OR ((path:\"/\" OR fields.path:\"/\") AND (method:GET OR fields.method:GET)))) OR (service:\"exercises-postgres\" AND (message:*execute* OR message:statement*) AND NOT message:duration* AND NOT message:*set_config* AND NOT message:*SELECT 1* AND NOT message:*connection* AND NOT message:*disconnection*)",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ],
+      "title": "Recent requests (grouped by correlate_id)",
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "format": "regexp",
+            "regexp": "^(?<origin>exercises-[^;]+);req=(?<request_id_pg>.+)$",
+            "source": "application_name"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "correlate_id",
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [
+                "request_id",
+                "fields.request_id",
+                "request_id_pg"
+              ],
+              "reducer": "firstNotNull"
+            },
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "dateFormat": "x",
+                "destinationType": "number",
+                "targetField": "_epoch_ms"
+              }
+            ],
+            "fields": {
+              "@timestamp": "number"
+            }
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "_time_pad",
+            "binary": {
+              "left": "_epoch_ms",
+              "operator": "*",
+              "right": "1000"
+            },
+            "mode": "binary",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "_order_pad",
+            "binary": {
+              "left": "service_order",
+              "operator": "*",
+              "right": "100"
+            },
+            "mode": "binary",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "_base",
+            "binary": {
+              "left": "_time_pad",
+              "operator": "+",
+              "right": "_order_pad"
+            },
+            "mode": "binary",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "sort_key",
+            "binary": {
+              "left": "_base",
+              "operator": "+",
+              "right": "log_seq"
+            },
+            "mode": "binary",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": false,
+                "field": "sort_key"
+              }
+            ]
+          }
+        },
+        {
+          "id": "filterByValue",
+          "options": {
+            "filters": [
+              {
+                "config": {
+                  "id": "regex",
+                  "options": {
+                    "value": ".+"
+                  }
+                },
+                "fieldName": "correlate_id"
+              }
+            ],
+            "match": "all",
+            "type": "include"
+          }
+        },
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "@timestamp": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "controller": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "correlate_id": {
+                "aggregations": [],
+                "operation": "groupby"
+              },
+              "detail": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "fields.method": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "fields.path": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "fields.request_id": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "fields.status": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "log_seq": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "message": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "method": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "ms": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "origin": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "path": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "ps": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "request_id": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "request_id_pg": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "service": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "service_order": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "status": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              }
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "_base": true,
+              "_epoch_ms": true,
+              "_id": true,
+              "_index": true,
+              "_order_pad": true,
+              "_source": true,
+              "_time_pad": true,
+              "_type": true,
+              "agent": true,
+              "application_name": true,
+              "backend_type": true,
+              "dbname": true,
+              "ecs": true,
+              "error_severity": true,
+              "event": true,
+              "highlight": true,
+              "host": true,
+              "input": true,
+              "level": true,
+              "line_num": true,
+              "log": true,
+              "logger_name": true,
+              "pid": true,
+              "query_id": true,
+              "remote_host": true,
+              "remote_port": true,
+              "session_start": true,
+              "session_id": true,
+              "sort": true,
+              "sort_key": true,
+              "springAppName": true,
+              "tags": true,
+              "timestamp": true,
+              "txid": true,
+              "user": true,
+              "vxid": true
+            },
+            "indexByName": {
+              "@timestamp": 0,
+              "service_order": 1,
+              "log_seq": 2,
+              "service": 3,
+              "path": 4,
+              "message": 5,
+              "fields.path": 6,
+              "method": 7,
+              "fields.method": 8,
+              "status": 9,
+              "fields.status": 10,
+              "ps": 11,
+              "correlate_id": 12,
+              "request_id": 13,
+              "fields.request_id": 14,
+              "request_id_pg": 15,
+              "origin": 16,
+              "controller": 17,
+              "detail": 18,
+              "ms": 19
+            },
+            "renameByName": {
+              "@timestamp": "event_time",
+              "fields.method": "method_rust",
+              "fields.path": "path_rust",
+              "fields.request_id": "request_id_rust",
+              "fields.status": "status_rust",
+              "ps": "sql"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "elasticsearch"
+      },
+      "description": "Full HTTP + Postgres timeline for the selected request. Sorted by event time; when timestamps tie, Java→Rust→Postgres; log_seq only orders lines within the same service.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "path"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "path_rust"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "sql"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "DELETE": {
+                        "color": "red",
+                        "index": 0
+                      },
+                      "INSERT": {
+                        "color": "green",
+                        "index": 1
+                      },
+                      "SELECT": {
+                        "color": "blue",
+                        "index": 2
+                      },
+                      "UPDATE": {
+                        "color": "yellow",
+                        "index": 3
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "message"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 480
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "status"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "status_rust"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 12
+      },
+      "id": 2,
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -397,7 +903,7 @@
             {
               "id": "1",
               "settings": {
-                "size": "300"
+                "size": "100"
               },
               "type": "raw_data"
             }
@@ -407,7 +913,7 @@
           "timeField": "@timestamp"
         }
       ],
-      "title": "Request & SQL logs",
+      "title": "Request timeline — ${correlation_id}",
       "transformations": [
         {
           "id": "extractFields",
@@ -621,21 +1127,21 @@
       {
         "current": {
           "selected": false,
-          "text": ".*",
-          "value": ".*"
+          "text": "",
+          "value": ""
         },
-        "description": "Click a row to focus that request (hides other rows). Paste an X-Request-ID or use Clear selection to show all.",
+        "description": "Click a grouped row above, or paste an X-Request-ID. Clear selection resets the timeline panel.",
         "hide": 0,
-        "label": "Focused request ID",
+        "label": "Selected request ID",
         "name": "correlation_id",
         "options": [
           {
             "selected": true,
-            "text": ".*",
-            "value": ".*"
+            "text": "",
+            "value": ""
           }
         ],
-        "query": ".*",
+        "query": "",
         "skipUrlSync": false,
         "type": "textbox"
       }
@@ -649,5 +1155,5 @@
   "timezone": "browser",
   "title": "Exercises HTTP requests & SQL logs",
   "uid": "exercises-requests-logs",
-  "version": 86
+  "version": 87
 }
