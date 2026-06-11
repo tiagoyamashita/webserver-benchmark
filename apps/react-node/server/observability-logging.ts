@@ -42,7 +42,7 @@ export function writeLog(
     return;
   }
   const payload = {
-    "@timestamp": new Date().toISOString(),
+    timestamp: new Date().toISOString(),
     level,
     logger,
     message,

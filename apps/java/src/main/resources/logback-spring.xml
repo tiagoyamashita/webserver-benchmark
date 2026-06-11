@@ -12,8 +12,23 @@
         <fileNamePattern>${LOG_PATH:-logs}/demo-app.json.log.%d{yyyy-MM-dd}.gz</fileNamePattern>
         <maxHistory>14</maxHistory>
       </rollingPolicy>
-      <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+      <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
         <customFields>{"service":"${springAppName}"}</customFields>
+        <providers>
+          <timestamp>
+            <fieldName>timestamp</fieldName>
+          </timestamp>
+          <version/>
+          <logLevel/>
+          <logLevelValue/>
+          <loggerName/>
+          <threadName/>
+          <message/>
+          <logstashMarkers/>
+          <arguments/>
+          <stackTrace/>
+          <provider class="com.example.demo.observability.ObservabilityJsonProvider"/>
+        </providers>
       </encoder>
     </appender>
   </springProfile>

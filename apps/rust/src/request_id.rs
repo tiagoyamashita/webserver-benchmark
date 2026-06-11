@@ -5,6 +5,7 @@ use axum::http::HeaderValue;
 use axum::middleware::Next;
 use axum::response::Response;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub const ORIGIN_HEADER: &str = "x-request-origin";
@@ -20,6 +21,20 @@ pub enum RequestIdSource {
 
 #[derive(Clone, Debug)]
 pub struct RequestOrigin(pub Option<String>);
+
+/// Monotonic log line order within one HTTP request.
+#[derive(Clone, Debug)]
+pub struct RequestLogSeq(Arc<AtomicU64>);
+
+impl RequestLogSeq {
+    pub fn new() -> Self {
+        Self(Arc::new(AtomicU64::new(0)))
+    }
+
+    pub fn next(&self) -> u64 {
+        self.0.fetch_add(1, Ordering::Relaxed) + 1
+    }
+}
 
 pub fn postgres_application_name(service: &str, request_id: &str) -> String {
     let value = format!("{service};req={request_id}");
@@ -81,6 +96,7 @@ pub async fn assign_request_id(mut req: Request, next: Next) -> Response {
     req.extensions_mut().insert(request_id);
     req.extensions_mut().insert(source);
     req.extensions_mut().insert(origin);
+    req.extensions_mut().insert(RequestLogSeq::new());
     let mut res = next.run(req).await;
     if let Ok(value) = HeaderValue::from_str(&id) {
         res.headers_mut().insert("x-request-id", value);

@@ -77,29 +77,19 @@ processors:
       ignore_missing: true
       fail_on_error: false
   # Prefer application event time over Filebeat harvest time (more precise for call-stack ordering).
-  # Rust: JSON field "timestamp". Java/Python/React Node: "@timestamp" in JSON (ndjson keys_under_root).
+  # Apps emit JSON field "timestamp" (Rust/Postgres/Java/Python/React Node). Logstash re-parses if this fails.
   - timestamp:
       field: timestamp
+      timezone: UTC
       layouts:
-        - '2006-01-02T15:04:05.999999999Z'
-        - '2006-01-02T15:04:05.999999Z'
-        - '2006-01-02T15:04:05.999Z'
-        - '2006-01-02T15:04:05Z'
         - '2006-01-02 15:04:05.999 UTC'
-      ignore_missing: true
-      ignore_failure: true
-  - timestamp:
-      field: "@timestamp"
-      layouts:
+        - '2006-01-02 15:04:05 UTC'
         - '2006-01-02T15:04:05.999999999Z'
         - '2006-01-02T15:04:05.999999Z'
         - '2006-01-02T15:04:05.999Z'
         - '2006-01-02T15:04:05Z'
       ignore_missing: true
       ignore_failure: true
-      when:
-        not:
-          has_fields: ["timestamp"]
   - add_host_metadata: {}
 
 output.logstash:

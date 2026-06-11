@@ -85,6 +85,7 @@ async fn record_http_request_metrics(req: Request, next: Next) -> Response {
         .get::<crate::request_id::RequestIdSource>()
         .copied()
         .unwrap_or(crate::request_id::RequestIdSource::Generated);
+    let log_seq_counter = req.extensions().get::<crate::request_id::RequestLogSeq>().cloned();
     let res = next.run(req).await;
     let status = res.status().as_u16();
     let ms = start.elapsed().as_millis();
@@ -95,6 +96,7 @@ async fn record_http_request_metrics(req: Request, next: Next) -> Response {
         crate::request_id::RequestIdSource::ReceivedHeader => "header",
         crate::request_id::RequestIdSource::Generated => "generated",
     };
+    let log_seq = log_seq_counter.as_ref().map(crate::request_id::RequestLogSeq::next).unwrap_or(0);
     tracing::info!(
         method = %method,
         path = %path,
@@ -103,6 +105,7 @@ async fn record_http_request_metrics(req: Request, next: Next) -> Response {
         request_id = %request_id,
         request_id_source = id_source,
         request_origin = %request_origin,
+        log_seq = log_seq,
         "{method} {path} {status} request_id={request_id}"
     );
     res
@@ -226,6 +229,7 @@ async fn create_item(
     Extension(request_id): Extension<crate::request_id::RequestId>,
     Extension(request_id_source): Extension<crate::request_id::RequestIdSource>,
     Extension(request_origin): Extension<crate::request_id::RequestOrigin>,
+    Extension(log_seq): Extension<crate::request_id::RequestLogSeq>,
     Query(query): Query<crate::items::CreateItemQuery>,
 ) -> impl IntoResponse {
     let Some(pool) = state.pg_pool.clone() else {
@@ -254,6 +258,7 @@ async fn create_item(
         Some(&request_id.0),
         request_origin.0.as_deref(),
         request_id_source,
+        Some(&log_seq),
     )
     .await
     .into_response()

@@ -104,10 +104,12 @@ pub async fn create_item(
     request_id: Option<&str>,
     request_origin: Option<&str>,
     request_id_source: crate::request_id::RequestIdSource,
+    log_seq: Option<&crate::request_id::RequestLogSeq>,
 ) -> impl IntoResponse {
     let name = query.name.trim().to_string();
     let id_source = request_id_source_label(request_id_source);
     let id_for_log = request_id.unwrap_or("");
+    let seq = log_seq.map(crate::request_id::RequestLogSeq::next).unwrap_or(0);
     tracing::info!(
         source = SOURCE,
         controller = "create_item",
@@ -117,6 +119,7 @@ pub async fn create_item(
         request_id = id_for_log,
         request_id_source = id_source,
         request_origin = request_origin.unwrap_or(""),
+        log_seq = seq,
         "create_item request received request_id={id_for_log}"
     );
     if name.is_empty() {
@@ -126,6 +129,7 @@ pub async fn create_item(
             request_id = id_for_log,
             name = %query.name,
             reason = "blank-name",
+            log_seq = log_seq.map(crate::request_id::RequestLogSeq::next).unwrap_or(0),
             "create_item validation failed request_id={id_for_log}"
         );
         return (
@@ -152,6 +156,7 @@ pub async fn create_item(
                 request_origin = request_origin.unwrap_or(""),
                 id = row.id,
                 name = %row.name,
+                log_seq = log_seq.map(crate::request_id::RequestLogSeq::next).unwrap_or(0),
                 "create_item succeeded request_id={id_for_log}"
             );
             (
@@ -174,6 +179,7 @@ pub async fn create_item(
                 request_id = id_for_log,
                 name = %name,
                 error = %e,
+                log_seq = log_seq.map(crate::request_id::RequestLogSeq::next).unwrap_or(0),
                 "create_item failed request_id={id_for_log}"
             );
             (
