@@ -29,546 +29,547 @@
         "y": 0
       },
       "id": 100,
-      "panels": [],
-      "title": "HTTP requests",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "elasticsearch",
-        "uid": "elasticsearch"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
+      "panels": [
+        {
+          "gridPos": {
+            "h": 2,
+            "w": 24,
+            "x": 0,
+            "y": 1
           },
-          "custom": {
-            "drawStyle": "bars",
-            "fillOpacity": 80,
-            "lineWidth": 1,
-            "showPoints": "never",
-            "stacking": {
-              "group": "A",
-              "mode": "normal"
-            }
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byRegexp",
-              "options": "/^2/"
+          "id": 9,
+          "options": {
+            "code": {
+              "language": "html",
+              "showLineNumbers": false,
+              "showMiniMap": false
             },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "green",
-                  "mode": "fixed"
+            "content": "<div style=\"display:flex;align-items:center;gap:12px;flex-wrap:wrap;\"><span style=\"color:#8e8e8e;\">Selected:</span><code style=\"font-size:13px;\">${correlation_origin} \u00b7 ${correlation_id}</code><a href=\"/d/exercises-requests-logs${__url_time_range}&amp;var-correlation_id=${correlation_id}&amp;var-correlation_origin=${correlation_origin}\" style=\"display:inline-block;padding:5px 14px;border-radius:3px;border:1px solid #464646;background:#2b2b2f;color:#ccccdc;text-decoration:none;font-size:13px;font-weight:500;line-height:1.2;\">Refresh</a><a href=\"/d/exercises-requests-logs?from=now-6h&amp;to=now&amp;var-correlation_id=&amp;var-correlation_origin=\" style=\"display:inline-block;padding:5px 14px;border-radius:3px;background:#3274d9;color:#fff;text-decoration:none;font-size:13px;font-weight:500;line-height:1.2;\">Reset</a></div>",
+            "mode": "html"
+          },
+          "pluginVersion": "11.5.2",
+          "title": "",
+          "transparent": true,
+          "type": "text"
+        },
+        {
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "elasticsearch"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "drawStyle": "bars",
+                "fillOpacity": 80,
+                "lineWidth": 1,
+                "showPoints": "never",
+                "stacking": {
+                  "group": "A",
+                  "mode": "normal"
                 }
               }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byRegexp",
-              "options": "/^4/"
             },
-            "properties": [
+            "overrides": [
               {
-                "id": "color",
-                "value": {
-                  "fixedColor": "yellow",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byRegexp",
-              "options": "/^5/"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "red",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 3
-      },
-      "id": 1,
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "alias": "200",
-          "bucketAggs": [
-            {
-              "field": "@timestamp",
-              "id": "2",
-              "settings": {
-                "interval": "auto",
-                "min_doc_count": "0"
-              },
-              "type": "date_histogram"
-            }
-          ],
-          "datasource": {
-            "type": "elasticsearch",
-            "uid": "elasticsearch"
-          },
-          "metrics": [
-            {
-              "id": "1",
-              "type": "count"
-            }
-          ],
-          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\")) AND status:200",
-          "refId": "A",
-          "timeField": "@timestamp"
-        },
-        {
-          "alias": "201",
-          "bucketAggs": [
-            {
-              "field": "@timestamp",
-              "id": "2",
-              "settings": {
-                "interval": "auto",
-                "min_doc_count": "0"
-              },
-              "type": "date_histogram"
-            }
-          ],
-          "datasource": {
-            "type": "elasticsearch",
-            "uid": "elasticsearch"
-          },
-          "metrics": [
-            {
-              "id": "1",
-              "type": "count"
-            }
-          ],
-          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\")) AND status:201",
-          "refId": "B",
-          "timeField": "@timestamp"
-        },
-        {
-          "alias": "302",
-          "bucketAggs": [
-            {
-              "field": "@timestamp",
-              "id": "2",
-              "settings": {
-                "interval": "auto",
-                "min_doc_count": "0"
-              },
-              "type": "date_histogram"
-            }
-          ],
-          "datasource": {
-            "type": "elasticsearch",
-            "uid": "elasticsearch"
-          },
-          "metrics": [
-            {
-              "id": "1",
-              "type": "count"
-            }
-          ],
-          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\")) AND status:302",
-          "refId": "C",
-          "timeField": "@timestamp"
-        },
-        {
-          "alias": "304",
-          "bucketAggs": [
-            {
-              "field": "@timestamp",
-              "id": "2",
-              "settings": {
-                "interval": "auto",
-                "min_doc_count": "0"
-              },
-              "type": "date_histogram"
-            }
-          ],
-          "datasource": {
-            "type": "elasticsearch",
-            "uid": "elasticsearch"
-          },
-          "metrics": [
-            {
-              "id": "1",
-              "type": "count"
-            }
-          ],
-          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\")) AND status:304",
-          "refId": "D",
-          "timeField": "@timestamp"
-        },
-        {
-          "alias": "403",
-          "bucketAggs": [
-            {
-              "field": "@timestamp",
-              "id": "2",
-              "settings": {
-                "interval": "auto",
-                "min_doc_count": "0"
-              },
-              "type": "date_histogram"
-            }
-          ],
-          "datasource": {
-            "type": "elasticsearch",
-            "uid": "elasticsearch"
-          },
-          "metrics": [
-            {
-              "id": "1",
-              "type": "count"
-            }
-          ],
-          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\")) AND status:403",
-          "refId": "E",
-          "timeField": "@timestamp"
-        },
-        {
-          "alias": "404",
-          "bucketAggs": [
-            {
-              "field": "@timestamp",
-              "id": "2",
-              "settings": {
-                "interval": "auto",
-                "min_doc_count": "0"
-              },
-              "type": "date_histogram"
-            }
-          ],
-          "datasource": {
-            "type": "elasticsearch",
-            "uid": "elasticsearch"
-          },
-          "metrics": [
-            {
-              "id": "1",
-              "type": "count"
-            }
-          ],
-          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\")) AND status:404",
-          "refId": "F",
-          "timeField": "@timestamp"
-        },
-        {
-          "alias": "500",
-          "bucketAggs": [
-            {
-              "field": "@timestamp",
-              "id": "2",
-              "settings": {
-                "interval": "auto",
-                "min_doc_count": "0"
-              },
-              "type": "date_histogram"
-            }
-          ],
-          "datasource": {
-            "type": "elasticsearch",
-            "uid": "elasticsearch"
-          },
-          "metrics": [
-            {
-              "id": "1",
-              "type": "count"
-            }
-          ],
-          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\")) AND status:500",
-          "refId": "G",
-          "timeField": "@timestamp"
-        },
-        {
-          "alias": "502",
-          "bucketAggs": [
-            {
-              "field": "@timestamp",
-              "id": "2",
-              "settings": {
-                "interval": "auto",
-                "min_doc_count": "0"
-              },
-              "type": "date_histogram"
-            }
-          ],
-          "datasource": {
-            "type": "elasticsearch",
-            "uid": "elasticsearch"
-          },
-          "metrics": [
-            {
-              "id": "1",
-              "type": "count"
-            }
-          ],
-          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\")) AND status:502",
-          "refId": "H",
-          "timeField": "@timestamp"
-        }
-      ],
-      "title": "Requests by HTTP status",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "elasticsearch",
-        "uid": "elasticsearch"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "text",
-                "value": null
-              },
-              {
-                "color": "#a8b5a8",
-                "value": 200
-              },
-              {
-                "color": "yellow",
-                "value": 400
-              },
-              {
-                "color": "red",
-                "value": 500
-              }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "request_id"
-            },
-            "properties": [
-              {
-                "id": "links",
-                "value": [
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "/^2/"
+                },
+                "properties": [
                   {
-                    "title": "Jump to HTTP logs",
-                    "url": "/d/exercises-requests-logs?time=${__data.fields[0].numeric}&time.window=15000&var-correlation_id=${__value.raw}&var-correlation_origin=${__data.fields[\"service\"]}",
-                    "targetBlank": false,
-                    "oneClick": true
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "green",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "/^4/"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "yellow",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "/^5/"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "red",
+                      "mode": "fixed"
+                    }
                   }
                 ]
               }
             ]
           },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "status"
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 3
+          },
+          "id": 1,
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
             },
-            "properties": [
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-text"
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "alias": "200",
+              "bucketAggs": [
+                {
+                  "field": "@timestamp",
+                  "id": "2",
+                  "settings": {
+                    "interval": "auto",
+                    "min_doc_count": "0"
+                  },
+                  "type": "date_histogram"
                 }
+              ],
+              "datasource": {
+                "type": "elasticsearch",
+                "uid": "elasticsearch"
+              },
+              "metrics": [
+                {
+                  "id": "1",
+                  "type": "count"
+                }
+              ],
+              "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\")) AND status:200",
+              "refId": "A",
+              "timeField": "@timestamp"
+            },
+            {
+              "alias": "201",
+              "bucketAggs": [
+                {
+                  "field": "@timestamp",
+                  "id": "2",
+                  "settings": {
+                    "interval": "auto",
+                    "min_doc_count": "0"
+                  },
+                  "type": "date_histogram"
+                }
+              ],
+              "datasource": {
+                "type": "elasticsearch",
+                "uid": "elasticsearch"
+              },
+              "metrics": [
+                {
+                  "id": "1",
+                  "type": "count"
+                }
+              ],
+              "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\")) AND status:201",
+              "refId": "B",
+              "timeField": "@timestamp"
+            },
+            {
+              "alias": "302",
+              "bucketAggs": [
+                {
+                  "field": "@timestamp",
+                  "id": "2",
+                  "settings": {
+                    "interval": "auto",
+                    "min_doc_count": "0"
+                  },
+                  "type": "date_histogram"
+                }
+              ],
+              "datasource": {
+                "type": "elasticsearch",
+                "uid": "elasticsearch"
+              },
+              "metrics": [
+                {
+                  "id": "1",
+                  "type": "count"
+                }
+              ],
+              "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\")) AND status:302",
+              "refId": "C",
+              "timeField": "@timestamp"
+            },
+            {
+              "alias": "304",
+              "bucketAggs": [
+                {
+                  "field": "@timestamp",
+                  "id": "2",
+                  "settings": {
+                    "interval": "auto",
+                    "min_doc_count": "0"
+                  },
+                  "type": "date_histogram"
+                }
+              ],
+              "datasource": {
+                "type": "elasticsearch",
+                "uid": "elasticsearch"
+              },
+              "metrics": [
+                {
+                  "id": "1",
+                  "type": "count"
+                }
+              ],
+              "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\")) AND status:304",
+              "refId": "D",
+              "timeField": "@timestamp"
+            },
+            {
+              "alias": "403",
+              "bucketAggs": [
+                {
+                  "field": "@timestamp",
+                  "id": "2",
+                  "settings": {
+                    "interval": "auto",
+                    "min_doc_count": "0"
+                  },
+                  "type": "date_histogram"
+                }
+              ],
+              "datasource": {
+                "type": "elasticsearch",
+                "uid": "elasticsearch"
+              },
+              "metrics": [
+                {
+                  "id": "1",
+                  "type": "count"
+                }
+              ],
+              "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\")) AND status:403",
+              "refId": "E",
+              "timeField": "@timestamp"
+            },
+            {
+              "alias": "404",
+              "bucketAggs": [
+                {
+                  "field": "@timestamp",
+                  "id": "2",
+                  "settings": {
+                    "interval": "auto",
+                    "min_doc_count": "0"
+                  },
+                  "type": "date_histogram"
+                }
+              ],
+              "datasource": {
+                "type": "elasticsearch",
+                "uid": "elasticsearch"
+              },
+              "metrics": [
+                {
+                  "id": "1",
+                  "type": "count"
+                }
+              ],
+              "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\")) AND status:404",
+              "refId": "F",
+              "timeField": "@timestamp"
+            },
+            {
+              "alias": "500",
+              "bucketAggs": [
+                {
+                  "field": "@timestamp",
+                  "id": "2",
+                  "settings": {
+                    "interval": "auto",
+                    "min_doc_count": "0"
+                  },
+                  "type": "date_histogram"
+                }
+              ],
+              "datasource": {
+                "type": "elasticsearch",
+                "uid": "elasticsearch"
+              },
+              "metrics": [
+                {
+                  "id": "1",
+                  "type": "count"
+                }
+              ],
+              "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\")) AND status:500",
+              "refId": "G",
+              "timeField": "@timestamp"
+            },
+            {
+              "alias": "502",
+              "bucketAggs": [
+                {
+                  "field": "@timestamp",
+                  "id": "2",
+                  "settings": {
+                    "interval": "auto",
+                    "min_doc_count": "0"
+                  },
+                  "type": "date_histogram"
+                }
+              ],
+              "datasource": {
+                "type": "elasticsearch",
+                "uid": "elasticsearch"
+              },
+              "metrics": [
+                {
+                  "id": "1",
+                  "type": "count"
+                }
+              ],
+              "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\")) AND status:502",
+              "refId": "H",
+              "timeField": "@timestamp"
+            }
+          ],
+          "title": "Requests by HTTP status",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "elasticsearch"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "text",
+                    "value": null
+                  },
+                  {
+                    "color": "#a8b5a8",
+                    "value": 200
+                  },
+                  {
+                    "color": "yellow",
+                    "value": 400
+                  },
+                  {
+                    "color": "red",
+                    "value": 500
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "request_id"
+                },
+                "properties": [
+                  {
+                    "id": "links",
+                    "value": [
+                      {
+                        "title": "Jump to HTTP logs",
+                        "url": "/d/exercises-requests-logs?time=${__data.fields[0].numeric}&time.window=15000&var-correlation_id=${__value.raw}&var-correlation_origin=${__data.fields[\"service\"]}",
+                        "targetBlank": false,
+                        "oneClick": true
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "status"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-text"
+                    }
+                  }
+                ]
               }
             ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 3
-      },
-      "id": 2,
-      "options": {
-        "cellHeight": "sm",
-        "footer": {
-          "countRows": false,
-          "fields": "",
-          "reducer": [
-            "sum"
-          ],
-          "show": false
-        },
-        "showHeader": true,
-        "sortBy": [
-          {
-            "desc": true,
-            "displayName": "@timestamp"
-          }
-        ]
-      },
-      "pluginVersion": "11.5.2",
-      "targets": [
-        {
-          "bucketAggs": [],
-          "datasource": {
-            "type": "elasticsearch",
-            "uid": "elasticsearch"
           },
-          "metrics": [
-            {
-              "id": "1",
-              "settings": {
-                "limit": "200",
-                "orderBy": "Desc",
-                "orderByTime": "true"
-              },
-              "type": "logs"
-            }
-          ],
-          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\"))",
-          "refId": "A",
-          "timeField": "@timestamp"
-        }
-      ],
-      "title": "Recent HTTP requests",
-      "transformations": [
-        {
-          "id": "organize",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 3
+          },
+          "id": 2,
           "options": {
-            "excludeByName": {
-              "_id": true,
-              "_index": true,
-              "_source": true,
-              "_type": true,
-              "agent": true,
-              "ecs": true,
-              "highlight": true,
-              "host": true,
-              "input": true,
-              "log": true,
-              "sort": true,
-              "tags": true
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
             },
-            "indexByName": {
-              "@timestamp": 0,
-              "request_id": 1,
-              "service": 2,
-              "method": 3,
-              "path": 4,
-              "status": 5,
-              "ms": 6,
-              "message": 7,
-              "level": 8
-            },
-            "renameByName": {}
-          }
-        }
-      ],
-      "type": "table"
-    },
-    {
-      "datasource": {
-        "type": "elasticsearch",
-        "uid": "elasticsearch"
-      },
-      "gridPos": {
-        "h": 10,
-        "w": 24,
-        "x": 0,
-        "y": 11
-      },
-      "id": 3,
-      "options": {
-        "dedupStrategy": "none",
-        "displayedFields": [
-          "service",
-          "request_id",
-          "___LOG_LINE_BODY___"
-        ],
-        "enableLogDetails": true,
-        "prettifyLogMessage": true,
-        "showCommonLabels": false,
-        "showLabels": false,
-        "showTime": true,
-        "sortOrder": "Descending",
-        "wrapLogMessage": true
-      },
-      "targets": [
+            "showHeader": true,
+            "sortBy": [
+              {
+                "desc": true,
+                "displayName": "@timestamp"
+              }
+            ]
+          },
+          "pluginVersion": "11.5.2",
+          "targets": [
+            {
+              "bucketAggs": [],
+              "datasource": {
+                "type": "elasticsearch",
+                "uid": "elasticsearch"
+              },
+              "metrics": [
+                {
+                  "id": "1",
+                  "settings": {
+                    "limit": "200",
+                    "orderBy": "Desc",
+                    "orderByTime": "true"
+                  },
+                  "type": "logs"
+                }
+              ],
+              "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\"))",
+              "refId": "A",
+              "timeField": "@timestamp"
+            }
+          ],
+          "title": "Recent HTTP requests",
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "_id": true,
+                  "_index": true,
+                  "_source": true,
+                  "_type": true,
+                  "agent": true,
+                  "ecs": true,
+                  "highlight": true,
+                  "host": true,
+                  "input": true,
+                  "log": true,
+                  "sort": true,
+                  "tags": true
+                },
+                "indexByName": {
+                  "@timestamp": 0,
+                  "request_id": 1,
+                  "service": 2,
+                  "method": 3,
+                  "path": 4,
+                  "status": 5,
+                  "ms": 6,
+                  "message": 7,
+                  "level": 8
+                },
+                "renameByName": {}
+              }
+            }
+          ],
+          "type": "table"
+        },
         {
-          "bucketAggs": [],
           "datasource": {
             "type": "elasticsearch",
             "uid": "elasticsearch"
           },
-          "metrics": [
+          "gridPos": {
+            "h": 10,
+            "w": 24,
+            "x": 0,
+            "y": 11
+          },
+          "id": 3,
+          "options": {
+            "dedupStrategy": "none",
+            "displayedFields": [
+              "service",
+              "request_id",
+              "___LOG_LINE_BODY___"
+            ],
+            "enableLogDetails": true,
+            "prettifyLogMessage": true,
+            "showCommonLabels": false,
+            "showLabels": false,
+            "showTime": true,
+            "sortOrder": "Descending",
+            "wrapLogMessage": true
+          },
+          "targets": [
             {
-              "id": "1",
-              "settings": {
-                "limit": "500",
-                "orderBy": "Desc",
-                "orderByTime": "true"
+              "bucketAggs": [],
+              "datasource": {
+                "type": "elasticsearch",
+                "uid": "elasticsearch"
               },
-              "type": "logs"
+              "metrics": [
+                {
+                  "id": "1",
+                  "settings": {
+                    "limit": "500",
+                    "orderBy": "Desc",
+                    "orderByTime": "true"
+                  },
+                  "type": "logs"
+                }
+              ],
+              "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\"))",
+              "refId": "A",
+              "timeField": "@timestamp"
             }
           ],
-          "query": "_exists_:status AND (service:\"exercises-java\" OR service:\"exercises-python\" OR service:\"exercises-rust\" OR service:\"exercises-react-node\") AND NOT (status:200 AND (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\"))",
-          "refId": "A",
-          "timeField": "@timestamp"
+          "title": "HTTP request log stream",
+          "type": "logs"
         }
       ],
-      "title": "HTTP request log stream",
-      "type": "logs"
-    },
-    {
-      "gridPos": {
-        "h": 2,
-        "w": 24,
-        "x": 0,
-        "y": 1
-      },
-      "id": 9,
-      "options": {
-        "code": {
-          "language": "html",
-          "showLineNumbers": false,
-          "showMiniMap": false
-        },
-        "content": "<div style=\"display:flex;align-items:center;gap:12px;flex-wrap:wrap;\"><span style=\"color:#8e8e8e;\">Selected:</span><code style=\"font-size:13px;\">${correlation_origin} · ${correlation_id}</code><a href=\"/d/exercises-requests-logs${__url_time_range}&amp;var-correlation_id=${correlation_id}&amp;var-correlation_origin=${correlation_origin}\" style=\"display:inline-block;padding:5px 14px;border-radius:3px;border:1px solid #464646;background:#2b2b2f;color:#ccccdc;text-decoration:none;font-size:13px;font-weight:500;line-height:1.2;\">Refresh</a><a href=\"/d/exercises-requests-logs?from=now-6h&amp;to=now&amp;var-correlation_id=&amp;var-correlation_origin=\" style=\"display:inline-block;padding:5px 14px;border-radius:3px;background:#3274d9;color:#fff;text-decoration:none;font-size:13px;font-weight:500;line-height:1.2;\">Reset</a></div>",
-        "mode": "html"
-      },
-      "pluginVersion": "11.5.2",
-      "title": "",
-      "transparent": true,
-      "type": "text"
+      "title": "HTTP requests",
+      "type": "row"
     },
     {
       "collapsed": true,
@@ -576,7 +577,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 21
+        "y": 22
       },
       "id": 101,
       "panels": [
@@ -585,7 +586,7 @@
             "h": 2,
             "w": 24,
             "x": 0,
-            "y": 22
+            "y": 23
           },
           "id": 10,
           "options": {
@@ -594,7 +595,7 @@
               "showLineNumbers": false,
               "showMiniMap": false
             },
-            "content": "<div style=\"display:flex;align-items:center;gap:12px;flex-wrap:wrap;\"><span style=\"color:#8e8e8e;\">Selected:</span><code style=\"font-size:13px;\">${correlation_origin} · ${correlation_id}</code><a href=\"/d/exercises-requests-logs${__url_time_range}&amp;var-correlation_id=${correlation_id}&amp;var-correlation_origin=${correlation_origin}\" style=\"display:inline-block;padding:5px 14px;border-radius:3px;border:1px solid #464646;background:#2b2b2f;color:#ccccdc;text-decoration:none;font-size:13px;font-weight:500;line-height:1.2;\">Refresh</a><a href=\"/d/exercises-requests-logs?from=now-6h&amp;to=now&amp;var-correlation_id=&amp;var-correlation_origin=\" style=\"display:inline-block;padding:5px 14px;border-radius:3px;background:#3274d9;color:#fff;text-decoration:none;font-size:13px;font-weight:500;line-height:1.2;\">Reset</a></div>",
+            "content": "<div style=\"display:flex;align-items:center;gap:12px;flex-wrap:wrap;\"><span style=\"color:#8e8e8e;\">Selected:</span><code style=\"font-size:13px;\">${correlation_origin} \u00b7 ${correlation_id}</code><a href=\"/d/exercises-requests-logs${__url_time_range}&amp;var-correlation_id=${correlation_id}&amp;var-correlation_origin=${correlation_origin}\" style=\"display:inline-block;padding:5px 14px;border-radius:3px;border:1px solid #464646;background:#2b2b2f;color:#ccccdc;text-decoration:none;font-size:13px;font-weight:500;line-height:1.2;\">Refresh</a><a href=\"/d/exercises-requests-logs?from=now-6h&amp;to=now&amp;var-correlation_id=&amp;var-correlation_origin=\" style=\"display:inline-block;padding:5px 14px;border-radius:3px;background:#3274d9;color:#fff;text-decoration:none;font-size:13px;font-weight:500;line-height:1.2;\">Reset</a></div><script>(function(){if(window.__exercisesRowAccordionInit){return;}window.__exercisesRowAccordionInit=true;var ROWS=[\"HTTP requests\",\"PostgreSQL SQL\"];function toggleFor(title){return document.querySelector('[data-testid=\"dashboard-row-toggle-for-'+title+'\"]');}function isExpanded(title){var btn=toggleFor(title);if(!btn){return false;}if(btn.getAttribute(\"aria-expanded\")!==null){return btn.getAttribute(\"aria-expanded\")===\"true\";}var wrap=document.querySelector('[data-testid=\"dashboard-row-wrapper-for-'+title+'\"]');return wrap?wrap.querySelector('[data-testid=\"dashboard-panel-render-target\"]')!=null:false;}function setCollapsed(title,collapse){var btn=toggleFor(title);if(!btn){return;}var expanded=isExpanded(title);if(collapse&&expanded){btn.click();}if(!collapse&&!expanded){btn.click();}}function bind(){ROWS.forEach(function(title){var btn=toggleFor(title);if(!btn||btn.dataset.exercisesAccordionBound){return;}btn.dataset.exercisesAccordionBound=\"1\";btn.addEventListener(\"click\",function(){setTimeout(function(){if(!isExpanded(title)){return;}ROWS.forEach(function(other){if(other!==title){setCollapsed(other,true);}});},0);});});}bind();new MutationObserver(bind).observe(document.body,{childList:true,subtree:true});})();</script>",
             "mode": "html"
           },
           "pluginVersion": "11.5.2",
@@ -740,7 +741,7 @@
             "h": 10,
             "w": 24,
             "x": 0,
-            "y": 24
+            "y": 25
           },
           "id": 4,
           "options": {
@@ -840,7 +841,7 @@
             "h": 10,
             "w": 24,
             "x": 0,
-            "y": 34
+            "y": 35
           },
           "id": 5,
           "options": {
@@ -878,437 +879,150 @@
           ],
           "title": "Postgres log stream",
           "type": "logs"
+        },
+        {
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "elasticsearch"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "text",
+                    "value": null
+                  },
+                  {
+                    "color": "#a8b5a8",
+                    "value": 200
+                  },
+                  {
+                    "color": "yellow",
+                    "value": 400
+                  },
+                  {
+                    "color": "red",
+                    "value": 500
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "message"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 420
+                  },
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "auto",
+                      "wrapText": true
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "description": "Handler logs for the SQL row you clicked (request received / succeeded only), scoped to \u00b17s around that SQL timestamp.",
+          "gridPos": {
+            "h": 6,
+            "w": 24,
+            "x": 0,
+            "y": 45
+          },
+          "id": 6,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true,
+            "sortBy": [
+              {
+                "desc": false,
+                "displayName": "@timestamp"
+              }
+            ]
+          },
+          "pluginVersion": "11.5.2",
+          "targets": [
+            {
+              "bucketAggs": [],
+              "datasource": {
+                "type": "elasticsearch",
+                "uid": "elasticsearch"
+              },
+              "metrics": [
+                {
+                  "id": "1",
+                  "settings": {
+                    "limit": "50",
+                    "orderBy": "Asc",
+                    "orderByTime": "true"
+                  },
+                  "type": "logs"
+                }
+              ],
+              "query": "_exists_:request_id AND request_id:\"$correlation_id\" AND service:\"$correlation_origin\" AND _exists_:controller AND (message:*request received* OR message:*succeeded* OR message:*failed* OR message:*not found*) AND NOT message:*result*",
+              "refId": "A",
+              "timeField": "@timestamp"
+            }
+          ],
+          "title": "HTTP handler for selected SQL",
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "_id": true,
+                  "_index": true,
+                  "_source": true,
+                  "_type": true,
+                  "agent": true,
+                  "ecs": true,
+                  "highlight": true,
+                  "host": true,
+                  "input": true,
+                  "log": true,
+                  "request_id": true,
+                  "sort": true,
+                  "tags": true
+                },
+                "indexByName": {
+                  "@timestamp": 0,
+                  "service": 1,
+                  "controller": 2,
+                  "method": 3,
+                  "path": 4,
+                  "message": 5,
+                  "level": 6
+                },
+                "renameByName": {}
+              }
+            }
+          ],
+          "type": "table"
         }
       ],
       "title": "PostgreSQL SQL",
       "type": "row"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 22
-      },
-      "id": 102,
-      "panels": [],
-      "title": "SQL → HTTP",
-      "type": "row"
-    },
-    {
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 23
-      },
-      "id": 11,
-      "options": {
-        "code": {
-          "language": "html",
-          "showLineNumbers": false,
-          "showMiniMap": false
-        },
-        "content": "<script>(function(){if(window.__exercisesRowAccordionInit){return;}window.__exercisesRowAccordionInit=true;var ROWS=[\"HTTP requests\",\"PostgreSQL SQL\",\"SQL \\u2192 HTTP\"];function toggleFor(title){return document.querySelector('[data-testid=\"dashboard-row-toggle-for-'+title+'\"]');}function isExpanded(title){var btn=toggleFor(title);if(!btn){return false;}if(btn.getAttribute(\"aria-expanded\")!==null){return btn.getAttribute(\"aria-expanded\")===\"true\";}var wrap=document.querySelector('[data-testid=\"dashboard-row-wrapper-for-'+title+'\"]');return wrap?wrap.querySelector('[data-testid=\"dashboard-panel-render-target\"]')!=null:false;}function setCollapsed(title,collapse){var btn=toggleFor(title);if(!btn){return;}var expanded=isExpanded(title);if(collapse&&expanded){btn.click();}if(!collapse&&!expanded){btn.click();}}function bind(){ROWS.forEach(function(title){var btn=toggleFor(title);if(!btn||btn.dataset.exercisesAccordionBound){return;}btn.dataset.exercisesAccordionBound=\"1\";btn.addEventListener(\"click\",function(){setTimeout(function(){if(!isExpanded(title)){return;}ROWS.forEach(function(other){if(other!==title){setCollapsed(other,true);}});},0);});});}bind();new MutationObserver(bind).observe(document.body,{childList:true,subtree:true});})();</script>",
-        "mode": "html"
-      },
-      "pluginVersion": "11.5.2",
-      "title": "",
-      "transparent": true,
-      "type": "text"
-    },
-    {
-      "datasource": {
-        "type": "elasticsearch",
-        "uid": "elasticsearch"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [
-            {
-              "options": {
-                "ERROR": {
-                  "color": "red",
-                  "index": 0,
-                  "text": "ERROR"
-                },
-                "FATAL": {
-                  "color": "red",
-                  "index": 1,
-                  "text": "FATAL"
-                },
-                "LOG": {
-                  "color": "#a8b5a8",
-                  "index": 2,
-                  "text": "OK"
-                },
-                "WARNING": {
-                  "color": "yellow",
-                  "index": 3,
-                  "text": "WARN"
-                }
-              },
-              "type": "value"
-            }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "text",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "op"
-            },
-            "properties": [
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-text"
-                }
-              },
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "options": {
-                      "DELETE": {
-                        "color": "red",
-                        "index": 0
-                      },
-                      "INSERT": {
-                        "color": "green",
-                        "index": 1
-                      },
-                      "SELECT": {
-                        "color": "blue",
-                        "index": 2
-                      },
-                      "UPDATE": {
-                        "color": "yellow",
-                        "index": 3
-                      }
-                    },
-                    "type": "value"
-                  }
-                ]
-              },
-              {
-                "id": "links",
-                "value": [
-                  {
-                    "title": "Jump to HTTP logs",
-                    "url": "/d/exercises-requests-logs?time=${__data.fields[0].numeric}&time.window=15000&var-correlation_id=${__data.fields[\"request_id\"]}&var-correlation_origin=${__data.fields[\"origin\"]}",
-                    "targetBlank": false,
-                    "oneClick": true
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "outcome"
-            },
-            "properties": [
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-text"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byRegexp",
-              "options": "/^(origin|message|request_id|@timestamp)$/"
-            },
-            "properties": [
-              {
-                "id": "links",
-                "value": [
-                  {
-                    "title": "Jump to HTTP logs",
-                    "url": "/d/exercises-requests-logs?time=${__data.fields[0].numeric}&time.window=15000&var-correlation_id=${__data.fields[\"request_id\"]}&var-correlation_origin=${__data.fields[\"origin\"]}",
-                    "targetBlank": false,
-                    "oneClick": true
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      "description": "Click **SELECT** / **INSERT** / etc. to load that request’s HTTP logs below (time centered on the SQL line).",
-      "gridPos": {
-        "h": 10,
-        "w": 24,
-        "x": 0,
-        "y": 24
-      },
-      "id": 7,
-      "options": {
-        "cellHeight": "sm",
-        "footer": {
-          "countRows": false,
-          "fields": "",
-          "reducer": [
-            "sum"
-          ],
-          "show": false
-        },
-        "showHeader": true,
-        "sortBy": [
-          {
-            "desc": true,
-            "displayName": "@timestamp"
-          }
-        ]
-      },
-      "pluginVersion": "11.5.2",
-      "targets": [
-        {
-          "bucketAggs": [],
-          "datasource": {
-            "type": "elasticsearch",
-            "uid": "elasticsearch"
-          },
-          "metrics": [
-            {
-              "id": "1",
-              "settings": {
-                "limit": "300",
-                "orderBy": "Desc",
-                "orderByTime": "true"
-              },
-              "type": "logs"
-            }
-          ],
-          "query": "service:\"exercises-postgres\" AND application_name.keyword:*exercises-* AND (ps:SELECT OR ps:INSERT OR ps:UPDATE OR ps:DELETE OR message:*statement*) AND NOT message:*SELECT 1*",
-          "refId": "A",
-          "timeField": "@timestamp"
-        }
-      ],
-      "title": "Recent SQL operations",
-      "transformations": [
-        {
-          "id": "extractFields",
-          "options": {
-            "format": "regexp",
-            "regexp": "^(?<origin>exercises-[^;]+);req=(?<request_id>.+)$",
-            "source": "application_name"
-          }
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "_id": true,
-              "_index": true,
-              "_source": true,
-              "_type": true,
-              "agent": true,
-              "application_name": true,
-              "ecs": true,
-              "highlight": true,
-              "host": true,
-              "input": true,
-              "log": true,
-              "service": true,
-              "sort": true,
-              "tags": true
-            },
-            "indexByName": {
-              "@timestamp": 0,
-              "origin": 1,
-              "request_id": 2,
-              "ps": 3,
-              "message": 4,
-              "error_severity": 5
-            },
-            "renameByName": {
-              "error_severity": "outcome",
-              "ps": "op"
-            }
-          }
-        }
-      ],
-      "type": "table"
-    },
-    {
-      "datasource": {
-        "type": "elasticsearch",
-        "uid": "elasticsearch"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "text",
-                "value": null
-              },
-              {
-                "color": "#a8b5a8",
-                "value": 200
-              },
-              {
-                "color": "yellow",
-                "value": 400
-              },
-              {
-                "color": "red",
-                "value": 500
-              }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "message"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 420
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "auto",
-                  "wrapText": true
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "description": "Handler logs for the SQL row you clicked (request received / succeeded only), scoped to ±7s around that SQL timestamp.",
-      "gridPos": {
-        "h": 6,
-        "w": 24,
-        "x": 0,
-        "y": 36
-      },
-      "id": 6,
-      "options": {
-        "cellHeight": "sm",
-        "footer": {
-          "countRows": false,
-          "fields": "",
-          "reducer": [
-            "sum"
-          ],
-          "show": false
-        },
-        "showHeader": true,
-        "sortBy": [
-          {
-            "desc": false,
-            "displayName": "@timestamp"
-          }
-        ]
-      },
-      "pluginVersion": "11.5.2",
-      "targets": [
-        {
-          "bucketAggs": [],
-          "datasource": {
-            "type": "elasticsearch",
-            "uid": "elasticsearch"
-          },
-          "metrics": [
-            {
-              "id": "1",
-              "settings": {
-                "limit": "50",
-                "orderBy": "Asc",
-                "orderByTime": "true"
-              },
-              "type": "logs"
-            }
-          ],
-          "query": "_exists_:request_id AND request_id:\"$correlation_id\" AND service:\"$correlation_origin\" AND _exists_:controller AND (message:*request received* OR message:*succeeded* OR message:*failed* OR message:*not found*) AND NOT message:*result*",
-          "refId": "A",
-          "timeField": "@timestamp"
-        }
-      ],
-      "title": "HTTP handler for selected SQL",
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "_id": true,
-              "_index": true,
-              "_source": true,
-              "_type": true,
-              "agent": true,
-              "ecs": true,
-              "highlight": true,
-              "host": true,
-              "input": true,
-              "log": true,
-              "request_id": true,
-              "sort": true,
-              "tags": true
-            },
-            "indexByName": {
-              "@timestamp": 0,
-              "service": 1,
-              "controller": 2,
-              "method": 3,
-              "path": 4,
-              "message": 5,
-              "level": 6
-            },
-            "renameByName": {}
-          }
-        }
-      ],
-      "type": "table"
-    },
-    {
-      "gridPos": {
-        "h": 2,
-        "w": 24,
-        "x": 0,
-        "y": 34
-      },
-      "id": 8,
-      "options": {
-        "code": {
-          "language": "html",
-          "showLineNumbers": false,
-          "showMiniMap": false
-        },
-        "content": "<div style=\"display:flex;align-items:center;gap:12px;flex-wrap:wrap;\"><span style=\"color:#8e8e8e;\">Selected:</span><code style=\"font-size:13px;\">${correlation_origin} · ${correlation_id}</code><a href=\"/d/exercises-requests-logs${__url_time_range}&amp;var-correlation_id=${correlation_id}&amp;var-correlation_origin=${correlation_origin}\" style=\"display:inline-block;padding:5px 14px;border-radius:3px;border:1px solid #464646;background:#2b2b2f;color:#ccccdc;text-decoration:none;font-size:13px;font-weight:500;line-height:1.2;\">Refresh</a><a href=\"/d/exercises-requests-logs?from=now-6h&amp;to=now&amp;var-correlation_id=&amp;var-correlation_origin=\" style=\"display:inline-block;padding:5px 14px;border-radius:3px;background:#3274d9;color:#fff;text-decoration:none;font-size:13px;font-weight:500;line-height:1.2;\">Reset</a></div>",
-        "mode": "html"
-      },
-      "pluginVersion": "11.5.2",
-      "title": "",
-      "transparent": true,
-      "type": "text"
     }
   ],
   "refresh": "30s",
@@ -1374,5 +1088,5 @@
   "timezone": "browser",
   "title": "Exercises HTTP requests & SQL logs",
   "uid": "exercises-requests-logs",
-  "version": 50
+  "version": 54
 }
