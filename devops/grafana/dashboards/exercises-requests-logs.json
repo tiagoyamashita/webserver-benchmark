@@ -25,7 +25,136 @@
         "type": "elasticsearch",
         "uid": "elasticsearch"
       },
-      "description": "HTTP access/controller lines and Postgres SQL execute logs. Each line shows service, path, SQL op, session/request ids, then the message.",
+      "description": "HTTP access/controller lines and Postgres SQL execute logs. Probe traffic (health, metrics, GET /) is hidden.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "path"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "path_rust"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "sql"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "DELETE": {
+                        "color": "red",
+                        "index": 0
+                      },
+                      "INSERT": {
+                        "color": "green",
+                        "index": 1
+                      },
+                      "SELECT": {
+                        "color": "blue",
+                        "index": 2
+                      },
+                      "UPDATE": {
+                        "color": "yellow",
+                        "index": 3
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "message"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 480
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "status"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "status_rust"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          }
+        ]
+      },
       "gridPos": {
         "h": 24,
         "w": 24,
@@ -34,28 +163,21 @@
       },
       "id": 1,
       "options": {
-        "dedupStrategy": "none",
-        "enableLogDetails": true,
-        "prettifyLogMessage": false,
-        "showCommonLabels": false,
-        "showLabels": false,
-        "showTime": true,
-        "sortOrder": "Descending",
-        "wrapLogMessage": true,
-        "displayedFields": [
-          "service",
-          "path",
-          "fields.path",
-          "method",
-          "fields.method",
-          "status",
-          "fields.status",
-          "ps",
-          "session_id",
-          "request_id",
-          "fields.request_id",
-          "application_name",
-          "controller"
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "@timestamp"
+          }
         ]
       },
       "pluginVersion": "11.5.2",
@@ -70,20 +192,91 @@
             {
               "id": "1",
               "settings": {
-                "limit": "300",
-                "orderBy": "Desc",
-                "orderByTime": "true"
+                "size": "300"
               },
-              "type": "logs"
+              "type": "raw_data"
             }
           ],
-          "query": "((service:\"exercises-java\" OR service:\"exercises-rust\" OR service:\"exercises-python\" OR service:\"exercises-react-node\") AND (_exists_:path OR _exists_:fields.path OR _exists_:controller OR _exists_:request_id OR _exists_:fields.request_id OR _exists_:status OR _exists_:fields.status) AND NOT (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\" OR fields.path:\"/health\" OR fields.path:\"/api/health\" OR fields.path:\"/metrics\" OR fields.path:\"/actuator/prometheus\" OR fields.path:\"/api/observability/health\" OR controller:health OR fields.controller:health)) OR (service:\"exercises-postgres\" AND (message:*execute* OR message:statement*) AND NOT message:duration* AND NOT message:*set_config* AND NOT message:*SELECT 1* AND NOT message:*connection* AND NOT message:*disconnection*)",
+          "query": "((service:\"exercises-java\" OR service:\"exercises-rust\" OR service:\"exercises-python\" OR service:\"exercises-react-node\") AND (_exists_:path OR _exists_:fields.path OR _exists_:controller OR _exists_:request_id OR _exists_:fields.request_id OR _exists_:status OR _exists_:fields.status) AND NOT (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\" OR fields.path:\"/health\" OR fields.path:\"/api/health\" OR fields.path:\"/metrics\" OR fields.path:\"/actuator/prometheus\" OR fields.path:\"/api/observability/health\" OR controller:health OR fields.controller:health OR ((path:\"/\" OR fields.path:\"/\") AND (method:GET OR fields.method:GET)))) OR (service:\"exercises-postgres\" AND (message:*execute* OR message:statement*) AND NOT message:duration* AND NOT message:*set_config* AND NOT message:*SELECT 1* AND NOT message:*connection* AND NOT message:*disconnection*)",
           "refId": "A",
           "timeField": "@timestamp"
         }
       ],
       "title": "Request & SQL logs",
-      "type": "logs"
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "format": "regexp",
+            "regexp": "^(?<origin>exercises-[^;]+);req=(?<request_id_pg>.+)$",
+            "source": "application_name"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "_id": true,
+              "_index": true,
+              "_source": true,
+              "_type": true,
+              "agent": true,
+              "backend_type": true,
+              "dbname": true,
+              "ecs": true,
+              "error_severity": true,
+              "event": true,
+              "highlight": true,
+              "host": true,
+              "input": true,
+              "level": true,
+              "line_num": true,
+              "log": true,
+              "logger_name": true,
+              "pid": true,
+              "query_id": true,
+              "remote_host": true,
+              "remote_port": true,
+              "session_start": true,
+              "sort": true,
+              "springAppName": true,
+              "tags": true,
+              "txid": true,
+              "user": true,
+              "vxid": true
+            },
+            "indexByName": {
+              "@timestamp": 0,
+              "service": 1,
+              "path": 2,
+              "fields.path": 3,
+              "method": 4,
+              "fields.method": 5,
+              "status": 6,
+              "fields.status": 7,
+              "ps": 8,
+              "session_id": 9,
+              "request_id": 10,
+              "fields.request_id": 11,
+              "request_id_pg": 12,
+              "origin": 13,
+              "application_name": 14,
+              "controller": 15,
+              "detail": 16,
+              "ms": 17,
+              "message": 18
+            },
+            "renameByName": {
+              "fields.method": "method_rust",
+              "fields.path": "path_rust",
+              "fields.request_id": "request_id_rust",
+              "fields.status": "status_rust",
+              "ps": "sql"
+            }
+          }
+        }
+      ],
+      "type": "table"
     }
   ],
   "refresh": "30s",
@@ -106,5 +299,5 @@
   "timezone": "browser",
   "title": "Exercises HTTP requests & SQL logs",
   "uid": "exercises-requests-logs",
-  "version": 69
+  "version": 72
 }
