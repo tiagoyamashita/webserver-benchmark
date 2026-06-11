@@ -11,6 +11,7 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.ContentCachingRequestWrapper;
 
 /** Accept or generate {@code X-Request-ID} for log / SQL correlation. */
 @Component
@@ -35,8 +36,12 @@ public class RequestIdFilter extends OncePerRequestFilter {
       DashboardPageContext.set(dashboardPage);
     }
     response.setHeader(HEADER, requestId);
+    HttpServletRequest wrapped =
+        request instanceof ContentCachingRequestWrapper cached
+            ? cached
+            : new ContentCachingRequestWrapper(request);
     try {
-      filterChain.doFilter(request, response);
+      filterChain.doFilter(wrapped, response);
     } finally {
       RequestIdContext.clear();
       DashboardPageContext.clear();

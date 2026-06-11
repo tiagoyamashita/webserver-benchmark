@@ -4,7 +4,9 @@
 #
 # Start / leave running while restarting apps:
 #   podman compose -f docker-compose.observability.yml up -d
+# After editing devops/grafana/dashboards/*.json (on Windows, auto-reload often fails):
 #   podman compose -f docker-compose.observability.yml restart grafana
+# Then hard-refresh the browser (Ctrl+Shift+R). Dashboard: Exercises → Exercises HTTP requests & SQL logs
 #
 # After editing prometheus/prometheus.yml (new scrape jobs), reload Prometheus:
 #   curl -X POST http://127.0.0.1:9090/-/reload

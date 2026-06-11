@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Map;
 import net.logstash.logback.argument.StructuredArguments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,18 +31,24 @@ public class HttpRequestLoggingFilter extends OncePerRequestFilter {
     String requestId = RequestIdContext.get();
     String dashboardPage = DashboardPageContext.get();
     String idForLog = requestId != null ? requestId : "";
-    log.info(
-        "{} {} request received request_id={}",
-        request.getMethod(),
-        request.getRequestURI(),
-        idForLog,
-        StructuredArguments.kv("method", request.getMethod()),
-        StructuredArguments.kv("path", request.getRequestURI()),
-        StructuredArguments.kv("request_id", requestId),
-        StructuredArguments.kv("phase", "received"));
+    Map<String, String> headers = HttpRequestSnapshot.headers(request);
     try {
       filterChain.doFilter(request, response);
     } finally {
+      Map<String, Object> urlParams = HttpRequestSnapshot.urlParams(request);
+      Map<String, Object> body = HttpRequestSnapshot.body(request);
+      log.info(
+          "{} {} request received request_id={}",
+          request.getMethod(),
+          request.getRequestURI(),
+          idForLog,
+          StructuredArguments.kv("method", request.getMethod()),
+          StructuredArguments.kv("path", request.getRequestURI()),
+          StructuredArguments.kv("request_id", requestId),
+          StructuredArguments.kv("phase", "received"),
+          StructuredArguments.kv("headers", headers),
+          StructuredArguments.kv("url_params", urlParams),
+          StructuredArguments.kv("body", body));
       long ms = (System.nanoTime() - start) / 1_000_000L;
       String pageForLog = dashboardPage != null ? dashboardPage : "";
       log.info(

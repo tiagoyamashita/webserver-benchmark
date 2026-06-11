@@ -14,6 +14,7 @@ from exercises.web.items_api import register_items_routes
 from exercises.web.openapi_routes import register_openapi_routes
 from exercises.web.observability_logging import observability_enabled
 from exercises.web.request_id import resolve_request_id
+from exercises.web.request_snapshot import request_body, request_headers, request_url_params
 from exercises.web.junit_report import (
     existing_report_hints,
     load_latest_results,
@@ -85,6 +86,9 @@ def create_app() -> Flask:
                     "path": request.path,
                     "request_id": g.request_id,
                     "phase": "received",
+                    "headers": request_headers(request),
+                    "url_params": request_url_params(request),
+                    "body": request_body(request),
                 },
             )
 

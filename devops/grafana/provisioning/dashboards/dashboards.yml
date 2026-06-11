@@ -7,6 +7,9 @@ providers:
     type: file
     disableDeletion: false
     editable: true
+    # UI saves go to Grafana's DB and can block you from seeing JSON edits on disk.
+    allowUiUpdates: false
+    # File watcher often misses bind-mount changes on Windows — restart Grafana after editing JSON.
     updateIntervalSeconds: 10
     options:
       path: /var/lib/grafana/dashboards

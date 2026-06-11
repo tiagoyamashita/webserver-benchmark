@@ -1,4 +1,4 @@
-﻿{
+{
   "annotations": {
     "list": [
       {
@@ -42,7 +42,7 @@
           "links": [
             {
               "title": "",
-              "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__data.fields.correlate_id}",
+              "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__data.fields.correlate_id:percentencode}",
               "oneClick": true,
               "targetBlank": false
             }
@@ -74,7 +74,7 @@
                 "value": [
                   {
                     "title": "",
-                    "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__data.fields.correlate_id}",
+                    "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__data.fields.correlate_id:percentencode}",
                     "oneClick": true,
                     "targetBlank": false
                   }
@@ -93,7 +93,7 @@
                 "value": [
                   {
                     "title": "",
-                    "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__data.fields.correlate_id}",
+                    "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__data.fields.correlate_id:percentencode}",
                     "oneClick": true,
                     "targetBlank": false
                   }
@@ -116,7 +116,7 @@
                 "value": [
                   {
                     "title": "",
-                    "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__data.fields.correlate_id}",
+                    "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__data.fields.correlate_id:percentencode}",
                     "oneClick": true,
                     "targetBlank": false
                   }
@@ -139,7 +139,7 @@
                 "value": [
                   {
                     "title": "",
-                    "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__data.fields.correlate_id}",
+                    "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__data.fields.correlate_id:percentencode}",
                     "oneClick": true,
                     "targetBlank": false
                   }
@@ -164,7 +164,7 @@
                 "value": [
                   {
                     "title": "",
-                    "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__data.fields.correlate_id}",
+                    "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__data.fields.correlate_id:percentencode}",
                     "oneClick": true,
                     "targetBlank": false
                   }
@@ -220,7 +220,7 @@
                 "value": [
                   {
                     "title": "",
-                    "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__data.fields.correlate_id}",
+                    "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__data.fields.correlate_id:percentencode}",
                     "oneClick": true,
                     "targetBlank": false
                   }
@@ -245,7 +245,7 @@
                 "value": [
                   {
                     "title": "",
-                    "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__data.fields.correlate_id}",
+                    "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__data.fields.correlate_id:percentencode}",
                     "oneClick": true,
                     "targetBlank": false
                   }
@@ -270,7 +270,7 @@
                 "value": [
                   {
                     "title": "",
-                    "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__data.fields.correlate_id}",
+                    "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__data.fields.correlate_id:percentencode}",
                     "oneClick": true,
                     "targetBlank": false
                   }
@@ -293,7 +293,7 @@
                 "value": [
                   {
                     "title": "",
-                    "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__value.raw}",
+                    "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__value.raw:percentencode}",
                     "oneClick": true,
                     "targetBlank": false
                   }
@@ -312,7 +312,7 @@
                 "value": [
                   {
                     "title": "",
-                    "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__value.raw}",
+                    "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__value.raw:percentencode}",
                     "oneClick": true,
                     "targetBlank": false
                   }
@@ -331,7 +331,7 @@
                 "value": [
                   {
                     "title": "",
-                    "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__value.raw}",
+                    "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__value.raw:percentencode}",
                     "oneClick": true,
                     "targetBlank": false
                   }
@@ -350,18 +350,72 @@
                 "value": [
                   {
                     "title": "",
-                    "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__value.raw}",
+                    "url": "${__url.path}${__url.params:exclude:var-correlation_id}&var-correlation_id=${__value.raw:percentencode}",
                     "oneClick": true,
                     "targetBlank": false
                   }
                 ]
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "body"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 220
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "json-view"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "headers"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 220
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "json-view"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "url_params"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 200
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "json-view"
+                }
+              }
+            ]
           }
         ]
       },
       "gridPos": {
-        "h": 10,
+        "h": 12,
         "w": 24,
         "x": 0,
         "y": 0
@@ -663,6 +717,30 @@
                   "max"
                 ],
                 "operation": "aggregate"
+              },
+              "body": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "headers": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "url_params": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "name": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
               }
             }
           }
@@ -677,6 +755,21 @@
                 "field": "_epoch_ms"
               }
             ]
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "body",
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [
+                "body",
+                "name"
+              ],
+              "reducer": "firstNotNull"
+            },
+            "replaceFields": false
           }
         },
         {
@@ -705,6 +798,7 @@
               "line_num": true,
               "log": true,
               "logger_name": true,
+              "name": true,
               "pid": true,
               "query_id": true,
               "remote_host": true,
@@ -726,21 +820,24 @@
               "log_seq": 2,
               "service": 3,
               "path": 4,
-              "message": 5,
-              "fields.path": 6,
-              "method": 7,
-              "fields.method": 8,
-              "status": 9,
-              "fields.status": 10,
-              "ps": 11,
-              "correlate_id": 12,
-              "request_id": 13,
-              "fields.request_id": 14,
-              "request_id_pg": 15,
-              "origin": 16,
-              "controller": 17,
-              "detail": 18,
-              "ms": 19
+              "method": 5,
+              "fields.method": 6,
+              "headers": 7,
+              "url_params": 8,
+              "body": 9,
+              "message": 10,
+              "fields.path": 11,
+              "status": 12,
+              "fields.status": 13,
+              "ps": 14,
+              "correlate_id": 15,
+              "request_id": 16,
+              "fields.request_id": 17,
+              "request_id_pg": 18,
+              "origin": 19,
+              "controller": 20,
+              "detail": 21,
+              "ms": 22
             },
             "renameByName": {
               "@timestamp": "event_time",
@@ -761,12 +858,743 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 10
+        "y": 12
       },
       "id": 100,
       "panels": [],
       "title": "Request detail — click a row above or paste Request ID",
       "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "elasticsearch"
+      },
+      "description": "Incoming HTTP request for the selected ID: method, path, headers, url_params, and body (all JSON). Legacy logs stored the POST payload in name — that is coalesced into body.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "method"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 72
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "method_rust"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 72
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "path"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 220
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "path_rust"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 220
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "body"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 280
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "json-view"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "headers"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 280
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "json-view"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "url_params"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 220
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "json-view"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 13
+      },
+      "id": 4,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "event_time"
+          }
+        ]
+      },
+      "pluginVersion": "11.5.2",
+      "targets": [
+        {
+          "bucketAggs": [],
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "elasticsearch"
+          },
+          "metrics": [
+            {
+              "id": "1",
+              "settings": {
+                "size": "50"
+              },
+              "type": "raw_data"
+            }
+          ],
+          "query": "(service:\"exercises-java\" OR service:\"exercises-rust\" OR service:\"exercises-python\" OR service:\"exercises-react-node\") AND (_exists_:path OR _exists_:fields.path OR _exists_:controller OR _exists_:request_id OR _exists_:fields.request_id OR _exists_:status OR _exists_:fields.status) AND NOT (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\" OR fields.path:\"/health\" OR fields.path:\"/api/health\" OR fields.path:\"/metrics\" OR fields.path:\"/actuator/prometheus\" OR fields.path:\"/api/observability/health\" OR controller:health OR fields.controller:health OR ((path:\"/\" OR fields.path:\"/\") AND (method:GET OR fields.method:GET)))",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ],
+      "title": "Incoming HTTP request — ${correlation_id}",
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "format": "regexp",
+            "regexp": "^(?<origin>exercises-[^;]+);req=(?<request_id_pg>.+)$",
+            "source": "application_name"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "correlate_id",
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [
+                "request_id",
+                "fields.request_id",
+                "request_id_pg"
+              ],
+              "reducer": "firstNotNull"
+            },
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "filterByValue",
+          "options": {
+            "filters": [
+              {
+                "config": {
+                  "id": "equal",
+                  "options": {
+                    "value": "${correlation_id}"
+                  }
+                },
+                "fieldName": "correlate_id"
+              }
+            ],
+            "match": "all",
+            "type": "include"
+          }
+        },
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "dateFormat": "x",
+                "destinationType": "number",
+                "targetField": "_epoch_ms"
+              }
+            ],
+            "fields": {
+              "@timestamp": "number"
+            }
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "body",
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [
+                "body",
+                "name"
+              ],
+              "reducer": "firstNotNull"
+            },
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": false,
+                "field": "_epoch_ms"
+              }
+            ]
+          }
+        },
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "@timestamp": {
+                "aggregations": [
+                  "firstNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "body": {
+                "aggregations": [
+                  "firstNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "correlate_id": {
+                "aggregations": [],
+                "operation": "groupby"
+              },
+              "fields.method": {
+                "aggregations": [
+                  "firstNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "fields.path": {
+                "aggregations": [
+                  "firstNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "fields.request_id": {
+                "aggregations": [
+                  "firstNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "headers": {
+                "aggregations": [
+                  "firstNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "method": {
+                "aggregations": [
+                  "firstNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "path": {
+                "aggregations": [
+                  "firstNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "request_id": {
+                "aggregations": [
+                  "firstNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "service": {
+                "aggregations": [
+                  "firstNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "url_params": {
+                "aggregations": [
+                  "firstNotNull"
+                ],
+                "operation": "aggregate"
+              }
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "_epoch_ms": true,
+              "_id": true,
+              "_index": true,
+              "_source": true,
+              "_type": true,
+              "agent": true,
+              "ecs": true,
+              "event": true,
+              "highlight": true,
+              "host": true,
+              "input": true,
+              "level": true,
+              "log": true,
+              "log_seq": true,
+              "name": true,
+              "phase": true,
+              "phase_key": true,
+              "sort": true,
+              "tags": true
+            },
+            "indexByName": {
+              "@timestamp": 0,
+              "service": 1,
+              "method": 2,
+              "fields.method": 3,
+              "path": 4,
+              "fields.path": 5,
+              "headers": 6,
+              "url_params": 7,
+              "body": 8,
+              "correlate_id": 9,
+              "request_id": 10,
+              "fields.request_id": 11
+            },
+            "renameByName": {
+              "@timestamp": "event_time",
+              "fields.method": "method_rust",
+              "fields.path": "path_rust",
+              "fields.request_id": "request_id_rust"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "elasticsearch"
+      },
+      "description": "HTTP request parts for the selected ID as a field list: path, url, parameters (url_params), body, headers, and method.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "field"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "value"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 640
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "value"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "json-view",
+                  "wrapText": true
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 19
+      },
+      "id": 5,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "11.5.2",
+      "targets": [
+        {
+          "bucketAggs": [],
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "elasticsearch"
+          },
+          "metrics": [
+            {
+              "id": "1",
+              "settings": {
+                "size": "50"
+              },
+              "type": "raw_data"
+            }
+          ],
+          "query": "(service:\"exercises-java\" OR service:\"exercises-rust\" OR service:\"exercises-python\" OR service:\"exercises-react-node\") AND (_exists_:path OR _exists_:fields.path OR _exists_:controller OR _exists_:request_id OR _exists_:fields.request_id OR _exists_:status OR _exists_:fields.status) AND NOT (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\" OR fields.path:\"/health\" OR fields.path:\"/api/health\" OR fields.path:\"/metrics\" OR fields.path:\"/actuator/prometheus\" OR fields.path:\"/api/observability/health\" OR controller:health OR fields.controller:health OR ((path:\"/\" OR fields.path:\"/\") AND (method:GET OR fields.method:GET)))",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ],
+      "title": "HTTP request fields — ${correlation_id}",
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "format": "regexp",
+            "regexp": "^(?<origin>exercises-[^;]+);req=(?<request_id_pg>.+)$",
+            "source": "application_name"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "correlate_id",
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [
+                "request_id",
+                "fields.request_id",
+                "request_id_pg"
+              ],
+              "reducer": "firstNotNull"
+            },
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "filterByValue",
+          "options": {
+            "filters": [
+              {
+                "config": {
+                  "id": "equal",
+                  "options": {
+                    "value": "${correlation_id}"
+                  }
+                },
+                "fieldName": "correlate_id"
+              }
+            ],
+            "match": "all",
+            "type": "include"
+          }
+        },
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "dateFormat": "x",
+                "destinationType": "number",
+                "targetField": "_epoch_ms"
+              }
+            ],
+            "fields": {
+              "@timestamp": "number"
+            }
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "body",
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [
+                "body",
+                "name"
+              ],
+              "reducer": "firstNotNull"
+            },
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": false,
+                "field": "_epoch_ms"
+              }
+            ]
+          }
+        },
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "body": {
+                "aggregations": [
+                  "firstNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "correlate_id": {
+                "aggregations": [],
+                "operation": "groupby"
+              },
+              "fields.method": {
+                "aggregations": [
+                  "firstNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "fields.path": {
+                "aggregations": [
+                  "firstNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "headers": {
+                "aggregations": [
+                  "firstNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "method": {
+                "aggregations": [
+                  "firstNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "path": {
+                "aggregations": [
+                  "firstNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "url_params": {
+                "aggregations": [
+                  "firstNotNull"
+                ],
+                "operation": "aggregate"
+              }
+            }
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "path",
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [
+                "path",
+                "fields.path"
+              ],
+              "reducer": "firstNotNull"
+            },
+            "replaceFields": true
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "url",
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [
+                "path"
+              ],
+              "reducer": "firstNotNull"
+            },
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "method",
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [
+                "method",
+                "fields.method"
+              ],
+              "reducer": "firstNotNull"
+            },
+            "replaceFields": true
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "_epoch_ms": true,
+              "correlate_id": true,
+              "fields.method": true,
+              "fields.path": true
+            },
+            "indexByName": {
+              "method": 0,
+              "path": 1,
+              "url": 2,
+              "url_params": 3,
+              "body": 4,
+              "headers": 5
+            },
+            "renameByName": {
+              "url_params": "parameters"
+            }
+          }
+        },
+        {
+          "id": "transpose"
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "Field": "field",
+              "Value": "value",
+              "field": "field",
+              "value": "value"
+            }
+          }
+        }
+      ],
+      "type": "table"
     },
     {
       "datasource": {
@@ -841,7 +1669,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 11
+        "y": 27
       },
       "id": 2,
       "options": {
@@ -879,13 +1707,55 @@
               "type": "raw_data"
             }
           ],
-          "query": "(service:\"exercises-java\" OR service:\"exercises-rust\" OR service:\"exercises-python\" OR service:\"exercises-react-node\") AND (request_id:\"$correlation_id\" OR fields.request_id:\"$correlation_id\") AND NOT (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\" OR fields.path:\"/health\" OR fields.path:\"/api/health\" OR fields.path:\"/metrics\" OR fields.path:\"/actuator/prometheus\" OR fields.path:\"/api/observability/health\" OR controller:health OR fields.controller:health OR ((path:\"/\" OR fields.path:\"/\") AND (method:GET OR fields.method:GET)))",
+          "query": "(service:\"exercises-java\" OR service:\"exercises-rust\" OR service:\"exercises-python\" OR service:\"exercises-react-node\") AND (_exists_:path OR _exists_:fields.path OR _exists_:controller OR _exists_:request_id OR _exists_:fields.request_id OR _exists_:status OR _exists_:fields.status) AND NOT (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\" OR fields.path:\"/health\" OR fields.path:\"/api/health\" OR fields.path:\"/metrics\" OR fields.path:\"/actuator/prometheus\" OR fields.path:\"/api/observability/health\" OR controller:health OR fields.controller:health OR ((path:\"/\" OR fields.path:\"/\") AND (method:GET OR fields.method:GET)))",
           "refId": "A",
           "timeField": "@timestamp"
         }
       ],
       "title": "HTTP request log — ${correlation_id}",
       "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "format": "regexp",
+            "regexp": "^(?<origin>exercises-[^;]+);req=(?<request_id_pg>.+)$",
+            "source": "application_name"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "correlate_id",
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [
+                "request_id",
+                "fields.request_id",
+                "request_id_pg"
+              ],
+              "reducer": "firstNotNull"
+            },
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "filterByValue",
+          "options": {
+            "filters": [
+              {
+                "config": {
+                  "id": "equal",
+                  "options": {
+                    "value": "${correlation_id}"
+                  }
+                },
+                "fieldName": "correlate_id"
+              }
+            ],
+            "match": "all",
+            "type": "include"
+          }
+        },
         {
           "id": "convertFieldType",
           "options": {
@@ -1151,7 +2021,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 20
+        "y": 36
       },
       "id": 3,
       "options": {
@@ -1378,9 +2248,9 @@
             "filters": [
               {
                 "config": {
-                  "id": "regex",
+                  "id": "equal",
                   "options": {
-                    "value": "^${correlation_id}$"
+                    "value": "${correlation_id}"
                   }
                 },
                 "fieldName": "correlate_id"
@@ -1415,6 +2285,7 @@
         "hide": 0,
         "label": "Selected request ID",
         "name": "correlation_id",
+        "refresh": 1,
         "options": [
           {
             "selected": true,
@@ -1436,5 +2307,5 @@
   "timezone": "browser",
   "title": "Exercises HTTP requests & SQL logs",
   "uid": "exercises-requests-logs",
-  "version": 91
+  "version": 97
 }

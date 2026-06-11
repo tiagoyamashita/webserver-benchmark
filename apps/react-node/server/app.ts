@@ -18,6 +18,7 @@ import { metricsHandler, metricsMiddleware } from "./metrics.js";
 import { registerOpenApiRoutes } from "./openapi.js";
 import { probeById } from "./probe.js";
 import { requestIdMiddleware } from "./request-id.js";
+import { requestBody, requestHeaders, requestUrlParams } from "./request-snapshot.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SOURCE = "server/app.ts";
@@ -58,6 +59,9 @@ export function createApp(options: CreateAppOptions = {}): Express {
         path: req.originalUrl,
         request_id: req.requestId,
         phase: "received",
+        headers: requestHeaders(req),
+        url_params: requestUrlParams(req),
+        body: requestBody(req),
       });
       res.on("finish", () => {
         writeLog("INFO", `${req.method} ${req.originalUrl} ${res.statusCode}`, {

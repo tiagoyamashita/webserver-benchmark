@@ -10,6 +10,17 @@ Optional **Grafana OSS** setup for dashboards (metrics, logs, or anything you wi
 | `provisioning/datasources/` | Data source definitions loaded at startup |
 | `provisioning/dashboards/` | Dashboard sidecar config (loads JSON from `dashboards/`) |
 | `dashboards/` | Dashboard JSON (e.g. **`exercises-java-python-rust.json`** — Prometheus app metrics + PostgreSQL + log pipeline row; **`exercises-log-pipeline.json`** — Filebeat/Logstash + ES ingest; **`exercises-postgres.json`** — items-only SQL view; **`exercises-requests-logs.json`** — HTTP status + Postgres SQL from Elasticsearch). Kibana mirror: **`devops/elk/kibana/import-requests-logs.ps1`** → **Exercises — HTTP & Postgres logs** |
+
+### Dashboard JSON not updating in the UI?
+
+Grafana copies provisioned dashboards into its **`exercises_grafana_data`** volume. On **Windows**, the 10s file scan often **does not see** edits to bind-mounted `dashboards/*.json`.
+
+1. Edit JSON under **`devops/grafana/dashboards/`** (save as UTF-8 **without** BOM).
+2. Restart Grafana: `podman compose -f docker-compose.observability.yml restart grafana` (from repo root).
+3. Hard-refresh the browser (**Ctrl+Shift+R**). Open **Dashboards → Exercises → Exercises HTTP requests & SQL logs** (uid `exercises-requests-logs`).
+4. If it still looks old: open the dashboard → **Settings (gear) → Delete**, wait ~10s or restart Grafana again (file provisioning re-imports it).
+
+`provisioning/dashboards/dashboards.yml` sets **`allowUiUpdates: false`** so saves in the Grafana UI do not replace the JSON on disk.
 | `provisioning/alerting/` | Unified alert rules (e.g. **`log-pipeline.yaml`** — Filebeat/Logstash failures) |
 
 ## Bundled dashboard (root compose)

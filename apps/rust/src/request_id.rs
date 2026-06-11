@@ -4,6 +4,7 @@ use axum::extract::Request;
 use axum::http::HeaderValue;
 use axum::middleware::Next;
 use axum::response::Response;
+use serde_json::{Map, Value};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -79,6 +80,44 @@ fn is_safe_token(value: &str) -> bool {
             .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
 }
 
+fn collect_headers(req: &Request) -> Map<String, Value> {
+    const ALLOW: &[&str] = &[
+        "x-request-id",
+        "x-request-origin",
+        "content-type",
+        "accept",
+        "user-agent",
+        "host",
+    ];
+    let mut out = Map::new();
+    for key in ALLOW {
+        if let Some(value) = req.headers().get(*key).and_then(|v| v.to_str().ok()) {
+            out.insert((*key).to_string(), Value::String(value.to_string()));
+        }
+    }
+    out
+}
+
+fn collect_url_params(query: Option<&str>) -> Map<String, Value> {
+    let Some(query) = query else {
+        return Map::new();
+    };
+    let mut out = Map::new();
+    for pair in query.split('&') {
+        if pair.is_empty() {
+            continue;
+        }
+        let (key, value) = pair
+            .split_once('=')
+            .map(|(k, v)| (k, v))
+            .unwrap_or((pair, ""));
+        if !key.is_empty() {
+            out.insert(key.to_string(), Value::String(value.to_string()));
+        }
+    }
+    out
+}
+
 fn generate_request_id() -> String {
     static COUNTER: AtomicU64 = AtomicU64::new(0);
     let nanos = SystemTime::now()
@@ -104,12 +143,21 @@ pub async fn assign_request_id(mut req: Request, next: Next) -> Response {
         .unwrap_or(0);
     let method = req.method().to_string();
     let path = req.uri().path().to_string();
+    let headers = collect_headers(&req);
+    let url_params = collect_url_params(req.uri().query());
+    let headers_json =
+        serde_json::to_string(&headers).unwrap_or_else(|_| "{}".to_string());
+    let url_params_json =
+        serde_json::to_string(&url_params).unwrap_or_else(|_| "{}".to_string());
     tracing::info!(
         method = %method,
         path = %path,
         request_id = %id,
         log_seq = log_seq,
         phase = "received",
+        headers = %headers_json,
+        url_params = %url_params_json,
+        body = "{}",
         "{method} {path} request received request_id={id}"
     );
     let mut res = next.run(req).await;
