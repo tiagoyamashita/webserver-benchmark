@@ -1,19 +1,22 @@
 {
   "attributes": {
-    "title": "HTTP — handler logs (correlate)",
-    "description": "Controller request received / succeeded / failed lines. Filter by request_id (click a link in SQL CRUD, or add request_id: \\\"…\\\" in the bar).",
+    "title": "All logs for request (correlate)",
+    "description": "Java relay, Rust API, HTTP access, and Postgres SQL for one request_id (click correlation.request_id in SQL CRUD).",
     "columns": [
       "@timestamp",
       "service",
       "controller",
       "method",
       "path",
+      "ps",
+      "application_name",
       "message",
-      "level"
+      "level",
+      "request_id"
     ],
     "sort": [["@timestamp", "asc"]],
     "kibanaSavedObjectMeta": {
-      "searchSourceJSON": "{\"query\":{\"query\":\"_exists_: request_id and _exists_: controller and (message: *request received* or message: *succeeded* or message: *failed* or message: *not found*) and not message: *result*\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
+      "searchSourceJSON": "{\"query\":{\"query\":\"(service: (exercises-java or exercises-rust or exercises-python or exercises-react-node or exercises-postgres)) and (_exists_: request_id or _exists_: application_name) and not (service: exercises-postgres and message: duration*)\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
     }
   },
   "references": [

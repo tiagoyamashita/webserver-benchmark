@@ -2,6 +2,7 @@ package com.example.demo.web;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
 
+import com.example.demo.observability.RequestIdContext;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
@@ -20,6 +21,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 @Service
 public class RustItemRelayService {
 
+  private static final String SOURCE =
+      "src/main/java/com/example/demo/web/RustItemRelayService.java";
   private static final Logger log = LoggerFactory.getLogger(RustItemRelayService.class);
 
   private final RestClient restClient;
@@ -40,20 +43,30 @@ public class RustItemRelayService {
    */
   public Map<String, Object> addItemViaRust(String name) {
     String trimmed = name == null ? "" : name.trim();
+    String requestId = RequestIdContext.get();
     if (trimmed.isEmpty()) {
       log.warn(
-          "Dashboard UI add-via-rust rejected",
+          "RustItemRelayService.addItemViaRust validation failed",
+          kv("source", SOURCE),
+          kv("controller", "RustItemRelayService"),
+          kv("method", "POST"),
+          kv("path", "/dashboard/items/add-via-rust"),
+          kv("request_id", requestId),
           kv("ui_event", "dashboard.ui"),
           kv("action", "add-item-via-rust"),
-          kv("ok", false),
           kv("reason", "blank-name"));
       return Map.of("ok", false, "error", "name must not be blank");
     }
     log.info(
-        "Dashboard UI button click",
+        "RustItemRelayService.addItemViaRust calling Rust",
+        kv("source", SOURCE),
+        kv("controller", "RustItemRelayService"),
+        kv("method", "POST"),
+        kv("path", "/dashboard/items/add-via-rust"),
+        kv("request_id", requestId),
+        kv("name", trimmed),
         kv("ui_event", "dashboard.ui"),
-        kv("action", "add-item-via-rust"),
-        kv("itemName", trimmed));
+        kv("action", "add-item-via-rust"));
     String base = properties.getRustBaseUrl().trim().replaceAll("/+$", "");
     URI uri =
         UriComponentsBuilder.fromUriString(base + "/api/items")
@@ -62,8 +75,11 @@ public class RustItemRelayService {
             .build()
             .toUri();
     try {
-      ResponseEntity<String> res =
-          restClient.post().uri(uri).retrieve().toEntity(String.class);
+      var request = restClient.post().uri(uri);
+      if (requestId != null) {
+        request = request.header("X-Request-ID", requestId);
+      }
+      ResponseEntity<String> res = request.retrieve().toEntity(String.class);
       String rawBody = res.getBody() != null ? res.getBody() : "";
       Map<String, Object> out = new LinkedHashMap<>();
       boolean ok = res.getStatusCode().is2xxSuccessful();
@@ -74,34 +90,40 @@ public class RustItemRelayService {
       parseRustJsonBody(rawBody).ifPresent(rust -> out.put("rust", rust));
       if (ok) {
         log.info(
-            "Dashboard UI add-via-rust completed",
-            kv("ui_event", "dashboard.ui"),
-            kv("action", "add-item-via-rust"),
-            kv("itemName", trimmed),
-            kv("ok", true),
+            "RustItemRelayService.addItemViaRust succeeded",
+            kv("source", SOURCE),
+            kv("controller", "RustItemRelayService"),
+            kv("request_id", requestId),
+            kv("name", trimmed),
             kv("rustStatus", res.getStatusCode().value()),
-            kv("rustUrl", uri.toString()));
+            kv("rustUrl", uri.toString()),
+            kv("ui_event", "dashboard.ui"),
+            kv("action", "add-item-via-rust"));
       } else {
         log.warn(
-            "Dashboard UI add-via-rust failed",
-            kv("ui_event", "dashboard.ui"),
-            kv("action", "add-item-via-rust"),
-            kv("itemName", trimmed),
-            kv("ok", false),
+            "RustItemRelayService.addItemViaRust failed",
+            kv("source", SOURCE),
+            kv("controller", "RustItemRelayService"),
+            kv("request_id", requestId),
+            kv("name", trimmed),
             kv("rustStatus", res.getStatusCode().value()),
-            kv("rustUrl", uri.toString()));
+            kv("rustUrl", uri.toString()),
+            kv("ui_event", "dashboard.ui"),
+            kv("action", "add-item-via-rust"));
       }
       return out;
     } catch (RestClientException e) {
       String error = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
       log.warn(
-          "Dashboard UI add-via-rust failed",
-          kv("ui_event", "dashboard.ui"),
-          kv("action", "add-item-via-rust"),
-          kv("itemName", trimmed),
-          kv("ok", false),
+          "RustItemRelayService.addItemViaRust failed",
+          kv("source", SOURCE),
+          kv("controller", "RustItemRelayService"),
+          kv("request_id", requestId),
+          kv("name", trimmed),
           kv("rustUrl", uri.toString()),
-          kv("error", error));
+          kv("error", error),
+          kv("ui_event", "dashboard.ui"),
+          kv("action", "add-item-via-rust"));
       return Map.of(
           "ok",
           false,

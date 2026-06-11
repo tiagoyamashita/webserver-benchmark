@@ -65,3 +65,6 @@ def configure_observability_logging() -> None:
     root.addHandler(handler)
     if root.level == logging.WARNING:
         root.setLevel(logging.INFO)
+
+    # Flask dev server access lines (GET /metrics 200) duplicate http.request JSON logs.
+    logging.getLogger("werkzeug").setLevel(logging.WARNING)

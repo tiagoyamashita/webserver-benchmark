@@ -2,6 +2,7 @@ package com.example.demo.web;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
 
+import com.example.demo.observability.RequestIdContext;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +35,7 @@ public class RustItemRelayApiController {
         kv("controller", "RustItemRelayApiController"),
         kv("method", "POST"),
         kv("path", "/dashboard/items/add-via-rust"),
+        kv("request_id", RequestIdContext.get()),
         kv("name", name),
         kv("ui_event", "dashboard.ui"),
         kv("action", "add-item-via-rust"));
@@ -42,6 +44,10 @@ public class RustItemRelayApiController {
       log.warn(
           "RustItemRelayApiController.addViaRustJson failed",
           kv("source", SOURCE),
+          kv("controller", "RustItemRelayApiController"),
+          kv("method", "POST"),
+          kv("path", "/dashboard/items/add-via-rust"),
+          kv("request_id", RequestIdContext.get()),
           kv("name", name),
           kv("error", result.get("error")),
           kv("rustUrl", result.get("rustUrl")),
@@ -50,6 +56,10 @@ public class RustItemRelayApiController {
       log.info(
           "RustItemRelayApiController.addViaRustJson succeeded",
           kv("source", SOURCE),
+          kv("controller", "RustItemRelayApiController"),
+          kv("method", "POST"),
+          kv("path", "/dashboard/items/add-via-rust"),
+          kv("request_id", RequestIdContext.get()),
           kv("name", name),
           kv("rustUrl", result.get("rustUrl")),
           kv("status", result.get("status")));

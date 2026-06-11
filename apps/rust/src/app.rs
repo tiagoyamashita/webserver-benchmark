@@ -73,8 +73,8 @@ async fn record_http_request_metrics(req: Request, next: Next) -> Response {
     let request_id = req
         .extensions()
         .get::<crate::request_id::RequestId>()
-        .map(|id| id.0.as_str())
-        .unwrap_or("");
+        .map(|id| id.0.clone())
+        .unwrap_or_default();
     let res = next.run(req).await;
     let status = res.status().as_u16();
     let ms = start.elapsed().as_millis();

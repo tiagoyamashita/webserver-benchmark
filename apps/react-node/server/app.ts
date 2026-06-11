@@ -71,9 +71,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
   });
 
   app.get("/api/health", (_req: Request, res: Response) => {
-    logReceived("health", SOURCE, "GET", "/api/health");
     res.json({ ok: true, service: "react-node" });
-    logSucceeded("health", SOURCE);
   });
 
   app.get("/api/observability/sample-log", (_req: Request, res: Response) => {

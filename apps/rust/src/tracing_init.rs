@@ -1,4 +1,7 @@
 //! Console + optional JSON file logging for Filebeat -> Logstash -> Elasticsearch.
+//!
+//! File logs use flattened JSON (same shape as Java/Python) so Grafana/Kibana can query
+//! top-level `status`, `request_id`, `controller`, etc.
 
 use std::fs::{self, OpenOptions};
 use std::io;
@@ -28,7 +31,8 @@ pub fn init() {
             .append(true)
             .open(dir.join("demo-app.json.log"))
             .unwrap_or_else(|e| panic!("open observability log file: {e}"));
-        let file_layer = fmt::layer().json().with_writer(file);
+        // flatten_event: emit status/request_id/controller at JSON root (not under "fields").
+        let file_layer = fmt::layer().json().flatten_event(true).with_writer(file);
         let stderr_layer = fmt::layer().with_writer(io::stderr);
         tracing_subscriber::registry()
             .with(filter)
