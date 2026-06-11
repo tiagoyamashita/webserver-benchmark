@@ -1757,6 +1757,33 @@
           }
         },
         {
+          "id": "filterByValue",
+          "options": {
+            "filters": [
+              {
+                "config": {
+                  "id": "regex",
+                  "options": {
+                    "value": ".+"
+                  }
+                },
+                "fieldName": "path"
+              },
+              {
+                "config": {
+                  "id": "regex",
+                  "options": {
+                    "value": ".+"
+                  }
+                },
+                "fieldName": "fields.path"
+              }
+            ],
+            "match": "any",
+            "type": "include"
+          }
+        },
+        {
           "id": "convertFieldType",
           "options": {
             "conversions": [
