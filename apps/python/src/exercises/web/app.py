@@ -75,6 +75,18 @@ def create_app() -> Flask:
     def _record_request_start() -> None:
         g.request_id = resolve_request_id(request)
         g._req_start = time.perf_counter()
+        if observability_enabled():
+            _HTTP_REQUEST_LOG.info(
+                "%s %s request received",
+                request.method,
+                request.path,
+                extra={
+                    "method": request.method,
+                    "path": request.path,
+                    "request_id": g.request_id,
+                    "phase": "received",
+                },
+            )
 
     @app.after_request
     def after_request_hooks(response):
@@ -96,6 +108,7 @@ def create_app() -> Flask:
                     "status": response.status_code,
                     "ms": ms,
                     "request_id": request_id,
+                    "phase": "completed",
                 },
             )
         if request.endpoint in ("stack_landing", "tests_dashboard"):

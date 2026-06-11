@@ -106,6 +106,7 @@ async fn record_http_request_metrics(req: Request, next: Next) -> Response {
         request_id_source = id_source,
         request_origin = %request_origin,
         log_seq = log_seq,
+        phase = "completed",
         "{method} {path} {status} request_id={request_id}"
     );
     res

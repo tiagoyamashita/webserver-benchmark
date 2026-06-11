@@ -97,6 +97,21 @@ pub async fn assign_request_id(mut req: Request, next: Next) -> Response {
     req.extensions_mut().insert(source);
     req.extensions_mut().insert(origin);
     req.extensions_mut().insert(RequestLogSeq::new());
+    let log_seq = req
+        .extensions()
+        .get::<RequestLogSeq>()
+        .map(RequestLogSeq::next)
+        .unwrap_or(0);
+    let method = req.method().to_string();
+    let path = req.uri().path().to_string();
+    tracing::info!(
+        method = %method,
+        path = %path,
+        request_id = %id,
+        log_seq = log_seq,
+        phase = "received",
+        "{method} {path} request received request_id={id}"
+    );
     let mut res = next.run(req).await;
     if let Ok(value) = HeaderValue::from_str(&id) {
         res.headers_mut().insert("x-request-id", value);

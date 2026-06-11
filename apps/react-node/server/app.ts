@@ -53,6 +53,12 @@ export function createApp(options: CreateAppOptions = {}): Express {
   if (observabilityEnabled()) {
     app.use((req: Request, res: Response, next: NextFunction) => {
       const start = Date.now();
+      writeLog("INFO", `${req.method} ${req.originalUrl} request received`, {
+        method: req.method,
+        path: req.originalUrl,
+        request_id: req.requestId,
+        phase: "received",
+      });
       res.on("finish", () => {
         writeLog("INFO", `${req.method} ${req.originalUrl} ${res.statusCode}`, {
           method: req.method,
@@ -60,6 +66,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
           status: res.statusCode,
           ms: Date.now() - start,
           request_id: req.requestId,
+          phase: "completed",
         });
       });
       next();
