@@ -672,17 +672,33 @@
                             "color": "red",
                             "index": 0
                           },
+                          "delete": {
+                            "color": "red",
+                            "index": 4
+                          },
                           "INSERT": {
                             "color": "green",
                             "index": 1
+                          },
+                          "insert": {
+                            "color": "green",
+                            "index": 5
                           },
                           "SELECT": {
                             "color": "blue",
                             "index": 2
                           },
+                          "select": {
+                            "color": "blue",
+                            "index": 6
+                          },
                           "UPDATE": {
                             "color": "yellow",
                             "index": 3
+                          },
+                          "update": {
+                            "color": "yellow",
+                            "index": 7
                           }
                         },
                         "type": "value"
@@ -781,7 +797,7 @@
                   "type": "logs"
                 }
               ],
-              "query": "service:\"exercises-postgres\" AND application_name.keyword:*exercises-* AND (ps:SELECT OR ps:INSERT OR ps:UPDATE OR ps:DELETE OR message:*statement*) AND NOT message:*SELECT 1*",
+              "query": "service:\"exercises-postgres\" AND application_name.keyword:*exercises-* AND (message:*execute* OR message:statement*) AND NOT message:duration* AND NOT message:*set_config* AND NOT message:*SELECT 1*",
               "refId": "A",
               "timeField": "@timestamp"
             }
@@ -794,6 +810,14 @@
                 "format": "regexp",
                 "regexp": "^(?<origin>exercises-[^;]+);req=(?<request_id>.+)$",
                 "source": "application_name"
+              }
+            },
+            {
+              "id": "extractFields",
+              "options": {
+                "format": "regexp",
+                "regexp": "(?i)\\b(?<sql_op>SELECT|INSERT|UPDATE|DELETE)\\b",
+                "source": "message"
               }
             },
             {
@@ -811,6 +835,7 @@
                   "host": true,
                   "input": true,
                   "log": true,
+                  "ps": true,
                   "service": true,
                   "sort": true,
                   "tags": true
@@ -819,13 +844,13 @@
                   "@timestamp": 0,
                   "origin": 1,
                   "request_id": 2,
-                  "ps": 3,
+                  "sql_op": 3,
                   "message": 4,
                   "error_severity": 5
                 },
                 "renameByName": {
                   "error_severity": "outcome",
-                  "ps": "op"
+                  "sql_op": "op"
                 }
               }
             }
@@ -1088,5 +1113,5 @@
   "timezone": "browser",
   "title": "Exercises HTTP requests & SQL logs",
   "uid": "exercises-requests-logs",
-  "version": 54
+  "version": 55
 }
