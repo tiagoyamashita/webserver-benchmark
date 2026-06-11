@@ -73,7 +73,8 @@ async fn record_http_request_metrics(req: Request, next: Next) -> Response {
     let request_id = req
         .extensions()
         .get::<crate::request_id::RequestId>()
-        .map(|id| id.0.clone());
+        .map(|id| id.0.as_str())
+        .unwrap_or("");
     let res = next.run(req).await;
     let status = res.status().as_u16();
     let ms = start.elapsed().as_millis();
@@ -85,7 +86,7 @@ async fn record_http_request_metrics(req: Request, next: Next) -> Response {
         path = %path,
         status = status,
         ms = %ms,
-        request_id = ?request_id,
+        request_id = %request_id,
         "{method} {path} {status}"
     );
     res
@@ -234,34 +235,40 @@ async fn create_item(
         .into_response()
 }
 
-async fn welcome_redirect() -> Redirect {
+async fn welcome_redirect(
+    Extension(request_id): Extension<crate::request_id::RequestId>,
+) -> Redirect {
     tracing::info!(
         source = "src/app.rs",
         controller = "welcome_redirect",
         method = "GET",
         path = "/welcome",
+        request_id = %request_id.0,
         "welcome_redirect request received"
     );
     tracing::info!(
         source = "src/app.rs",
         controller = "welcome_redirect",
+        request_id = %request_id.0,
         redirect = "/",
         "welcome_redirect succeeded"
     );
     Redirect::to("/")
 }
 
-async fn health() -> impl IntoResponse {
+async fn health(Extension(request_id): Extension<crate::request_id::RequestId>) -> impl IntoResponse {
     tracing::info!(
         source = "src/app.rs",
         controller = "health",
         method = "GET",
         path = "/health",
+        request_id = %request_id.0,
         "health request received"
     );
     tracing::info!(
         source = "src/app.rs",
         controller = "health",
+        request_id = %request_id.0,
         "health succeeded"
     );
     (
@@ -273,23 +280,28 @@ async fn health() -> impl IntoResponse {
     )
 }
 
-async fn observability_sample_log() -> impl IntoResponse {
+async fn observability_sample_log(
+    Extension(request_id): Extension<crate::request_id::RequestId>,
+) -> impl IntoResponse {
     tracing::info!(
         source = "src/app.rs",
         controller = "observability_sample_log",
         method = "GET",
         path = "/api/observability/sample-log",
+        request_id = %request_id.0,
         "observability_sample_log request received"
     );
     tracing::info!(
         source = "src/app.rs",
         controller = "observability_sample_log",
+        request_id = %request_id.0,
         service = "exercises-rust",
         "Observability sample event (JSON log file -> Filebeat -> Logstash -> Elasticsearch)"
     );
     tracing::info!(
         source = "src/app.rs",
         controller = "observability_sample_log",
+        request_id = %request_id.0,
         "observability_sample_log succeeded"
     );
     (
@@ -301,12 +313,16 @@ async fn observability_sample_log() -> impl IntoResponse {
     )
 }
 
-async fn stack_landing(State(state): State<AppState>) -> Result<Html<String>, StatusCode> {
+async fn stack_landing(
+    State(state): State<AppState>,
+    Extension(request_id): Extension<crate::request_id::RequestId>,
+) -> Result<Html<String>, StatusCode> {
     tracing::info!(
         source = "src/app.rs",
         controller = "stack_landing",
         method = "GET",
         path = "/",
+        request_id = %request_id.0,
         "stack_landing request received"
     );
     let page = StackLandingPage {
@@ -320,18 +336,23 @@ async fn stack_landing(State(state): State<AppState>) -> Result<Html<String>, St
     tracing::info!(
         source = "src/app.rs",
         controller = "stack_landing",
+        request_id = %request_id.0,
         template = "landing.html",
         "stack_landing succeeded"
     );
     Ok(Html(html))
 }
 
-async fn tests_dashboard(State(state): State<AppState>) -> Result<Html<String>, StatusCode> {
+async fn tests_dashboard(
+    State(state): State<AppState>,
+    Extension(request_id): Extension<crate::request_id::RequestId>,
+) -> Result<Html<String>, StatusCode> {
     tracing::info!(
         source = "src/app.rs",
         controller = "tests_dashboard",
         method = "GET",
         path = "/tests",
+        request_id = %request_id.0,
         "tests_dashboard request received"
     );
     let flash = crate::flash::take_flash(&state.project_root);
@@ -365,6 +386,7 @@ async fn tests_dashboard(State(state): State<AppState>) -> Result<Html<String>, 
     tracing::info!(
         source = "src/app.rs",
         controller = "tests_dashboard",
+        request_id = %request_id.0,
         result_count = page.test_results.len(),
         has_report_file = has_report_file,
         "tests_dashboard succeeded"
@@ -462,13 +484,18 @@ pub struct RunForm {
     pub nodeid: Option<String>,
 }
 
-async fn run_tests_post(State(state): State<AppState>, Form(form): Form<RunForm>) -> impl IntoResponse {
+async fn run_tests_post(
+    State(state): State<AppState>,
+    Extension(request_id): Extension<crate::request_id::RequestId>,
+    Form(form): Form<RunForm>,
+) -> impl IntoResponse {
     let filter = form.nodeid.as_deref().filter(|s| !s.trim().is_empty());
     tracing::info!(
         source = "src/app.rs",
         controller = "run_tests_post",
         method = "POST",
         path = "/tests/run",
+        request_id = %request_id.0,
         nodeid = ?filter,
         "run_tests_post request received"
     );
@@ -480,6 +507,7 @@ async fn run_tests_post(State(state): State<AppState>, Form(form): Form<RunForm>
             tracing::error!(
                 source = "src/app.rs",
                 controller = "run_tests_post",
+                request_id = %request_id.0,
                 nodeid = ?filter,
                 error = %e,
                 "run_tests_post failed"
@@ -507,6 +535,7 @@ async fn run_tests_post(State(state): State<AppState>, Form(form): Form<RunForm>
         tracing::info!(
             source = "src/app.rs",
             controller = "run_tests_post",
+            request_id = %request_id.0,
             nodeid = ?filter,
             exit_code = code,
             "run_tests_post succeeded"
@@ -516,6 +545,7 @@ async fn run_tests_post(State(state): State<AppState>, Form(form): Form<RunForm>
         tracing::warn!(
             source = "src/app.rs",
             controller = "run_tests_post",
+            request_id = %request_id.0,
             nodeid = ?filter,
             exit_code = code,
             "run_tests_post finished with errors"
@@ -531,12 +561,17 @@ pub struct SourceQ {
     pub class_name: String,
 }
 
-async fn test_source(State(state): State<AppState>, Query(q): Query<SourceQ>) -> impl IntoResponse {
+async fn test_source(
+    State(state): State<AppState>,
+    Extension(request_id): Extension<crate::request_id::RequestId>,
+    Query(q): Query<SourceQ>,
+) -> impl IntoResponse {
     tracing::info!(
         source = "src/app.rs",
         controller = "test_source",
         method = "GET",
         path = "/tests/source",
+        request_id = %request_id.0,
         className = %q.class_name,
         "test_source request received"
     );
@@ -545,6 +580,7 @@ async fn test_source(State(state): State<AppState>, Query(q): Query<SourceQ>) ->
             tracing::info!(
                 source = "src/app.rs",
                 controller = "test_source",
+                request_id = %request_id.0,
                 className = %q.class_name,
                 path = %path,
                 "test_source succeeded"
@@ -560,6 +596,7 @@ async fn test_source(State(state): State<AppState>, Query(q): Query<SourceQ>) ->
             tracing::warn!(
                 source = "src/app.rs",
                 controller = "test_source",
+                request_id = %request_id.0,
                 className = %q.class_name,
                 "test_source not found"
             );

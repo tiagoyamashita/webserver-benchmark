@@ -9,7 +9,7 @@ Optional **Grafana OSS** setup for dashboards (metrics, logs, or anything you wi
 | `docker-compose.yml` | Runs Grafana on port **3000** with provisioning mounts |
 | `provisioning/datasources/` | Data source definitions loaded at startup |
 | `provisioning/dashboards/` | Dashboard sidecar config (loads JSON from `dashboards/`) |
-| `dashboards/` | Dashboard JSON (e.g. **`exercises-java-python-rust.json`** — Prometheus app metrics + PostgreSQL + log pipeline row; **`exercises-log-pipeline.json`** — Filebeat/Logstash + ES ingest; **`exercises-postgres.json`** — items-only SQL view; **`exercises-requests-logs.json`** — HTTP status + Postgres SQL from Elasticsearch) |
+| `dashboards/` | Dashboard JSON (e.g. **`exercises-java-python-rust.json`** — Prometheus app metrics + PostgreSQL + log pipeline row; **`exercises-log-pipeline.json`** — Filebeat/Logstash + ES ingest; **`exercises-postgres.json`** — items-only SQL view; **`exercises-requests-logs.json`** — HTTP status + Postgres SQL from Elasticsearch). Kibana mirror: **`devops/elk/kibana/import-requests-logs.ps1`** → **Exercises — HTTP & Postgres logs** |
 | `provisioning/alerting/` | Unified alert rules (e.g. **`log-pipeline.yaml`** — Filebeat/Logstash failures) |
 
 ## Bundled dashboard (root compose)

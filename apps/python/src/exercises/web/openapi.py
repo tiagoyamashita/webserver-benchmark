@@ -35,6 +35,18 @@ _ERROR_SCHEMA = {
 _ITEMS_TAG = "Items"
 
 
+def _request_id_header() -> dict:
+    return {
+        "name": "X-Request-ID",
+        "in": "header",
+        "required": False,
+        "description": (
+            "Correlation id for logs and Postgres trace; generated if omitted; echoed in response."
+        ),
+        "schema": {"type": "string"},
+    }
+
+
 def build_openapi_spec() -> dict:
     """Return the OpenAPI document served at `/api-docs/openapi.json`."""
     item_responses = {
@@ -77,6 +89,7 @@ def build_openapi_spec() -> dict:
                     "tags": [_ITEMS_TAG],
                     "summary": "List items",
                     "operationId": "listItems",
+                    "parameters": [_request_id_header()],
                     "responses": {
                         "200": {
                             "description": "All items",
@@ -97,6 +110,7 @@ def build_openapi_spec() -> dict:
                     "tags": [_ITEMS_TAG],
                     "summary": "Create item",
                     "operationId": "createItem",
+                    "parameters": [_request_id_header()],
                     "requestBody": {
                         "required": True,
                         "content": {
@@ -132,7 +146,7 @@ def build_openapi_spec() -> dict:
                     "tags": [_ITEMS_TAG],
                     "summary": "Get item by id",
                     "operationId": "getItem",
-                    "parameters": [_item_id_param()],
+                    "parameters": [_request_id_header(), _item_id_param()],
                     "responses": item_responses,
                 },
                 "put": _update_item_operation("updateItem", "Replace item name"),
@@ -141,7 +155,7 @@ def build_openapi_spec() -> dict:
                     "tags": [_ITEMS_TAG],
                     "summary": "Delete item",
                     "operationId": "deleteItem",
-                    "parameters": [_item_id_param()],
+                    "parameters": [_request_id_header(), _item_id_param()],
                     "responses": {
                         "204": {"description": "Deleted"},
                         "404": item_responses["404"],
@@ -167,7 +181,7 @@ def _update_item_operation(operation_id: str, summary: str) -> dict:
         "tags": [_ITEMS_TAG],
         "summary": summary,
         "operationId": operation_id,
-        "parameters": [_item_id_param()],
+        "parameters": [_request_id_header(), _item_id_param()],
         "requestBody": {
             "required": True,
             "content": {

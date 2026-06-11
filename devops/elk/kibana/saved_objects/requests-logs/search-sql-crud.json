@@ -1,0 +1,25 @@
+{
+  "attributes": {
+    "title": "PostgreSQL — SQL CRUD by origin",
+    "description": "Stamped Postgres statements (application_name exercises-*;req=...). Click correlation.request_id to open HTTP handler logs.",
+    "columns": [
+      "@timestamp",
+      "correlation.origin",
+      "correlation.request_id",
+      "sql.op",
+      "ps",
+      "message"
+    ],
+    "sort": [["@timestamp", "desc"]],
+    "kibanaSavedObjectMeta": {
+      "searchSourceJSON": "{\"query\":{\"query\":\"service: exercises-postgres and application_name: *exercises* and (ps: (SELECT or INSERT or UPDATE or DELETE) or message: *statement*) and not message: *SELECT 1* and not message: duration*\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
+    }
+  },
+  "references": [
+    {
+      "id": "logstash-data-view",
+      "name": "kibanaSavedObjectMeta.searchSourceJSON.index",
+      "type": "index-pattern"
+    }
+  ]
+}

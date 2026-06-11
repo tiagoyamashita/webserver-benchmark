@@ -1,0 +1,26 @@
+{
+  "attributes": {
+    "title": "HTTP — handler logs (correlate)",
+    "description": "Controller request received / succeeded / failed lines. Filter by request_id (click a link in SQL CRUD, or add request_id: \\\"…\\\" in the bar).",
+    "columns": [
+      "@timestamp",
+      "service",
+      "controller",
+      "method",
+      "path",
+      "message",
+      "level"
+    ],
+    "sort": [["@timestamp", "asc"]],
+    "kibanaSavedObjectMeta": {
+      "searchSourceJSON": "{\"query\":{\"query\":\"_exists_: request_id and _exists_: controller and (message: *request received* or message: *succeeded* or message: *failed* or message: *not found*) and not message: *result*\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
+    }
+  },
+  "references": [
+    {
+      "id": "logstash-data-view",
+      "name": "kibanaSavedObjectMeta.searchSourceJSON.index",
+      "type": "index-pattern"
+    }
+  ]
+}

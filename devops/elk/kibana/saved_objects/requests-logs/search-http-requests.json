@@ -1,0 +1,26 @@
+{
+  "attributes": {
+    "title": "HTTP — recent requests",
+    "description": "App HTTP access logs (health/metrics noise excluded). Matches Grafana Recent HTTP requests.",
+    "columns": [
+      "@timestamp",
+      "service",
+      "request_id",
+      "method",
+      "path",
+      "status",
+      "message"
+    ],
+    "sort": [["@timestamp", "desc"]],
+    "kibanaSavedObjectMeta": {
+      "searchSourceJSON": "{\"query\":{\"query\":\"status: * and service: (exercises-java or exercises-python or exercises-rust or exercises-react-node) and not (status: 200 and (path: \\\"/health\\\" or path: \\\"/api/health\\\" or path: \\\"/metrics\\\" or path: \\\"/actuator/prometheus\\\" or path: \\\"/api/observability/health\\\"))\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
+    }
+  },
+  "references": [
+    {
+      "id": "logstash-data-view",
+      "name": "kibanaSavedObjectMeta.searchSourceJSON.index",
+      "type": "index-pattern"
+    }
+  ]
+}

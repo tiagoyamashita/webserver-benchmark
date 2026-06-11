@@ -26,3 +26,4 @@ Import-KibanaObject -Type "search" -Id "log-pipeline-errors-search" -JsonPath (J
 Import-KibanaObject -Type "dashboard" -Id "exercises-log-pipeline-kibana" -JsonPath (Join-Path $Dir "dashboard.json")
 
 Write-Host "Open: $Kibana/app/dashboards#/view/exercises-log-pipeline-kibana"
+Write-Host "HTTP + Postgres correlation: .\devops\elk\kibana\import-requests-logs.ps1"

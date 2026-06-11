@@ -127,9 +127,11 @@ log_succeeded(_LOG, "create_item", SOURCE, id=body["id"], name=body["name"])
 
 JSON file logs (`observability_logging.py`) include all `extra={...}` fields in ELK.
 
+`g.request_id` is set from incoming `X-Request-ID` (or a new UUID) in `app.py` `before_request`. Controller helpers **auto-include** `request_id` on every line when present. HTTP access logs (`http.request` logger) also emit `request_id`.
+
 ## Rust (Axum)
 
-Use `tracing` with `source`, `controller`, `method`, `path`, and replay params:
+`assign_request_id` middleware reads `X-Request-ID`, stores `RequestId` in extensions, and echoes it on the response. Include `request_id = %request_id.0` on **every** controller log line (received, succeeded, warn, error) and use `request_id = %…` (not `?`) in the HTTP access log middleware.
 
 ```rust
 const SOURCE: &str = "src/items.rs";
@@ -139,10 +141,11 @@ tracing::info!(
     controller = "create_item",
     method = "POST",
     path = "/api/items",
+    request_id = %request_id.0,
     name = %name,
     "create_item request received"
 );
-tracing::info!(source = SOURCE, controller = "create_item", id = row.id, "create_item succeeded");
+tracing::info!(source = SOURCE, controller = "create_item", request_id = %request_id.0, id = row.id, "create_item succeeded");
 tracing::warn!(source = SOURCE, controller = "create_item", reason = "blank-name", "create_item validation failed");
 tracing::error!(source = SOURCE, controller = "create_item", error = %e, "create_item failed");
 tracing::trace!(source = SOURCE, controller = "list_items", items = ?responses, "list_items result");

@@ -69,6 +69,25 @@ Until Filebeat (or another Beat) sends events through Logstash, indices may not 
 
 **Filter by app in Discover:** `service: "exercises-java"` · `service: "exercises-python"` · `service: "exercises-rust"` · `service: "exercises-react-node"` · `service: "exercises-postgres"`. By file path: `log.file.path: *react-node*` · `log.file.path: *postgresql*`.
 
+### HTTP ↔ Postgres correlation (Kibana)
+
+After logs are flowing, provision the correlation dashboard (data view runtime fields + saved searches):
+
+```powershell
+.\devops\elk\kibana\import-requests-logs.ps1
+```
+
+Open **`http://127.0.0.1:5601/app/dashboards#/view/exercises-requests-logs-kibana`**.
+
+| Panel | What |
+|-------|------|
+| **HTTP — recent requests** | App access logs (health/metrics excluded) |
+| **PostgreSQL — SQL CRUD by origin** | Stamped CRUD lines; `correlation.origin` / `correlation.request_id` parsed from `application_name` |
+| **PostgreSQL — log stream** | Full Postgres JSON log tail |
+| **HTTP — handler logs** | Controller received/succeeded/failed lines |
+
+Click **`correlation.request_id`** in the SQL table (URL link on the data view) to jump to handler logs for that request. Grafana **`exercises-requests-logs`** keeps the tighter click-through layout.
+
 ### Log pipeline monitoring (Filebeat → Logstash)
 
 | Layer | What | Where |
@@ -76,7 +95,7 @@ Until Filebeat (or another Beat) sends events through Logstash, indices may not 
 | **Filebeat** | HTTP stats on `:5066` (Compose internal) | `filebeat/filebeat-compose.yml` (`http.enabled`) |
 | **Prometheus** | `beat-exporter` + `logstash-exporter` scrape jobs | `prometheus/prometheus.yml` |
 | **Grafana** | “Log pipeline” row on apps dashboard + **`exercises-log-pipeline.json`** | Alert rules in `grafana/provisioning/alerting/log-pipeline.yaml` |
-| **Kibana** | Dashboard + saved searches | Run once: `kibana/import-log-pipeline.ps1` (or `.sh`) → **Exercises — Log pipeline (Kibana)** |
+| **Kibana** | Dashboard + saved searches | Run once: `kibana/import-log-pipeline.ps1` (or `.sh`) → **Exercises — Log pipeline (Kibana)**; `kibana/import-requests-logs.ps1` → **Exercises — HTTP & Postgres logs** |
 
 When Grafana alerts fire, unshipped lines remain on disk under **`apps/*/logs/`** until the pipeline recovers. Use the alert time window to grep those files and compare with Kibana **`logstash-*`**.
 

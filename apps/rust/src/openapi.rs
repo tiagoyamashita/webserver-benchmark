@@ -15,6 +15,9 @@ pub struct ApiError {
     get,
     path = "/api/items",
     tag = "Items",
+    params(
+        ("X-Request-ID" = Option<String>, Header, description = "Correlation id for logs and Postgres trace; generated if omitted; echoed in response")
+    ),
     responses(
         (status = 200, description = "All items", body = [ItemResponse]),
         (status = 503, description = "Postgres not configured", body = ApiError),
@@ -30,7 +33,8 @@ fn items_list() {}
     path = "/api/items",
     tag = "Items",
     params(
-        ("name" = String, Query, description = "Item name")
+        ("name" = String, Query, description = "Item name"),
+        ("X-Request-ID" = Option<String>, Header, description = "Correlation id for logs and Postgres trace; generated if omitted; echoed in response")
     ),
     responses(
         (status = 201, description = "Created", body = CreateItemResponse),

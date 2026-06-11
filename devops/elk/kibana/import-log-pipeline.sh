@@ -26,3 +26,4 @@ import_object "search" "log-pipeline-errors-search" "${DIR}/search-errors.json"
 import_object "dashboard" "exercises-log-pipeline-kibana" "${DIR}/dashboard.json"
 
 echo "Open: ${KIBANA_URL}/app/dashboards#/view/exercises-log-pipeline-kibana"
+echo "HTTP + Postgres correlation: devops/elk/kibana/import-requests-logs.sh"

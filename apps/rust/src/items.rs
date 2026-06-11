@@ -39,7 +39,7 @@ pub async fn list_items(pool: PgPool, request_id: Option<&str>) -> impl IntoResp
         controller = "list_items",
         method = "GET",
         path = "/api/items",
-        request_id = ?request_id,
+        request_id = request_id.unwrap_or(""),
         "list_items request received"
     );
     match crate::db::list_items(&pool, request_id).await {
@@ -56,12 +56,14 @@ pub async fn list_items(pool: PgPool, request_id: Option<&str>) -> impl IntoResp
             tracing::info!(
                 source = SOURCE,
                 controller = "list_items",
+                request_id = request_id.unwrap_or(""),
                 count = count,
                 "list_items succeeded"
             );
             tracing::trace!(
                 source = SOURCE,
                 controller = "list_items",
+                request_id = request_id.unwrap_or(""),
                 items = ?responses,
                 "list_items result"
             );
@@ -71,6 +73,7 @@ pub async fn list_items(pool: PgPool, request_id: Option<&str>) -> impl IntoResp
             tracing::error!(
                 source = SOURCE,
                 controller = "list_items",
+                request_id = request_id.unwrap_or(""),
                 error = %e,
                 "list_items failed"
             );
@@ -92,13 +95,14 @@ pub async fn create_item(pool: PgPool, query: CreateItemQuery, request_id: Optio
         method = "POST",
         path = "/api/items",
         name = %name,
-        request_id = ?request_id,
+        request_id = request_id.unwrap_or(""),
         "create_item request received"
     );
     if name.is_empty() {
         tracing::warn!(
             source = SOURCE,
             controller = "create_item",
+            request_id = request_id.unwrap_or(""),
             name = %query.name,
             reason = "blank-name",
             "create_item validation failed"
@@ -121,6 +125,7 @@ pub async fn create_item(pool: PgPool, query: CreateItemQuery, request_id: Optio
             tracing::info!(
                 source = SOURCE,
                 controller = "create_item",
+                request_id = request_id.unwrap_or(""),
                 id = row.id,
                 name = %row.name,
                 "create_item succeeded"
@@ -141,6 +146,7 @@ pub async fn create_item(pool: PgPool, query: CreateItemQuery, request_id: Optio
             tracing::error!(
                 source = SOURCE,
                 controller = "create_item",
+                request_id = request_id.unwrap_or(""),
                 name = %name,
                 error = %e,
                 "create_item failed"
