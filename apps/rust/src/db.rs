@@ -85,6 +85,31 @@ pub struct InsertedUser {
     pub created_at: String,
 }
 
+pub struct UserRow {
+    pub id: i64,
+    pub name: String,
+    pub email: String,
+}
+
+pub async fn find_user_by_email(pool: &PgPool, email: &str) -> Result<Option<UserRow>, sqlx::Error> {
+    let row: Option<(i64, String, String)> = sqlx::query_as(
+        "SELECT id, name, email FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1",
+    )
+    .bind(email)
+    .fetch_optional(pool)
+    .await?;
+    Ok(row.map(|(id, name, email)| UserRow { id, name, email }))
+}
+
+pub async fn find_user_by_id(pool: &PgPool, user_id: i64) -> Result<Option<UserRow>, sqlx::Error> {
+    let row: Option<(i64, String, String)> =
+        sqlx::query_as("SELECT id, name, email FROM users WHERE id = $1 LIMIT 1")
+            .bind(user_id)
+            .fetch_optional(pool)
+            .await?;
+    Ok(row.map(|(id, name, email)| UserRow { id, name, email }))
+}
+
 pub async fn insert_user(
     pool: &PgPool,
     name: &str,

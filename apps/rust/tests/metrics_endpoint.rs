@@ -10,7 +10,7 @@ use tower::ServiceExt;
 async fn metrics_endpoint_exposes_prometheus_format() {
     let project_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let tera = load_tera(&project_root).expect("tera templates");
-    let state = AppState::new(project_root, tera, None, None);
+    let state = AppState::new(project_root, tera, None, None, None);
     let app = build_router(state);
 
     let response = app

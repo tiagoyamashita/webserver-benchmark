@@ -89,6 +89,7 @@ impl StackLinks {
     pub fn ping(&self, target: &str) -> StackPingResult {
         match target {
             "postgres" => ping_postgres(),
+            "redis" => ping_redis(),
             "java" => empty_get("java", &self.java_base_url),
             "python" => empty_get("python", &self.python_base_url),
             "prometheus" => empty_get("prometheus", &self.prometheus_base_url),
@@ -147,6 +148,52 @@ fn normalize_root(base_url: &str) -> String {
         t.to_string()
     } else {
         format!("{t}/")
+    }
+}
+
+fn ping_redis() -> StackPingResult {
+    let url = crate::auth::redis_url_from_env().unwrap_or_else(|| "redis://127.0.0.1:6379".into());
+    match redis::Client::open(url.as_str()) {
+        Ok(client) => match client.get_connection() {
+            Ok(mut conn) => match redis::cmd("PING").query::<String>(&mut conn) {
+                Ok(pong) => StackPingResult {
+                    stack: "redis".into(),
+                    url: url.clone(),
+                    ok: pong.eq_ignore_ascii_case("PONG"),
+                    status: None,
+                    error: if pong.eq_ignore_ascii_case("PONG") {
+                        None
+                    } else {
+                        Some(format!("unexpected PING response: {pong}"))
+                    },
+                },
+                Err(e) => StackPingResult {
+                    stack: "redis".into(),
+                    url,
+                    ok: false,
+                    status: None,
+                    error: Some(format!(
+                        "Cannot connect to Redis. {e}"
+                    )),
+                },
+            },
+            Err(e) => StackPingResult {
+                stack: "redis".into(),
+                url,
+                ok: false,
+                status: None,
+                error: Some(format!(
+                    "Cannot connect to Redis. {e}"
+                )),
+            },
+        },
+        Err(e) => StackPingResult {
+            stack: "redis".into(),
+            url,
+            ok: false,
+            status: None,
+            error: Some(format!("Invalid Redis URL: {e}")),
+        },
     }
 }
 

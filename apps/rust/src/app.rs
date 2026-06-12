@@ -39,6 +39,7 @@ pub struct AppState {
     pub stack_links: crate::stack_ping::StackLinks,
     pub pg_pool: Option<PgPool>,
     pub kafka_config: Option<crate::kafka::KafkaAdminConfig>,
+    pub auth: Option<crate::auth::AuthState>,
 }
 
 impl AppState {
@@ -47,6 +48,7 @@ impl AppState {
         tera: Tera,
         pg_pool: Option<PgPool>,
         kafka_config: Option<crate::kafka::KafkaAdminConfig>,
+        auth: Option<crate::auth::AuthState>,
     ) -> Self {
         Self {
             project_root,
@@ -54,6 +56,7 @@ impl AppState {
             stack_links: crate::stack_ping::StackLinks::from_env(),
             pg_pool,
             kafka_config,
+            auth,
         }
     }
 }
@@ -68,6 +71,10 @@ fn route_endpoint_label(path: &str) -> &'static str {
         "/tests/source" => "test_source",
         "/api/items" => "create_item",
         "/api/users/publish-create-user" => "publish_create_user_kafka",
+        "/api/auth/ensure" => "auth_ensure",
+        "/api/auth/login" => "auth_login",
+        "/api/auth/logout" => "auth_logout",
+        "/api/auth/session" => "auth_session",
         "/metrics" => "metrics",
         _ => "other",
     }
@@ -515,7 +522,23 @@ pub async fn serve() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             None
         }
     };
-    let state = AppState::new(project_root, tera, pg_pool, kafka_publish_config);
+    let auth = match crate::auth::connect_redis().await {
+        Ok(redis) => {
+            let auth_state = crate::auth::AuthState {
+                redis,
+                config: crate::auth::SessionConfig::from_env(),
+            };
+            crate::auth::verify_redis_startup(&auth_state).await;
+            eprintln!("exercises-web: connected to Redis (shared sessions)");
+            Some(auth_state)
+        }
+        Err(e) => {
+            eprintln!("exercises-web: Redis unavailable ({e}); session auth disabled");
+            None
+        }
+    };
+
+    let state = AppState::new(project_root, tera, pg_pool, kafka_publish_config, auth);
     let app = build_router(state);
     let port: u16 = std::env::var("EXERCISES_WEB_PORT")
         .ok()
@@ -543,6 +566,7 @@ pub async fn serve() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 /// HTTP router (used by `serve` and integration tests).
 pub fn build_router(state: AppState) -> Router {
+    let session_state = state.clone();
     Router::new()
         .merge(
             SwaggerUi::new("/swagger-ui")
@@ -561,8 +585,20 @@ pub fn build_router(state: AppState) -> Router {
             "/api/users/publish-create-user",
             post(publish_create_user_kafka),
         )
+        .route("/api/auth/ensure", post(crate::auth::ensure_session))
+        .route("/api/auth/login", post(crate::auth::login))
+        .route("/api/auth/logout", post(crate::auth::logout))
+        .route("/api/auth/session", get(crate::auth::current_session))
         .route("/metrics", get(metrics))
         .layer(middleware::from_fn(record_http_request_metrics))
+        .layer(middleware::from_fn_with_state(
+            session_state.clone(),
+            crate::auth::bootstrap_page_session,
+        ))
+        .layer(middleware::from_fn_with_state(
+            session_state,
+            crate::auth::resolve_session,
+        ))
         .layer(middleware::from_fn(crate::request_id::assign_request_id))
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .with_state(state)

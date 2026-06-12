@@ -1,6 +1,7 @@
 //! Library crate: Axum app + JUnit parsing for the local test dashboard.
 
 pub mod app;
+pub mod auth;
 pub mod db;
 pub mod request_id;
 pub mod stack_ping;
