@@ -4,6 +4,7 @@ import com.example.demo.config.SessionProperties;
 import com.example.demo.exercises.db.User;
 import com.example.demo.exercises.db.UserRepository;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,21 @@ public class AuthService {
     this.users = users;
     this.sessions = sessions;
     this.sessionProperties = sessionProperties;
+  }
+
+  public EnsureSessionResult ensureSession(String clientSessionId, SharedSession requestSession) {
+    Instant now = Instant.now();
+    Optional<SharedSession> fromRequest = validSession(requestSession, now);
+    if (fromRequest.isPresent()) {
+      return new EnsureSessionResult(fromRequest.get(), false);
+    }
+    if (clientSessionId != null && !clientSessionId.isBlank()) {
+      Optional<SharedSession> fromClient = validStoredSession(clientSessionId.trim(), now);
+      if (fromClient.isPresent()) {
+        return new EnsureSessionResult(fromClient.get(), false);
+      }
+    }
+    return new EnsureSessionResult(createAnonymousSession(), true);
   }
 
   public SharedSession login(LoginRequest request) {
@@ -72,6 +88,33 @@ public class AuthService {
 
   public String redisKey(String sessionId) {
     return sessionProperties.redisKey(sessionId);
+  }
+
+  private SharedSession createAnonymousSession() {
+    Instant issuedAt = Instant.now();
+    Instant expiresAt = issuedAt.plus(sessionProperties.getTtl());
+    SharedSession session =
+        new SharedSession(
+            UUID.randomUUID().toString(),
+            0L,
+            null,
+            "Guest",
+            issuedAt,
+            expiresAt,
+            "java");
+    sessions.save(session);
+    return session;
+  }
+
+  private static Optional<SharedSession> validSession(SharedSession session, Instant now) {
+    if (session == null || session.isExpired(now)) {
+      return Optional.empty();
+    }
+    return Optional.of(session);
+  }
+
+  private Optional<SharedSession> validStoredSession(String sessionId, Instant now) {
+    return sessions.findById(sessionId).filter(session -> !session.isExpired(now));
   }
 
   private User resolveUser(LoginRequest request) {

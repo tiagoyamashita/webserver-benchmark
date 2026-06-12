@@ -8,6 +8,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -45,25 +47,32 @@ public class SessionAuthFilter extends OncePerRequestFilter {
   }
 
   private Optional<SharedSession> resolveSession(HttpServletRequest request) {
-    String sessionId = resolveSessionId(request);
-    if (sessionId == null) {
-      return Optional.empty();
+    Instant now = Instant.now();
+    for (String sessionId : resolveSessionIdCandidates(request)) {
+      Optional<SharedSession> session =
+          sessions.findById(sessionId).filter(s -> !s.isExpired(now));
+      if (session.isPresent()) {
+        return session;
+      }
     }
-    return sessions
-        .findById(sessionId)
-        .filter(session -> !session.isExpired(Instant.now()));
+    return Optional.empty();
   }
 
-  private String resolveSessionId(HttpServletRequest request) {
+  private List<String> resolveSessionIdCandidates(HttpServletRequest request) {
+    List<String> candidates = new ArrayList<>(3);
     String bearer = parseBearer(request.getHeader("Authorization"));
     if (bearer != null) {
-      return bearer;
+      candidates.add(bearer);
     }
     String header = request.getHeader(SESSION_HEADER);
     if (header != null && !header.isBlank()) {
-      return header.trim();
+      candidates.add(header.trim());
     }
-    return readCookie(request, sessionProperties.getCookieName());
+    String cookie = readCookie(request, sessionProperties.getCookieName());
+    if (cookie != null) {
+      candidates.add(cookie);
+    }
+    return candidates;
   }
 
   private static String parseBearer(String authorization) {
