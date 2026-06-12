@@ -1,4 +1,4 @@
-# Application stack — postgres + java + python + rust + react-node.
+# Application stack — postgres + kafka + java + python + rust + react-node.
 #
 # Start / restart apps only (observability can keep running):
 #   podman compose -f docker-compose.apps.yml up -d --build
@@ -43,6 +43,52 @@ services:
       - exercises_pg_data:/var/lib/postgresql/data
       - ./apps/postgres/logs:/var/log/postgresql
 
+  kafka:
+    image: docker.io/apache/kafka:3.9.1
+    hostname: kafka
+    networks: [exercises]
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    volumes:
+      - exercises_kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "/opt/kafka/bin/kafka-broker-api-versions.sh",
+          "--bootstrap-server",
+          "localhost:9092",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+
+  kafka-ui:
+    image: docker.io/provectuslabs/kafka-ui:v0.7.2
+    networks: [exercises]
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: exercises
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    depends_on:
+      kafka:
+        condition: service_healthy
+
   java:
     build:
       context: ./apps/java
@@ -64,6 +110,7 @@ services:
       DB_NAME: demo
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       APP_STACK_RUST_BASE_URL: http://rust:8082
       APP_STACK_PYTHON_BASE_URL: http://python:5000
       APP_STACK_PROMETHEUS_BASE_URL: http://prometheus:9090
@@ -104,6 +151,7 @@ services:
       DB_NAME: demo
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     volumes:
       - ./apps/python/logs:/app/logs
     depends_on:
@@ -132,6 +180,7 @@ services:
       DB_NAME: demo
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     volumes:
       - ./apps/rust/logs:/app/logs
     depends_on:
@@ -172,6 +221,7 @@ services:
       DB_NAME: demo
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     volumes:
       - ./apps/react-node/logs:/app/logs
     depends_on:
@@ -194,3 +244,4 @@ networks:
 
 volumes:
   exercises_pg_data:
+  exercises_kafka_data:

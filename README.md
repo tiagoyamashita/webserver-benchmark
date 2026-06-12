@@ -4,7 +4,7 @@ Exercises (tiagoyamashita.com)
 
 ## Application servers
 
-This repo ships **three separate web apps** under **`apps/`**, plus **Postgres**, **React Node**, and optional **observability** under **`devops/`**:
+This repo ships **three separate web apps** under **`apps/`**, plus **Postgres**, **Kafka**, **React Node**, and optional **observability** under **`devops/`**:
 
 | Stack | Folder | Role | Typical URL (local) |
 |-------|--------|------|---------------------|
@@ -13,6 +13,8 @@ This repo ships **three separate web apps** under **`apps/`**, plus **Postgres**
 | **Rust** | `apps/rust/` | Axum dashboard | `http://127.0.0.1:8082/` |
 | **React Node** | `apps/react-node/` | Stack probe UI (React + Express) | `http://127.0.0.1:5174/` |
 | **PostgreSQL** | `apps/postgres/` | Shared database (Compose scripts + log dir) | `127.0.0.1:5432` |
+| **Kafka** | `apps/kafka/` | Message broker (KRaft, single node) | `127.0.0.1:9092` |
+| **Kafka UI** | `apps/kafka/` | Web UI for topics / messages (`provectuslabs/kafka-ui`) | `http://127.0.0.1:8090/` |
 
 **Rust on Windows:** If **`cargo`** fails with **`link.exe` not found**, the MSVC linker is missing — use **`podman compose up --build rust`** from this repo root, or fix the toolchain per [apps/rust/README.md — Troubleshooting](apps/rust/README.md#troubleshooting-rust-server-wont-build-or-wont-open).
 
@@ -43,7 +45,7 @@ From the **repo root**, Compose is split so you can run **apps** and **observabi
 | File | Starts | Typical command |
 |------|--------|-----------------|
 | **`docker-compose.yml`** | Apps **+** devops (full stack) | `podman compose up -d --build` |
-| **`docker-compose.apps.yml`** | Postgres, Java, Python, Rust, react-node | `podman compose -f docker-compose.apps.yml up -d --build` |
+| **`docker-compose.apps.yml`** | Postgres, Kafka, Java, Python, Rust, react-node | `podman compose -f docker-compose.apps.yml up -d --build` |
 | **`docker-compose.observability.yml`** | Prometheus, Grafana, ELK, Filebeat | `podman compose -f docker-compose.observability.yml up -d` |
 | **`docker-compose.dev.yml`** | Overlay on **apps** only (hot reload) | Add `-f docker-compose.dev.yml` to an **apps** command (see below) |
 
@@ -64,6 +66,8 @@ Use **Docker Engine** the same way with `docker compose` instead of `podman comp
 | Service | Folder | Role | Host port | Compose file | With **`docker-compose.dev.yml`** |
 |---------|--------|------|-----------|--------------|-----------------------------------|
 | **postgres** | `apps/postgres/` | PostgreSQL 16 | **5432** | apps | Same image (no dev overlay) |
+| **kafka** | `apps/kafka/` | Apache Kafka 3.9 (KRaft) | **9092** | apps | Same image (no dev overlay) |
+| **kafka-ui** | `apps/kafka/` | UI for Apache Kafka | **8090** | apps | Waits for healthy `kafka` |
 | **java** | `apps/java/` | Spring Boot API + UI | **8080** | apps | `spring-boot:run`, source mounted |
 | **python** | `apps/python/` | Flask dashboard + `/api/items` | **5000** | apps | `FLASK_DEBUG=1` reloader |
 | **rust** | `apps/rust/` | Axum dashboard + `/api/items` | **8082** | apps | `cargo-watch` rebuild on change |

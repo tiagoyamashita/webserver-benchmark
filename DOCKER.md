@@ -18,7 +18,7 @@ Compose is split so you can **restart apps without stopping observability**:
 
 | File | Services |
 |------|----------|
-| **`docker-compose.apps.yml`** | postgres, java, python, rust, react-node |
+| **`docker-compose.apps.yml`** | postgres, kafka, kafka-ui, java, python, rust, react-node |
 | **`docker-compose.observability.yml`** | prometheus, grafana, elasticsearch, logstash, kibana, filebeat |
 | **`docker-compose.yml`** | includes both (full stack) |
 
@@ -82,6 +82,8 @@ The **`unknown shorthand flag: 'd' in -d`** message usually means **`compose` wa
 ### Compose layout
 
 - **`postgres`** — database on host port **5432** (named volume `exercises_pg_data`). JSON server logs land in **`postgres/logs/`** for **Filebeat → ELK** (see [postgres/README.md](postgres/README.md)).
+- **`kafka`** — single-node broker on host port **9092** (named volume `exercises_kafka_data`, KRaft). Apps receive **`KAFKA_BOOTSTRAP_SERVERS=kafka:9092`** (see [apps/kafka/README.md](apps/kafka/README.md)).
+- **`kafka-ui`** — [UI for Apache Kafka](https://github.com/provectus/kafka-ui) on **8090** → container **8080**; cluster **`exercises`** at `kafka:9092`.
 - **`java`** — uses Spring **`postgres`** profile; connects to the `postgres` service (`DB_HOST=postgres`). The **Dockerfile** keeps `pom.xml`, `src`, `mvnw`, and `target/` (including **Surefire reports** from the image build when tests run at build time) so the **test dashboard** works inside Compose, not only when running `./mvnw` on the host. **Build time:** the default image build runs **`mvn package`** with **all tests**, which is slow but populates Surefire XML; dependencies are cached in a separate layer when only `src/` changes. For a **faster** image (no tests at build time): `docker compose build --build-arg SKIP_TESTS=true java` (then run tests from the UI or `mvnw` inside the container to refresh reports).
 - **`python`** / **`rust`** — listen on `0.0.0.0` inside the container (required for published ports). Both expose **`/metrics`** in Prometheus format for **`prometheus`** to scrape.
 - **`java`** — exposes **`/actuator/prometheus`** (Spring Boot Actuator + Micrometer) for **`prometheus`**.
@@ -98,6 +100,8 @@ Use **`elk/docker-compose.yml`** or **`grafana/docker-compose.yml`** only if you
 All root-compose services attach to a **named bridge network** `exercises`. From **inside** any of those containers, other services resolve by **Compose service name** and **internal port** (not `127.0.0.1`):
 
 - Postgres: `postgres:5432`
+- Kafka: `kafka:9092`
+- Kafka UI: `http://kafka-ui:8080` (browser on host: `http://127.0.0.1:8090`)
 - Java: `http://java:8080`
 - Python: `http://python:5000`
 - Rust: `http://rust:8082`

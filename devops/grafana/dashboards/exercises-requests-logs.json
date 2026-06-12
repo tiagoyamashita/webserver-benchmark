@@ -870,7 +870,7 @@
         "type": "elasticsearch",
         "uid": "elasticsearch"
       },
-      "description": "Incoming HTTP request for the selected ID: method, path, headers, url_params, and body (all JSON). Legacy logs stored the POST payload in name — that is coalesced into body.",
+      "description": "Incoming HTTP request for the selected ID: service, request_id, phase, method, path, parameters, body, message, level, detail, and request headers. Legacy POST payloads in name are coalesced into body.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -986,7 +986,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "url_params"
+              "options": "parameters"
             },
             "properties": [
               {
@@ -1000,11 +1000,30 @@
                 }
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "detail"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 220
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
+              }
+            ]
           }
         ]
       },
       "gridPos": {
-        "h": 6,
+        "h": 8,
         "w": 24,
         "x": 0,
         "y": 13
@@ -1174,7 +1193,49 @@
                 ],
                 "operation": "aggregate"
               },
-              "headers": {
+              "detail": {
+                "aggregations": [
+                  "firstNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "headers.accept": {
+                "aggregations": [
+                  "firstNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "headers.host": {
+                "aggregations": [
+                  "firstNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "headers.user-agent": {
+                "aggregations": [
+                  "firstNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "headers.x-dashboard-page": {
+                "aggregations": [
+                  "firstNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "headers.x-request-id": {
+                "aggregations": [
+                  "firstNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "level": {
+                "aggregations": [
+                  "firstNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "message": {
                 "aggregations": [
                   "firstNotNull"
                 ],
@@ -1187,6 +1248,12 @@
                 "operation": "aggregate"
               },
               "path": {
+                "aggregations": [
+                  "firstNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "phase": {
                 "aggregations": [
                   "firstNotNull"
                 ],
@@ -1209,8 +1276,81 @@
                   "firstNotNull"
                 ],
                 "operation": "aggregate"
+              },
+              "url_params.name": {
+                "aggregations": [
+                  "firstNotNull"
+                ],
+                "operation": "aggregate"
               }
             }
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "path",
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [
+                "path",
+                "fields.path"
+              ],
+              "reducer": "firstNotNull"
+            },
+            "replaceFields": true
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "method",
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [
+                "method",
+                "fields.method"
+              ],
+              "reducer": "firstNotNull"
+            },
+            "replaceFields": true
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "parameters",
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [
+                "url_params",
+                "url_params.name"
+              ],
+              "reducer": "firstNotNull"
+            },
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "request_id",
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [
+                "request_id",
+                "fields.request_id"
+              ],
+              "reducer": "firstNotNull"
+            },
+            "replaceFields": true
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^headers\\.(.*)",
+            "renamePattern": "header_$1"
           }
         },
         {
@@ -1223,39 +1363,45 @@
               "_source": true,
               "_type": true,
               "agent": true,
+              "correlate_id": true,
               "ecs": true,
               "event": true,
+              "fields.method": true,
+              "fields.path": true,
+              "fields.request_id": true,
+              "headers": true,
               "highlight": true,
               "host": true,
               "input": true,
-              "level": true,
               "log": true,
               "log_seq": true,
               "name": true,
-              "phase": true,
               "phase_key": true,
               "sort": true,
-              "tags": true
+              "tags": true,
+              "url_params": true,
+              "url_params.name": true
             },
             "indexByName": {
-              "@timestamp": 0,
-              "service": 1,
-              "method": 2,
-              "fields.method": 3,
-              "path": 4,
-              "fields.path": 5,
-              "headers": 6,
-              "url_params": 7,
-              "body": 8,
-              "correlate_id": 9,
-              "request_id": 10,
-              "fields.request_id": 11
+              "body": 7,
+              "detail": 10,
+              "event_time": 0,
+              "header_accept": 11,
+              "header_host": 12,
+              "header_user-agent": 13,
+              "header_x-dashboard-page": 14,
+              "header_x-request-id": 15,
+              "level": 9,
+              "message": 8,
+              "method": 4,
+              "parameters": 6,
+              "path": 5,
+              "phase": 3,
+              "request_id": 2,
+              "service": 1
             },
             "renameByName": {
-              "@timestamp": "event_time",
-              "fields.method": "method_rust",
-              "fields.path": "path_rust",
-              "fields.request_id": "request_id_rust"
+              "@timestamp": "event_time"
             }
           }
         }
@@ -1267,7 +1413,7 @@
         "type": "elasticsearch",
         "uid": "elasticsearch"
       },
-      "description": "HTTP request parts for the selected ID as a field list: path, url, parameters (url_params), body, headers, and method.",
+      "description": "HTTP request field values per log line: event_time, service, request_id, phase, method, path, parameters, body, message, level, detail, and request headers.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1287,24 +1433,86 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "field"
+              "options": "event_time"
             },
             "properties": [
               {
                 "id": "custom.width",
-                "value": 140
+                "value": 160
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "value"
+              "options": "method"
             },
             "properties": [
               {
                 "id": "custom.width",
-                "value": 640
+                "value": 80
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "path"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "parameters"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 220
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "json-view",
+                  "wrapText": true
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "body"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 260
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "json-view",
+                  "wrapText": true
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "detail"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 280
               },
               {
                 "id": "custom.cellOptions",
@@ -1318,13 +1526,84 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "value"
+              "options": "service"
             },
             "properties": [
               {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "request_id"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "phase"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 88
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "message"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 360
+              },
+              {
                 "id": "custom.cellOptions",
                 "value": {
-                  "type": "json-view",
+                  "type": "auto",
+                  "wrapText": true
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "level"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 72
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "^header_"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 180
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
                   "wrapText": true
                 }
               }
@@ -1333,14 +1612,14 @@
         ]
       },
       "gridPos": {
-        "h": 8,
+        "h": 10,
         "w": 24,
         "x": 0,
-        "y": 19
+        "y": 21
       },
       "id": 5,
       "options": {
-        "cellHeight": "sm",
+        "cellHeight": "md",
         "footer": {
           "countRows": false,
           "fields": "",
@@ -1349,8 +1628,14 @@
           ],
           "show": false
         },
+        "maxRowHeight": 320,
         "showHeader": true,
-        "sortBy": []
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "event_time"
+          }
+        ]
       },
       "pluginVersion": "11.5.2",
       "targets": [
@@ -1364,60 +1649,18 @@
             {
               "id": "1",
               "settings": {
-                "size": "50"
+                "size": "100"
               },
               "type": "raw_data"
             }
           ],
-          "query": "(service:\"exercises-java\" OR service:\"exercises-rust\" OR service:\"exercises-python\" OR service:\"exercises-react-node\") AND (_exists_:path OR _exists_:fields.path OR _exists_:controller OR _exists_:request_id OR _exists_:fields.request_id OR _exists_:status OR _exists_:fields.status) AND NOT (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\" OR fields.path:\"/health\" OR fields.path:\"/api/health\" OR fields.path:\"/metrics\" OR fields.path:\"/actuator/prometheus\" OR fields.path:\"/api/observability/health\" OR controller:health OR fields.controller:health OR ((path:\"/\" OR fields.path:\"/\") AND (method:GET OR fields.method:GET)))",
+          "query": "((service:\"exercises-java\" OR service:\"exercises-rust\" OR service:\"exercises-python\" OR service:\"exercises-react-node\") AND phase:received) OR (service:\"exercises-postgres\" AND _exists_:detail)",
           "refId": "A",
           "timeField": "@timestamp"
         }
       ],
-      "title": "HTTP request fields — ${correlation_id}",
+      "title": "HTTP request fields",
       "transformations": [
-        {
-          "id": "extractFields",
-          "options": {
-            "format": "regexp",
-            "regexp": "^(?<origin>exercises-[^;]+);req=(?<request_id_pg>.+)$",
-            "source": "application_name"
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "correlate_id",
-            "mode": "reduceRow",
-            "reduce": {
-              "include": [
-                "request_id",
-                "fields.request_id",
-                "request_id_pg"
-              ],
-              "reducer": "firstNotNull"
-            },
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "filterByValue",
-          "options": {
-            "filters": [
-              {
-                "config": {
-                  "id": "equal",
-                  "options": {
-                    "value": "${correlation_id}"
-                  }
-                },
-                "fieldName": "correlate_id"
-              }
-            ],
-            "match": "all",
-            "type": "include"
-          }
-        },
         {
           "id": "convertFieldType",
           "options": {
@@ -1449,71 +1692,6 @@
           }
         },
         {
-          "id": "sortBy",
-          "options": {
-            "fields": {},
-            "sort": [
-              {
-                "desc": false,
-                "field": "_epoch_ms"
-              }
-            ]
-          }
-        },
-        {
-          "id": "groupBy",
-          "options": {
-            "fields": {
-              "body": {
-                "aggregations": [
-                  "firstNotNull"
-                ],
-                "operation": "aggregate"
-              },
-              "correlate_id": {
-                "aggregations": [],
-                "operation": "groupby"
-              },
-              "fields.method": {
-                "aggregations": [
-                  "firstNotNull"
-                ],
-                "operation": "aggregate"
-              },
-              "fields.path": {
-                "aggregations": [
-                  "firstNotNull"
-                ],
-                "operation": "aggregate"
-              },
-              "headers": {
-                "aggregations": [
-                  "firstNotNull"
-                ],
-                "operation": "aggregate"
-              },
-              "method": {
-                "aggregations": [
-                  "firstNotNull"
-                ],
-                "operation": "aggregate"
-              },
-              "path": {
-                "aggregations": [
-                  "firstNotNull"
-                ],
-                "operation": "aggregate"
-              },
-              "url_params": {
-                "aggregations": [
-                  "firstNotNull"
-                ],
-                "operation": "aggregate"
-              }
-            }
-          }
-        },
-        {
           "id": "calculateField",
           "options": {
             "alias": "path",
@@ -1526,20 +1704,6 @@
               "reducer": "firstNotNull"
             },
             "replaceFields": true
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "url",
-            "mode": "reduceRow",
-            "reduce": {
-              "include": [
-                "path"
-              ],
-              "reducer": "firstNotNull"
-            },
-            "replaceFields": false
           }
         },
         {
@@ -1558,38 +1722,104 @@
           }
         },
         {
+          "id": "calculateField",
+          "options": {
+            "alias": "parameters",
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [
+                "url_params",
+                "url_params.name"
+              ],
+              "reducer": "firstNotNull"
+            },
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "request_id",
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [
+                "request_id",
+                "fields.request_id"
+              ],
+              "reducer": "firstNotNull"
+            },
+            "replaceFields": true
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": false,
+                "field": "_epoch_ms"
+              }
+            ]
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^headers\\.(.*)",
+            "renamePattern": "header_$1"
+          }
+        },
+        {
           "id": "organize",
           "options": {
             "excludeByName": {
               "_epoch_ms": true,
-              "correlate_id": true,
+              "_id": true,
+              "_index": true,
+              "_source": true,
+              "_type": true,
+              "agent": true,
+              "controller": true,
+              "ecs": true,
+              "event": true,
               "fields.method": true,
-              "fields.path": true
+              "fields.path": true,
+              "fields.request_id": true,
+              "headers": true,
+              "highlight": true,
+              "host": true,
+              "input": true,
+              "log": true,
+              "log_seq": true,
+              "name": true,
+              "phase_key": true,
+              "sort": true,
+              "status": true,
+              "tags": true,
+              "url_params": true,
+              "url_params.name": true
             },
             "indexByName": {
-              "method": 0,
-              "path": 1,
-              "url": 2,
-              "url_params": 3,
-              "body": 4,
-              "headers": 5
+              "body": 7,
+              "detail": 10,
+              "event_time": 0,
+              "header_accept": 11,
+              "header_host": 12,
+              "header_user-agent": 13,
+              "header_x-dashboard-page": 14,
+              "header_x-request-id": 15,
+              "level": 9,
+              "message": 8,
+              "method": 4,
+              "parameters": 6,
+              "path": 5,
+              "phase": 3,
+              "request_id": 2,
+              "service": 1
             },
             "renameByName": {
-              "url_params": "parameters"
-            }
-          }
-        },
-        {
-          "id": "transpose"
-        },
-        {
-          "id": "organize",
-          "options": {
-            "renameByName": {
-              "Field": "field",
-              "Value": "value",
-              "field": "field",
-              "value": "value"
+              "@timestamp": "event_time"
             }
           }
         }
@@ -1669,7 +1899,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 27
+        "y": 31
       },
       "id": 2,
       "options": {
@@ -2048,7 +2278,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 36
+        "y": 40
       },
       "id": 3,
       "options": {
@@ -2334,5 +2564,5 @@
   "timezone": "browser",
   "title": "Exercises HTTP requests & SQL logs",
   "uid": "exercises-requests-logs",
-  "version": 97
+  "version": 194
 }
