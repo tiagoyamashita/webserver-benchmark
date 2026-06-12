@@ -24,6 +24,18 @@ Bootstrap address **inside Compose**: `kafka:9092` (`KAFKA_BOOTSTRAP_SERVERS`).
 
 Host port **8090** avoids clashing with Java on **8080**. Browse topics, messages, and consumer groups after creating topics.
 
+### Embed in app dashboards (`<iframe>`)
+
+Direct **8090** sends `X-Frame-Options: DENY`. Use the **nginx embed proxy** instead:
+
+| | |
+|--|--|
+| Embed URL (host) | `http://127.0.0.1:8091/` |
+| Compose service | `kafka-ui-embed` → proxies `kafka-ui:8080` |
+| Config | `apps/kafka/embed-proxy/nginx.conf` |
+
+Java and Rust dashboards load this URL in an iframe (**Menu → Kafka UI**). Standalone browsing can still use **8090**.
+
 ## Standalone Podman
 
 From this directory (`apps/kafka/`):

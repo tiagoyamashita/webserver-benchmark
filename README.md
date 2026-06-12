@@ -16,6 +16,7 @@ This repo ships **three separate web apps** under **`apps/`**, plus **Postgres**
 | **Redis** | `apps/redis/` | Cache / session store (AOF persistence) | `127.0.0.1:6379` |
 | **Kafka** | `apps/kafka/` | Message broker (KRaft, single node) | `127.0.0.1:9092` |
 | **Kafka UI** | `apps/kafka/` | Web UI for topics / messages (`provectuslabs/kafka-ui`) | `http://127.0.0.1:8090/` |
+| **Kafka UI (embed)** | `apps/kafka/embed-proxy/` | nginx proxy for iframe embed in dashboards | `http://127.0.0.1:8091/` |
 
 **Rust on Windows:** If **`cargo`** fails with **`link.exe` not found**, the MSVC linker is missing — use **`podman compose up --build rust`** from this repo root, or fix the toolchain per [apps/rust/README.md — Troubleshooting](apps/rust/README.md#troubleshooting-rust-server-wont-build-or-wont-open).
 
@@ -70,6 +71,7 @@ Use **Docker Engine** the same way with `docker compose` instead of `podman comp
 | **redis** | `apps/redis/` | Redis 7 (Alpine, AOF) | **6379** | apps | Same image (no dev overlay) |
 | **kafka** | `apps/kafka/` | Apache Kafka 3.9 (KRaft) | **9092** | apps | JSON logs → ELK; **kafka-exporter** → Prometheus |
 | **kafka-ui** | `apps/kafka/` | UI for Apache Kafka | **8090** | apps | Waits for healthy `kafka` |
+| **kafka-ui-embed** | `apps/kafka/embed-proxy/` | Kafka UI via nginx (iframe-safe) | **8091** | apps | Proxies `kafka-ui` |
 | **kafka-exporter** | `apps/kafka/` | Kafka metrics for Prometheus | *(internal)* | apps | Scraped as **`exercises-kafka`** |
 | **java** | `apps/java/` | Spring Boot API + UI | **8080** | apps | `spring-boot:run`, source mounted |
 | **python** | `apps/python/` | Flask dashboard + `/api/items` | **5000** | apps | `FLASK_DEBUG=1` reloader |

@@ -233,6 +233,7 @@
         <button type="button" class="sidebar-btn sub" id="nav-kafka-create-user" data-view="view-kafka-create-user">Kafka create user</button>
         <p class="sidebar-section">API</p>
         <button type="button" class="sidebar-btn sub" id="nav-openapi" data-view="view-openapi">OpenAPI</button>
+        <button type="button" class="sidebar-btn sub" id="nav-kafka-ui" data-view="view-kafka-ui">Kafka UI</button>
         <p class="sidebar-section">Tools</p>
         <a class="sidebar-btn sub" href="/tests">cargo nextest dashboard</a>
       </nav>
@@ -394,6 +395,22 @@
             referrerpolicy="same-origin"
           ></iframe>
         </section>
+
+        <section id="view-kafka-ui" class="view-panel" aria-hidden="true">
+          <h2 class="form-heading">Kafka UI</h2>
+          <p class="form-hint">
+            Embedded via nginx <code>kafka-ui-embed</code> on port <strong>8091</strong> (iframe-safe proxy to
+            provectuslabs/kafka-ui). Open standalone:
+            <a href="http://127.0.0.1:8090/" target="_blank" rel="noopener noreferrer">127.0.0.1:8090</a>.
+          </p>
+          <iframe
+            id="kafka-ui-frame"
+            class="openapi-frame"
+            title="Kafka UI"
+            loading="lazy"
+            referrerpolicy="no-referrer"
+          ></iframe>
+        </section>
       </div>
     </div>
 
@@ -442,6 +459,12 @@
             var openapiFrame = document.getElementById("openapi-frame");
             if (openapiFrame && !openapiFrame.getAttribute("src")) {
               openapiFrame.setAttribute("src", "/swagger-ui");
+            }
+          }
+          if (viewId === "view-kafka-ui") {
+            var kafkaUiFrame = document.getElementById("kafka-ui-frame");
+            if (kafkaUiFrame && !kafkaUiFrame.getAttribute("src")) {
+              kafkaUiFrame.setAttribute("src", "http://127.0.0.1:8091/");
             }
           }
         }

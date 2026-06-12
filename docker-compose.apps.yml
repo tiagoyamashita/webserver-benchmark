@@ -107,6 +107,16 @@ services:
       kafka:
         condition: service_healthy
 
+  kafka-ui-embed:
+    image: docker.io/library/nginx:1.27-alpine
+    networks: [exercises]
+    ports:
+      - "8091:80"
+    volumes:
+      - ./apps/kafka/embed-proxy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - kafka-ui
+
   kafka-exporter:
     image: docker.io/danielqsj/kafka-exporter:v1.9.0
     networks: [exercises]
