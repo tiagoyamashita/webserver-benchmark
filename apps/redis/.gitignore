@@ -1,0 +1,3 @@
+# Optional local overrides (do not commit secrets)
+.env
+*.local

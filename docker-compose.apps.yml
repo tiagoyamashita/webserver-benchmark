@@ -1,4 +1,4 @@
-# Application stack — postgres + kafka + java + python + rust + react-node.
+# Application stack — postgres + redis + kafka + java + python + rust + react-node.
 #
 # Start / restart apps only (observability can keep running):
 #   podman compose -f docker-compose.apps.yml up -d --build
@@ -42,6 +42,21 @@ services:
     volumes:
       - exercises_pg_data:/var/lib/postgresql/data
       - ./apps/postgres/logs:/var/log/postgresql
+
+  redis:
+    image: docker.io/library/redis:7-alpine
+    networks: [exercises]
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - exercises_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
 
   kafka:
     image: docker.io/apache/kafka:3.9.1
@@ -127,6 +142,9 @@ services:
       DB_PASSWORD: postgres
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       APP_KAFKA_CREATE_USER_CONSUMER_GROUP: exercises-create-user
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_URL: redis://redis:6379
       APP_STACK_RUST_BASE_URL: http://rust:8082
       APP_STACK_PYTHON_BASE_URL: http://python:5000
       APP_STACK_PROMETHEUS_BASE_URL: http://prometheus:9090
@@ -168,6 +186,9 @@ services:
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_URL: redis://redis:6379
     volumes:
       - ./apps/python/logs:/app/logs
     depends_on:
@@ -202,6 +223,9 @@ services:
       KAFKA_CREATE_USER_PARTITIONS: "1"
       KAFKA_CREATE_USER_REPLICAS: "1"
       KAFKA_ADMIN_FAIL_FAST: "true"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_URL: redis://redis:6379
     volumes:
       - ./apps/rust/logs:/app/logs
     depends_on:
@@ -247,6 +271,9 @@ services:
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_URL: redis://redis:6379
     volumes:
       - ./apps/react-node/logs:/app/logs
     depends_on:
@@ -269,4 +296,5 @@ networks:
 
 volumes:
   exercises_pg_data:
+  exercises_redis_data:
   exercises_kafka_data:

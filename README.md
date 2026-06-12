@@ -4,7 +4,7 @@ Exercises (tiagoyamashita.com)
 
 ## Application servers
 
-This repo ships **three separate web apps** under **`apps/`**, plus **Postgres**, **Kafka**, **React Node**, and optional **observability** under **`devops/`**:
+This repo ships **three separate web apps** under **`apps/`**, plus **Postgres**, **Redis**, **Kafka**, **React Node**, and optional **observability** under **`devops/`**:
 
 | Stack | Folder | Role | Typical URL (local) |
 |-------|--------|------|---------------------|
@@ -13,6 +13,7 @@ This repo ships **three separate web apps** under **`apps/`**, plus **Postgres**
 | **Rust** | `apps/rust/` | Axum dashboard | `http://127.0.0.1:8082/` |
 | **React Node** | `apps/react-node/` | Stack probe UI (React + Express) | `http://127.0.0.1:5174/` |
 | **PostgreSQL** | `apps/postgres/` | Shared database (Compose scripts + log dir) | `127.0.0.1:5432` |
+| **Redis** | `apps/redis/` | Cache / session store (AOF persistence) | `127.0.0.1:6379` |
 | **Kafka** | `apps/kafka/` | Message broker (KRaft, single node) | `127.0.0.1:9092` |
 | **Kafka UI** | `apps/kafka/` | Web UI for topics / messages (`provectuslabs/kafka-ui`) | `http://127.0.0.1:8090/` |
 
@@ -45,7 +46,7 @@ From the **repo root**, Compose is split so you can run **apps** and **observabi
 | File | Starts | Typical command |
 |------|--------|-----------------|
 | **`docker-compose.yml`** | Apps **+** devops (full stack) | `podman compose up -d --build` |
-| **`docker-compose.apps.yml`** | Postgres, Kafka, Java, Python, Rust, react-node | `podman compose -f docker-compose.apps.yml up -d --build` |
+| **`docker-compose.apps.yml`** | Postgres, Redis, Kafka, Java, Python, Rust, react-node | `podman compose -f docker-compose.apps.yml up -d --build` |
 | **`docker-compose.observability.yml`** | Prometheus, Grafana, ELK, Filebeat | `podman compose -f docker-compose.observability.yml up -d` |
 | **`docker-compose.dev.yml`** | Overlay on **apps** only (hot reload) | Add `-f docker-compose.dev.yml` to an **apps** command (see below) |
 
@@ -66,6 +67,7 @@ Use **Docker Engine** the same way with `docker compose` instead of `podman comp
 | Service | Folder | Role | Host port | Compose file | With **`docker-compose.dev.yml`** |
 |---------|--------|------|-----------|--------------|-----------------------------------|
 | **postgres** | `apps/postgres/` | PostgreSQL 16 | **5432** | apps | Same image (no dev overlay) |
+| **redis** | `apps/redis/` | Redis 7 (Alpine, AOF) | **6379** | apps | Same image (no dev overlay) |
 | **kafka** | `apps/kafka/` | Apache Kafka 3.9 (KRaft) | **9092** | apps | JSON logs → ELK; **kafka-exporter** → Prometheus |
 | **kafka-ui** | `apps/kafka/` | UI for Apache Kafka | **8090** | apps | Waits for healthy `kafka` |
 | **kafka-exporter** | `apps/kafka/` | Kafka metrics for Prometheus | *(internal)* | apps | Scraped as **`exercises-kafka`** |

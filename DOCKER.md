@@ -18,7 +18,7 @@ Compose is split so you can **restart apps without stopping observability**:
 
 | File | Services |
 |------|----------|
-| **`docker-compose.apps.yml`** | postgres, kafka, kafka-ui, java, python, rust, react-node |
+| **`docker-compose.apps.yml`** | postgres, redis, kafka, kafka-ui, java, python, rust, react-node |
 | **`docker-compose.observability.yml`** | prometheus, grafana, elasticsearch, logstash, kibana, filebeat |
 | **`docker-compose.yml`** | includes both (full stack) |
 
@@ -82,6 +82,7 @@ The **`unknown shorthand flag: 'd' in -d`** message usually means **`compose` wa
 ### Compose layout
 
 - **`postgres`** — database on host port **5432** (named volume `exercises_pg_data`). JSON server logs land in **`postgres/logs/`** for **Filebeat → ELK** (see [postgres/README.md](postgres/README.md)).
+- **`redis`** — cache on host port **6379** (named volume `exercises_redis_data`, AOF on). Apps receive **`REDIS_URL=redis://redis:6379`** (see [apps/redis/README.md](apps/redis/README.md)).
 - **`kafka`** — single-node broker on host port **9092** (named volume `exercises_kafka_data`, KRaft). JSON broker logs land in **`apps/kafka/logs/`** for **Filebeat → ELK**; **`kafka-exporter`** exposes metrics for **Prometheus → Grafana** (see [apps/kafka/README.md](apps/kafka/README.md)).
 - **`kafka-exporter`** — Prometheus metrics for broker / topics / consumer groups (scraped as job **`exercises-kafka`**).
 - **`kafka-ui`** — [UI for Apache Kafka](https://github.com/provectus/kafka-ui) on **8090** → container **8080**; cluster **`exercises`** at `kafka:9092`.
@@ -101,6 +102,7 @@ Use **`elk/docker-compose.yml`** or **`grafana/docker-compose.yml`** only if you
 All root-compose services attach to a **named bridge network** `exercises`. From **inside** any of those containers, other services resolve by **Compose service name** and **internal port** (not `127.0.0.1`):
 
 - Postgres: `postgres:5432`
+- Redis: `redis:6379`
 - Kafka: `kafka:9092`
 - Kafka UI: `http://kafka-ui:8080` (browser on host: `http://127.0.0.1:8090`)
 - Java: `http://java:8080`
