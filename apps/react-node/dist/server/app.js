@@ -2,8 +2,17 @@ import express from "express";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { logError, logReceived, logSucceeded, logTrace, logWarn, } from "./controller-logging.js";
+import { createItem, fetchItems } from "./items.js";
+import { registerAuthRoutes, sessionMiddleware } from "./auth/routes.js";
+import { observabilityEnabled, writeLog, } from "./observability-logging.js";
+import { metricsHandler, metricsMiddleware } from "./metrics.js";
+import { registerOpenApiRoutes } from "./openapi.js";
 import { probeById } from "./probe.js";
+import { requestIdMiddleware } from "./request-id.js";
+import { requestBody, requestHeaders, requestUrlParams } from "./request-snapshot.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const SOURCE = "server/app.ts";
 /** Built client assets (Vite outDir: dist/client). */
 function resolveClientDir() {
     const candidates = [
@@ -18,20 +27,139 @@ function resolveClientDir() {
     return null;
 }
 export function createApp(options = {}) {
-    const { isProduction = process.env.NODE_ENV === "production", fetchImpl } = options;
+    const { isProduction = process.env.NODE_ENV === "production", fetchImpl, authRuntime = { auth: null } } = options;
     const app = express();
+    app.use(express.json());
+    app.use(requestIdMiddleware);
+    app.use(sessionMiddleware(authRuntime.auth));
+    app.use(metricsMiddleware);
+    registerOpenApiRoutes(app);
+    registerAuthRoutes(app, authRuntime);
+    if (observabilityEnabled()) {
+        app.use((req, res, next) => {
+            const start = Date.now();
+            writeLog("INFO", `${req.method} ${req.originalUrl} request received`, {
+                method: req.method,
+                path: req.originalUrl,
+                request_id: req.requestId,
+                phase: "received",
+                headers: requestHeaders(req),
+                url_params: requestUrlParams(req),
+                body: requestBody(req),
+            });
+            res.on("finish", () => {
+                writeLog("INFO", `${req.method} ${req.originalUrl} ${res.statusCode}`, {
+                    method: req.method,
+                    path: req.originalUrl,
+                    status: res.statusCode,
+                    ms: Date.now() - start,
+                    request_id: req.requestId,
+                    phase: "completed",
+                });
+            });
+            next();
+        });
+    }
+    app.get("/metrics", (req, res) => {
+        void metricsHandler(req, res);
+    });
     app.get("/api/health", (_req, res) => {
         res.json({ ok: true, service: "react-node" });
+    });
+    app.get("/api/observability/sample-log", (_req, res) => {
+        logReceived("observabilitySampleLog", SOURCE, "GET", "/api/observability/sample-log");
+        writeLog("INFO", "Observability sample event (JSON log file -> Filebeat -> Logstash -> Elasticsearch)", { source: SOURCE, controller: "observabilitySampleLog" });
+        logSucceeded("observabilitySampleLog", SOURCE);
+        res.send("logged");
     });
     app.get("/api/probe/:id", async (req, res) => {
         const rawId = req.params.id;
         const id = Array.isArray(rawId) ? rawId[0] : rawId;
-        const result = await probeById(id ?? "", fetchImpl);
+        const target = id ?? "";
+        logReceived("probe", SOURCE, "GET", "/api/probe/{id}", { target });
+        const result = await probeById(target, fetchImpl);
         if ("status" in result && "error" in result && !("ok" in result)) {
+            logWarn("probe", SOURCE, "probe unknown target", {
+                target,
+                status: result.status,
+                error: result.error,
+            });
             res.status(result.status).json({ error: result.error });
             return;
         }
+        if (!result.ok) {
+            logWarn("probe", SOURCE, "probe downstream unreachable", {
+                target,
+                ok: result.ok,
+                status: result.status,
+                error: result.error,
+                ms: result.ms,
+                kind: result.kind,
+            });
+        }
+        else {
+            logSucceeded("probe", SOURCE, {
+                target,
+                ok: result.ok,
+                status: result.status,
+                ms: result.ms,
+                kind: result.kind,
+            });
+        }
         res.json(result);
+    });
+    app.get("/api/items", async (req, res) => {
+        logReceived("listItems", SOURCE, "GET", "/api/items", {
+            request_id: req.requestId,
+        });
+        try {
+            const items = await fetchItems(fetchImpl, req.requestId);
+            logSucceeded("listItems", SOURCE, { count: items.length, request_id: req.requestId });
+            logTrace("listItems", SOURCE, "listItems result", { items, request_id: req.requestId });
+            res.json(items);
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            logError("listItems", SOURCE, "listItems failed", {
+                request_id: req.requestId,
+                error: message,
+            });
+            res.status(502).json({ error: message });
+        }
+    });
+    app.post("/api/items", async (req, res) => {
+        const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
+        logReceived("createItem", SOURCE, "POST", "/api/items", {
+            name,
+            request_id: req.requestId,
+        });
+        if (!name) {
+            logWarn("createItem", SOURCE, "createItem validation failed", {
+                name: req.body?.name,
+                reason: "blank-name",
+                request_id: req.requestId,
+            });
+            res.status(400).json({ error: "name must not be blank" });
+            return;
+        }
+        try {
+            const item = await createItem(name, fetchImpl, req.requestId);
+            logSucceeded("createItem", SOURCE, {
+                id: item.id,
+                name: item.name,
+                request_id: req.requestId,
+            });
+            res.status(201).json(item);
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            logError("createItem", SOURCE, "createItem failed", {
+                name,
+                request_id: req.requestId,
+                error: message,
+            });
+            res.status(502).json({ error: message });
+        }
     });
     if (isProduction) {
         const clientDir = resolveClientDir();
@@ -39,9 +167,20 @@ export function createApp(options = {}) {
             throw new Error("Production mode requires a built client (dist/client/index.html). Run npm run build first.");
         }
         app.use(express.static(clientDir));
-        app.get("*", (_req, res) => {
-            res.sendFile(path.join(clientDir, "index.html"));
+        app.get("*", (req, res) => {
+            logReceived("spaFallback", SOURCE, "GET", req.originalUrl, { template: "index.html" });
+            res.sendFile(path.join(clientDir, "index.html"), (err) => {
+                if (err) {
+                    logError("spaFallback", SOURCE, "spaFallback failed", {
+                        path: req.originalUrl,
+                        error: err.message,
+                    });
+                    return;
+                }
+                logSucceeded("spaFallback", SOURCE, { path: req.originalUrl });
+            });
         });
     }
     return app;
 }
+export { createAuthRuntime } from "./auth/routes.js";

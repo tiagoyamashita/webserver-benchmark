@@ -237,8 +237,12 @@ services:
     volumes:
       - ./apps/python/logs:/app/logs
     depends_on:
-      - postgres
-      - java
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_healthy
+      java:
+        condition: service_started
 
   rust:
     build:
@@ -325,6 +329,7 @@ services:
       - ./apps/react-node/logs:/app/logs
     depends_on:
       - postgres
+      - redis
       - java
       - python
       - rust

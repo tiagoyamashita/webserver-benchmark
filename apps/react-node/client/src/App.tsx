@@ -1,11 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
 import { createItem, fetchItems, probeService } from "./api";
 import { formatProbeResult, probeResultClassName } from "./formatResult";
+import {
+  ensureSession,
+  fetchCurrentSession,
+  loginSession,
+  logoutSession,
+  type SessionData,
+} from "./session";
 import type { Item, ProbeResult, ServiceRow } from "./types";
 import "./App.css";
 
 const SERVICES: ServiceRow[] = [
   { id: "postgres", label: "Postgres" },
+  { id: "redis", label: "Redis" },
   { id: "java", label: "Java" },
   { id: "rust", label: "Rust" },
   { id: "python", label: "Python" },
@@ -15,7 +23,7 @@ const SERVICES: ServiceRow[] = [
   { id: "kibana", label: "Kibana" },
 ];
 
-type ViewId = "connectivity" | "list-items" | "create-item" | "openapi";
+type ViewId = "connectivity" | "session" | "list-items" | "create-item" | "openapi";
 
 type RowState = ProbeResult | { pending: true } | null;
 
@@ -29,6 +37,88 @@ export default function App() {
   const [createPending, setCreatePending] = useState(false);
   const [createMessage, setCreateMessage] = useState<string | null>(null);
   const [openapiSrc, setOpenapiSrc] = useState<string | null>(null);
+  const [pageSessionId, setPageSessionId] = useState("…");
+  const [sessionStatus, setSessionStatus] = useState("Loading session…");
+  const [sessionResult, setSessionResult] = useState<string | null>(null);
+  const [sessionEmail, setSessionEmail] = useState("");
+  const [sessionUserId, setSessionUserId] = useState("");
+  const [sessionPending, setSessionPending] = useState(false);
+
+  useEffect(() => {
+    void ensureSession()
+      .then((session) => {
+        setPageSessionId(session.sessionId);
+        renderSessionStatus(session);
+      })
+      .catch(() => {
+        setPageSessionId("unavailable");
+        setSessionStatus("Session unavailable.");
+      });
+  }, []);
+
+  function renderSessionStatus(data: SessionData | null) {
+    if (!data?.sessionId) {
+      setSessionStatus("No session.");
+      return;
+    }
+    const who =
+      data.userId === 0 || !data.email
+        ? `${data.name || "Guest"} (guest — sign in to bind a user)`
+        : `${data.name} (${data.email})`;
+    setSessionStatus(`${who} — session ${data.sessionId} — Redis key ${data.redisKey}`);
+    setPageSessionId(data.sessionId);
+  }
+
+  const refreshSessionView = useCallback(async () => {
+    setSessionPending(true);
+    setSessionResult("Refreshing…");
+    try {
+      const session = await fetchCurrentSession();
+      renderSessionStatus(session);
+      setSessionResult(JSON.stringify(session, null, 2));
+    } catch (error) {
+      renderSessionStatus(null);
+      setSessionResult(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSessionPending(false);
+    }
+  }, []);
+
+  const submitSessionLogin = useCallback(async () => {
+    setSessionPending(true);
+    setSessionResult("Logging in…");
+    const body: { email?: string; userId?: number } = {};
+    const email = sessionEmail.trim();
+    const userIdRaw = sessionUserId.trim();
+    if (email) body.email = email;
+    if (userIdRaw) body.userId = Number(userIdRaw);
+    try {
+      const session = await loginSession(body);
+      renderSessionStatus(session);
+      setSessionResult(JSON.stringify(session, null, 2));
+    } catch (error) {
+      renderSessionStatus(null);
+      setSessionResult(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSessionPending(false);
+    }
+  }, [sessionEmail, sessionUserId]);
+
+  const submitSessionLogout = useCallback(async () => {
+    setSessionPending(true);
+    setSessionResult("Logging out…");
+    try {
+      await logoutSession();
+      renderSessionStatus(null);
+      const session = await ensureSession();
+      renderSessionStatus(session);
+      setSessionResult(`Logged out. New guest session:\n${JSON.stringify(session, null, 2)}`);
+    } catch (error) {
+      setSessionResult(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSessionPending(false);
+    }
+  }, []);
 
   const pingOne = useCallback(async (id: string) => {
     setRows((prev) => ({ ...prev, [id]: { pending: true } }));
@@ -59,10 +149,13 @@ export default function App() {
     if (activeView === "list-items") {
       void loadItems();
     }
+    if (activeView === "session") {
+      void refreshSessionView();
+    }
     if (activeView === "openapi" && !openapiSrc) {
       setOpenapiSrc("/swagger-ui");
     }
-  }, [activeView, loadItems, openapiSrc]);
+  }, [activeView, loadItems, openapiSrc, refreshSessionView]);
 
   const submitItem = useCallback(async () => {
     const name = newItemName.trim();
@@ -94,6 +187,9 @@ export default function App() {
     <main>
       <h1>React Node</h1>
       <p className="page-subtitle">Use the menu on the left to open connectivity checks or action forms.</p>
+      <p className="page-subtitle">
+        Shared Redis session ID: <code>{pageSessionId}</code> (auto-created on load; stored in Redis for cross-app auth)
+      </p>
 
       <div className="dashboard">
         <nav className="sidebar" aria-label="Dashboard menu">
@@ -107,6 +203,14 @@ export default function App() {
             Connectivity
           </button>
           <p className="sidebar-section">Actions</p>
+          <button
+            type="button"
+            className="sidebar-btn sub"
+            aria-current={activeView === "session" ? "page" : undefined}
+            onClick={() => setActiveView("session")}
+          >
+            Session login
+          </button>
           <button
             type="button"
             className="sidebar-btn sub"
@@ -173,6 +277,72 @@ export default function App() {
                 </tbody>
               </table>
             </div>
+          </section>
+
+          <section
+            className="view-panel"
+            aria-hidden={activeView !== "session"}
+            hidden={activeView !== "session"}
+          >
+            <h2 className="form-heading">Shared Redis session</h2>
+            <p className="form-hint">
+              A guest session is created automatically when this page loads. Login replaces it with a user-bound session in
+              Redis at <code>exercises:session:{"{sessionId}"}</code>. Other apps authenticate with{" "}
+              <code>Authorization: Bearer …</code>, <code>X-Session-ID</code>, or the{" "}
+              <code>exercises_session</code> cookie.
+            </p>
+            <p className="form-hint">{sessionStatus}</p>
+            <form
+              className="items-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void submitSessionLogin();
+              }}
+            >
+              <label htmlFor="session-email">User email</label>
+              <input
+                id="session-email"
+                type="email"
+                value={sessionEmail}
+                onChange={(event) => setSessionEmail(event.target.value)}
+                placeholder="jane@example.com"
+                autoComplete="email"
+              />
+              <label htmlFor="session-user-id">Or user ID</label>
+              <input
+                id="session-user-id"
+                type="number"
+                min={1}
+                step={1}
+                value={sessionUserId}
+                onChange={(event) => setSessionUserId(event.target.value)}
+                placeholder="1"
+              />
+              <button type="submit" className="btn primary" disabled={sessionPending}>
+                Login (store in Redis)
+              </button>
+              <button
+                type="button"
+                className="btn"
+                disabled={sessionPending}
+                onClick={() => void submitSessionLogout()}
+              >
+                Logout
+              </button>
+              <button
+                type="button"
+                className="btn"
+                disabled={sessionPending}
+                onClick={() => void refreshSessionView()}
+              >
+                Refresh session
+              </button>
+            </form>
+            {sessionResult ? (
+              <pre className="result-box" aria-live="polite">
+                {sessionResult}
+              </pre>
+            ) : null}
           </section>
 
           <section

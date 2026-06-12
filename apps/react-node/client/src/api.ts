@@ -1,10 +1,12 @@
 import type { Item, ProbeResult } from "./types";
+import { withSessionHeaders } from "./session";
 
 export async function probeService(id: string): Promise<ProbeResult> {
   const response = await fetch(`/api/probe/${encodeURIComponent(id)}`, {
     method: "GET",
     credentials: "same-origin",
     cache: "no-store",
+    headers: withSessionHeaders(),
   });
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as { error?: string };
@@ -23,6 +25,7 @@ export async function fetchItems(): Promise<Item[]> {
     method: "GET",
     credentials: "same-origin",
     cache: "no-store",
+    headers: withSessionHeaders(),
   });
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as { error?: string };
@@ -35,7 +38,7 @@ export async function createItem(name: string): Promise<Item> {
   const response = await fetch("/api/items", {
     method: "POST",
     credentials: "same-origin",
-    headers: { "Content-Type": "application/json" },
+    headers: withSessionHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ name }),
   });
   if (!response.ok) {

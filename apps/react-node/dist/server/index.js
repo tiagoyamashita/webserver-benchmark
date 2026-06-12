@@ -1,17 +1,24 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createApp } from "./app.js";
+import { createApp, createAuthRuntime } from "./app.js";
+import { configureObservabilityLogging } from "./observability-logging.js";
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const port = Number(process.env.PORT ?? 5174);
 const isProduction = process.env.NODE_ENV === "production";
 async function start() {
-    const app = createApp({ isProduction });
+    configureObservabilityLogging();
+    const authRuntime = await createAuthRuntime();
+    const app = createApp({ isProduction, authRuntime });
     if (!isProduction) {
         const { createServer: createViteServer } = await import("vite");
         const vite = await createViteServer({
             root: rootDir,
-            server: { middlewareMode: true },
+            server: {
+                middlewareMode: true,
+                // Allow server-side probes from other containers (Host: react-node:5174).
+                allowedHosts: true,
+            },
             appType: "custom",
         });
         app.use(vite.middlewares);

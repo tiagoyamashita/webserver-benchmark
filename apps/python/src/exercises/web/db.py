@@ -54,3 +54,27 @@ def connection(request_id: str | None = None) -> Iterator["psycopg.Connection"]:
                 (app_name,),
             )
         yield conn
+
+
+def find_user_by_email(conn: "psycopg.Connection", email: str) -> tuple[int, str, str] | None:
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT id, name, email FROM users WHERE LOWER(email) = LOWER(%s) LIMIT 1",
+            (email,),
+        )
+        row = cur.fetchone()
+    if row is None:
+        return None
+    return int(row[0]), str(row[1]), str(row[2])
+
+
+def find_user_by_id(conn: "psycopg.Connection", user_id: int) -> tuple[int, str, str] | None:
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT id, name, email FROM users WHERE id = %s LIMIT 1",
+            (user_id,),
+        )
+        row = cur.fetchone()
+    if row is None:
+        return None
+    return int(row[0]), str(row[1]), str(row[2])

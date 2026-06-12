@@ -10,6 +10,7 @@ import {
   logWarn,
 } from "./controller-logging.js";
 import { createItem, fetchItems } from "./items.js";
+import { registerAuthRoutes, sessionMiddleware, type AuthRuntime } from "./auth/routes.js";
 import {
   observabilityEnabled,
   writeLog,
@@ -26,6 +27,7 @@ const SOURCE = "server/app.ts";
 export type CreateAppOptions = {
   isProduction?: boolean;
   fetchImpl?: typeof fetch;
+  authRuntime?: AuthRuntime;
 };
 
 /** Built client assets (Vite outDir: dist/client). */
@@ -43,13 +45,16 @@ function resolveClientDir(): string | null {
 }
 
 export function createApp(options: CreateAppOptions = {}): Express {
-  const { isProduction = process.env.NODE_ENV === "production", fetchImpl } = options;
+  const { isProduction = process.env.NODE_ENV === "production", fetchImpl, authRuntime = { auth: null } } =
+    options;
   const app = express();
   app.use(express.json());
   app.use(requestIdMiddleware);
+  app.use(sessionMiddleware(authRuntime.auth));
   app.use(metricsMiddleware);
 
   registerOpenApiRoutes(app);
+  registerAuthRoutes(app, authRuntime);
 
   if (observabilityEnabled()) {
     app.use((req: Request, res: Response, next: NextFunction) => {
@@ -210,3 +215,5 @@ export function createApp(options: CreateAppOptions = {}): Express {
 
   return app;
 }
+
+export { createAuthRuntime } from "./auth/routes.js";

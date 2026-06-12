@@ -9,6 +9,7 @@ from pathlib import Path
 from flask import Flask, Response, g, jsonify, redirect, render_template, request, session, url_for
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, generate_latest
 
+from exercises.web.auth_api import register_auth_routes
 from exercises.web.controller_logging import log_error, log_received, log_succeeded, log_warn
 from exercises.web.items_api import register_items_routes
 from exercises.web.openapi_routes import register_openapi_routes
@@ -23,6 +24,9 @@ from exercises.web.junit_report import (
 from exercises.web.pytest_runner import run_pytest
 from exercises.web.source_service import read_test_source
 from exercises.web.stack_ping import StackLinks
+from exercises.web.session_auth import AuthState, register_session_middleware
+from exercises.web.session_models import SessionConfig
+from exercises.web.session_repository import connect_redis, SessionRepository
 
 # Module-level so repeated `create_app()` (e.g. pytest) does not re-register on the default registry.
 _HTTP_REQUESTS = Counter(
@@ -71,6 +75,26 @@ def create_app() -> Flask:
     app.config["PROJECT_ROOT"] = resolve_project_root()
     register_items_routes(app)
     register_openapi_routes(app)
+    register_auth_routes(app)
+
+    auth_state: AuthState | None = None
+    try:
+        redis_client = connect_redis()
+        if redis_client is not None:
+            config = SessionConfig.from_env()
+            auth_state = AuthState(
+                client=redis_client,
+                repo=SessionRepository(redis_client, config),
+                config=config,
+            )
+            _APP_LOG.info("Redis session store connected", extra={"source": _APP_SOURCE})
+    except Exception as exc:
+        _APP_LOG.warning(
+            "Redis session store unavailable: %s",
+            exc,
+            extra={"source": _APP_SOURCE},
+        )
+    register_session_middleware(app, auth_state)
 
     @app.before_request
     def _record_request_start() -> None:

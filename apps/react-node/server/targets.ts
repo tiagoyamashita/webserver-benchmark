@@ -1,5 +1,6 @@
 export type ProbeTargetId =
   | "postgres"
+  | "redis"
   | "java"
   | "rust"
   | "python"
@@ -10,6 +11,7 @@ export type ProbeTargetId =
 
 export const PROBE_SERVICES: ReadonlyArray<{ id: ProbeTargetId; label: string }> = [
   { id: "postgres", label: "Postgres" },
+  { id: "redis", label: "Redis" },
   { id: "java", label: "Java" },
   { id: "rust", label: "Rust" },
   { id: "python", label: "Python" },
@@ -25,7 +27,10 @@ function readEnv(key: string, fallback: string): string {
 }
 
 export function probeTargetUrl(id: ProbeTargetId): string {
-  const map: Record<ProbeTargetId, string> = {
+  if (id === "postgres" || id === "redis") {
+    throw new Error(`${id} probe does not use an HTTP URL`);
+  }
+  const map: Record<Exclude<ProbeTargetId, "postgres" | "redis">, string> = {
     java: readEnv("PROBE_JAVA_URL", "http://127.0.0.1:8080"),
     rust: readEnv("PROBE_RUST_URL", "http://127.0.0.1:8082"),
     python: readEnv("PROBE_PYTHON_URL", "http://127.0.0.1:5000"),

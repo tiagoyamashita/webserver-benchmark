@@ -8,6 +8,7 @@ dependencies = [
   "flask>=3.0",
   "prometheus-client>=0.21",
   "psycopg[binary]>=3.2",
+  "redis>=5.0",
 ]
 
 [project.optional-dependencies]
@@ -21,7 +22,7 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 
 [tool.setuptools.package-data]
-"exercises.web" = ["templates/*.html"]
+"exercises.web" = ["templates/*.html", "static/*"]
 
 [project.scripts]
 exercises-web = "exercises.web.cli:main"

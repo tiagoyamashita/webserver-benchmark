@@ -3,7 +3,7 @@ export type ProbeResult = {
   status: number | null;
   error: string | null;
   ms: number;
-  kind?: "http" | "postgres";
+  kind?: "http" | "postgres" | "redis";
 };
 
 export type ServiceRow = {

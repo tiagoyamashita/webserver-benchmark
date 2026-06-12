@@ -2,18 +2,22 @@ import type { ProbeTargetId } from "./targets.js";
 import { isProbeTargetId, probeTargetUrl } from "./targets.js";
 
 import { probePostgres } from "./postgres-probe.js";
+import { probeRedis } from "./redis-probe.js";
 
 export type ProbeResult = {
   ok: boolean;
   status: number | null;
   error: string | null;
   ms: number;
-  kind?: "http" | "postgres";
+  kind?: "http" | "postgres" | "redis";
 };
 
 export async function runProbe(id: ProbeTargetId, fetchImpl: typeof fetch = fetch): Promise<ProbeResult> {
   if (id === "postgres") {
     return probePostgres();
+  }
+  if (id === "redis") {
+    return probeRedis();
   }
 
   const url = probeTargetUrl(id);

@@ -1,5 +1,13 @@
 import { isProbeTargetId, probeTargetUrl } from "./targets.js";
+import { probePostgres } from "./postgres-probe.js";
+import { probeRedis } from "./redis-probe.js";
 export async function runProbe(id, fetchImpl = fetch) {
+    if (id === "postgres") {
+        return probePostgres();
+    }
+    if (id === "redis") {
+        return probeRedis();
+    }
     const url = probeTargetUrl(id);
     const start = performance.now();
     try {
@@ -14,6 +22,7 @@ export async function runProbe(id, fetchImpl = fetch) {
             status: response.status,
             error: response.ok ? null : response.statusText || `HTTP ${response.status}`,
             ms,
+            kind: "http",
         };
     }
     catch (error) {
@@ -23,6 +32,7 @@ export async function runProbe(id, fetchImpl = fetch) {
             status: null,
             error: error instanceof Error ? error.message : String(error),
             ms,
+            kind: "http",
         };
     }
 }

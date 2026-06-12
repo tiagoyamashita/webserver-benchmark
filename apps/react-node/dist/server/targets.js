@@ -1,4 +1,6 @@
 export const PROBE_SERVICES = [
+    { id: "postgres", label: "Postgres" },
+    { id: "redis", label: "Redis" },
     { id: "java", label: "Java" },
     { id: "rust", label: "Rust" },
     { id: "python", label: "Python" },
@@ -12,6 +14,9 @@ function readEnv(key, fallback) {
     return value || fallback;
 }
 export function probeTargetUrl(id) {
+    if (id === "postgres" || id === "redis") {
+        throw new Error(`${id} probe does not use an HTTP URL`);
+    }
     const map = {
         java: readEnv("PROBE_JAVA_URL", "http://127.0.0.1:8080"),
         rust: readEnv("PROBE_RUST_URL", "http://127.0.0.1:8082"),

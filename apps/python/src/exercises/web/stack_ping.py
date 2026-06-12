@@ -95,6 +95,8 @@ class StackLinks:
         key = target.strip().lower()
         if key == "postgres":
             return _ping_postgres()
+        if key == "redis":
+            return _ping_redis()
         dispatch = {
             "java": ("java", self.java_base_url),
             "rust": ("rust", self.rust_base_url),
@@ -143,6 +145,37 @@ def _ping_postgres() -> dict[str, Any]:
             "url": url,
             "ok": False,
             "error": f"Cannot connect to Postgres. {e}",
+        }
+
+
+def _ping_redis() -> dict[str, Any]:
+    host = _read_env("REDIS_HOST", "")
+    port = _read_env("REDIS_PORT", "6379")
+    url = _read_env("REDIS_URL", f"redis://{host}:{port}" if host else "")
+    if not host and not url:
+        return {
+            "stack": "redis",
+            "url": "",
+            "ok": False,
+            "error": "Redis not configured (set REDIS_HOST or REDIS_URL)",
+        }
+    try:
+        import redis
+
+        client = redis.from_url(url, decode_responses=True)
+        pong = client.ping()
+        return {
+            "stack": "redis",
+            "url": url,
+            "ok": pong is True,
+            "status": 200 if pong is True else None,
+        }
+    except Exception as e:
+        return {
+            "stack": "redis",
+            "url": url,
+            "ok": False,
+            "error": f"Cannot connect to Redis. {e}",
         }
 
 

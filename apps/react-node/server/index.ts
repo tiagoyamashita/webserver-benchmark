@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createApp } from "./app.js";
+import { createApp, createAuthRuntime } from "./app.js";
 import { configureObservabilityLogging } from "./observability-logging.js";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -10,7 +10,8 @@ const isProduction = process.env.NODE_ENV === "production";
 
 async function start() {
   configureObservabilityLogging();
-  const app = createApp({ isProduction });
+  const authRuntime = await createAuthRuntime();
+  const app = createApp({ isProduction, authRuntime });
 
   if (!isProduction) {
     const { createServer: createViteServer } = await import("vite");

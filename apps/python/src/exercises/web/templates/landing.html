@@ -222,12 +222,14 @@
   <body>
     <h1 id="stack-heading">Hello Python</h1>
     <p class="page-subtitle">Use the menu on the left to open connectivity checks or action forms.</p>
+    <p class="page-subtitle">Shared Redis session ID: <code id="page-session-id">…</code> (auto-created on load; stored in Redis for cross-app auth)</p>
 
     <div class="dashboard">
       <nav class="sidebar" aria-label="Dashboard menu">
         <p class="sidebar-title">Menu</p>
         <button type="button" class="sidebar-btn" id="nav-connectivity" aria-current="page" data-view="view-connectivity">Connectivity</button>
         <p class="sidebar-section">Actions</p>
+        <button type="button" class="sidebar-btn sub" id="nav-session" data-view="view-session">Session login</button>
         <button type="button" class="sidebar-btn sub" id="nav-list-items" data-view="view-list-items">List items</button>
         <button type="button" class="sidebar-btn sub" id="nav-create-item" data-view="view-create-item">Create item</button>
         <p class="sidebar-section">API</p>
@@ -255,6 +257,13 @@
                   <td>Postgres</td>
                   <td class="actions">
                     <button type="button" class="btn stack-ping-btn" data-target="postgres">Ping</button>
+                  </td>
+                  <td class="status-cell"><span class="status-pending">—</span></td>
+                </tr>
+                <tr data-target="redis">
+                  <td>Redis</td>
+                  <td class="actions">
+                    <button type="button" class="btn stack-ping-btn" data-target="redis">Ping</button>
                   </td>
                   <td class="status-cell"><span class="status-pending">—</span></td>
                 </tr>
@@ -320,6 +329,30 @@
           </section>
         </section>
 
+        <section id="view-session" class="view-panel" aria-hidden="true">
+          <h2 class="form-heading">Shared Redis session</h2>
+          <p class="form-hint">
+            A guest session is created automatically when this page loads. Login replaces it with a user-bound session in
+            Redis at <code>exercises:session:{sessionId}</code>. Other apps authenticate with
+            <code>Authorization: Bearer …</code>, <code>X-Session-ID</code>, or the <code>exercises_session</code> cookie.
+          </p>
+          <p class="form-hint" id="session-status">No session.</p>
+          <form id="session-login-form">
+            <div class="field-row">
+              <label for="session-email">User email</label>
+              <input type="email" id="session-email" name="email" autocomplete="email" placeholder="jane@example.com"/>
+            </div>
+            <div class="field-row">
+              <label for="session-user-id">Or user ID</label>
+              <input type="number" id="session-user-id" name="userId" min="1" step="1" placeholder="1"/>
+            </div>
+            <button type="submit" class="btn primary">Login (store in Redis)</button>
+            <button type="button" class="btn" id="session-logout-btn">Logout</button>
+            <button type="button" class="btn" id="session-refresh-btn">Refresh session</button>
+          </form>
+          <pre id="session-result" class="result-box" aria-live="polite"></pre>
+        </section>
+
         <section id="view-list-items" class="view-panel" aria-hidden="true">
           <h2 class="form-heading">List items</h2>
           <p class="form-hint">Loads rows from the shared PostgreSQL <code>items</code> table via <code>GET /api/items</code>.</p>
@@ -375,10 +408,73 @@
       </div>
     </div>
 
+    <script src="/static/session-bootstrap.js"></script>
     <script>
+      window.exercisesSession.ensureSession().then(function (session) {
+        var pageSessionIdEl = document.getElementById("page-session-id");
+        if (pageSessionIdEl && session && session.sessionId) {
+          pageSessionIdEl.textContent = session.sessionId;
+        }
       (function () {
         var navButtons = document.querySelectorAll(".sidebar-btn[data-view]");
         var viewPanels = document.querySelectorAll(".view-panel");
+
+        function apiHeaders(extra) {
+          var headers = window.exercisesSession.withSessionHeaders({ Accept: "application/json" });
+          if (extra) {
+            Object.keys(extra).forEach(function (key) {
+              headers[key] = extra[key];
+            });
+          }
+          return headers;
+        }
+
+        function renderSessionStatus(data) {
+          var el = document.getElementById("session-status");
+          if (!el) return;
+          if (!data || !data.sessionId) {
+            el.textContent = "No session.";
+            return;
+          }
+          var who =
+            data.userId === 0 || !data.email
+              ? String(data.name || "Guest") + " (guest — sign in to bind a user)"
+              : String(data.name) + " (" + String(data.email) + ")";
+          el.textContent =
+            who + " — session " + data.sessionId + " — Redis key " + data.redisKey;
+          var pageSessionIdEl = document.getElementById("page-session-id");
+          if (pageSessionIdEl) pageSessionIdEl.textContent = data.sessionId;
+        }
+
+        function refreshSessionView() {
+          var resultEl = document.getElementById("session-result");
+          fetch("/api/auth/session", {
+            method: "GET",
+            credentials: "same-origin",
+            headers: apiHeaders()
+          })
+            .then(function (res) {
+              return res.text().then(function (text) {
+                var data = text;
+                try { data = JSON.parse(text); } catch (e) { /* plain */ }
+                return { ok: res.ok, status: res.status, data: data };
+              });
+            })
+            .then(function (r) {
+              if (!r.ok) {
+                window.exercisesSession.setStoredSessionId("");
+                renderSessionStatus(null);
+                if (resultEl) resultEl.textContent = "HTTP " + r.status + "\n" + String(r.data);
+                return;
+              }
+              window.exercisesSession.setStoredSessionId(r.data.sessionId);
+              renderSessionStatus(r.data);
+              if (resultEl) resultEl.textContent = JSON.stringify(r.data, null, 2);
+            })
+            .catch(function (err) {
+              if (resultEl) resultEl.textContent = String(err.message || err);
+            });
+        }
 
         function showView(viewId, navId) {
           viewPanels.forEach(function (panel) {
@@ -393,6 +489,9 @@
           });
           if (viewId === "view-list-items") {
             loadItems();
+          }
+          if (viewId === "view-session") {
+            refreshSessionView();
           }
           if (viewId === "view-openapi") {
             var openapiFrame = document.getElementById("openapi-frame");
@@ -414,7 +513,7 @@
           if (!tbody) return;
           errEl.textContent = "";
           tbody.innerHTML = '<tr><td colspan="3" class="status-pending">Loading…</td></tr>';
-          fetch("/api/items", { credentials: "same-origin", cache: "no-store" })
+          fetch("/api/items", { credentials: "same-origin", cache: "no-store", headers: apiHeaders() })
             .then(function (res) {
               return res.json().then(function (data) {
                 if (!res.ok) {
@@ -460,7 +559,7 @@
             fetch("/api/items", {
               method: "POST",
               credentials: "same-origin",
-              headers: { "Content-Type": "application/json" },
+              headers: apiHeaders({ "Content-Type": "application/json" }),
               body: JSON.stringify({ name: name })
             })
               .then(function (res) {
@@ -490,7 +589,82 @@
             .replace(/>/g, "&gt;")
             .replace(/"/g, "&quot;");
         }
+
+        var sessionLoginForm = document.getElementById("session-login-form");
+        var sessionResult = document.getElementById("session-result");
+        var sessionLogoutBtn = document.getElementById("session-logout-btn");
+        var sessionRefreshBtn = document.getElementById("session-refresh-btn");
+        if (sessionLoginForm) {
+          sessionLoginForm.addEventListener("submit", function (ev) {
+            ev.preventDefault();
+            var emailInput = document.getElementById("session-email");
+            var userIdInput = document.getElementById("session-user-id");
+            var email = emailInput && emailInput.value ? emailInput.value.trim() : "";
+            var userIdRaw = userIdInput && userIdInput.value ? userIdInput.value.trim() : "";
+            var body = {};
+            if (email) body.email = email;
+            if (userIdRaw) body.userId = Number(userIdRaw);
+            if (sessionResult) sessionResult.textContent = "Logging in…";
+            fetch("/api/auth/login", {
+              method: "POST",
+              credentials: "same-origin",
+              headers: apiHeaders({ "Content-Type": "application/json" }),
+              body: JSON.stringify(body)
+            }).then(function (res) {
+              return res.text().then(function (text) {
+                var data = text;
+                try { data = JSON.parse(text); } catch (e) { /* plain */ }
+                return { ok: res.ok, status: res.status, data: data };
+              });
+            }).then(function (r) {
+              if (!r.ok) {
+                window.exercisesSession.setStoredSessionId("");
+                renderSessionStatus(null);
+                if (sessionResult) sessionResult.textContent = "HTTP " + r.status + "\n" + String(r.data);
+                return;
+              }
+              window.exercisesSession.setStoredSessionId(r.data.sessionId);
+              renderSessionStatus(r.data);
+              if (sessionResult) sessionResult.textContent = JSON.stringify(r.data, null, 2);
+            }).catch(function (err) {
+              if (sessionResult) sessionResult.textContent = String(err.message || err);
+            });
+          });
+        }
+        if (sessionLogoutBtn) {
+          sessionLogoutBtn.addEventListener("click", function () {
+            if (sessionResult) sessionResult.textContent = "Logging out…";
+            fetch("/api/auth/logout", {
+              method: "POST",
+              credentials: "same-origin",
+              headers: apiHeaders()
+            }).then(function (res) {
+              window.exercisesSession.setStoredSessionId("");
+              renderSessionStatus(null);
+              if (!res.ok) {
+                if (sessionResult) sessionResult.textContent = "HTTP " + res.status;
+                return;
+              }
+              return window.exercisesSession.ensureSession().then(function (s) {
+                renderSessionStatus(s);
+                if (sessionResult) {
+                  sessionResult.textContent = "Logged out. New guest session:\n" + JSON.stringify(s, null, 2);
+                }
+              });
+            }).catch(function (err) {
+              if (sessionResult) sessionResult.textContent = String(err.message || err);
+            });
+          });
+        }
+        if (sessionRefreshBtn) {
+          sessionRefreshBtn.addEventListener("click", refreshSessionView);
+        }
       })();
+      }).catch(function (err) {
+        console.error("[dashboard] session bootstrap failed", err);
+        var pageSessionIdEl = document.getElementById("page-session-id");
+        if (pageSessionIdEl) pageSessionIdEl.textContent = "unavailable";
+      });
     </script>
     <script>
       (function () {
@@ -583,7 +757,7 @@
         var pingAll = document.getElementById("ping-all");
         if (pingAll) {
           pingAll.addEventListener("click", function () {
-            var targets = ["postgres", "java", "rust", "prometheus", "grafana", "elasticsearch", "kibana", "react-node"];
+            var targets = ["postgres", "redis", "java", "rust", "prometheus", "grafana", "elasticsearch", "kibana", "react-node"];
             targets.forEach(function (t) {
               setRowStatus(t, '<span class="status-pending">Pinging…</span>');
             });
