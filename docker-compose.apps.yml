@@ -126,6 +126,7 @@ services:
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      APP_KAFKA_CREATE_USER_CONSUMER_GROUP: exercises-create-user
       APP_STACK_RUST_BASE_URL: http://rust:8082
       APP_STACK_PYTHON_BASE_URL: http://python:5000
       APP_STACK_PROMETHEUS_BASE_URL: http://prometheus:9090
@@ -197,6 +198,7 @@ services:
       DB_PASSWORD: postgres
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       KAFKA_CREATE_USER_TOPIC: create-user
+      KAFKA_CREATE_USER_CONSUMER_GROUP: exercises-create-user
       KAFKA_CREATE_USER_PARTITIONS: "1"
       KAFKA_CREATE_USER_REPLICAS: "1"
       KAFKA_ADMIN_FAIL_FAST: "true"

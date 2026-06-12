@@ -230,6 +230,7 @@
         <p class="sidebar-section">Actions</p>
         <button type="button" class="sidebar-btn sub" id="nav-list-items" data-view="view-list-items">List items</button>
         <button type="button" class="sidebar-btn sub" id="nav-create-item" data-view="view-create-item">Create item</button>
+        <button type="button" class="sidebar-btn sub" id="nav-kafka-create-user" data-view="view-kafka-create-user">Kafka create user</button>
         <p class="sidebar-section">API</p>
         <button type="button" class="sidebar-btn sub" id="nav-openapi" data-view="view-openapi">OpenAPI</button>
         <p class="sidebar-section">Tools</p>
@@ -358,6 +359,27 @@
           <pre id="create-item-result" class="result-box" aria-live="polite"></pre>
         </section>
 
+        <section id="view-kafka-create-user" class="view-panel" aria-hidden="true">
+          <h2 class="form-heading">Kafka create user</h2>
+          <p class="form-hint">
+            Publishes a <code>create-user</code> event to Kafka via
+            <code>POST /api/users/publish-create-user</code>. Java and Rust share consumer group
+            <code>exercises-create-user</code> — only one app processes each message.
+          </p>
+          <form id="kafka-create-user-form">
+            <div class="field-row">
+              <label for="kafka-user-name">Name</label>
+              <input type="text" id="kafka-user-name" name="name" required autocomplete="name" placeholder="Jane Doe"/>
+            </div>
+            <div class="field-row">
+              <label for="kafka-user-email">Email</label>
+              <input type="email" id="kafka-user-email" name="email" required autocomplete="email" placeholder="jane@example.com"/>
+            </div>
+            <button type="submit" class="btn primary">Publish create-user event</button>
+          </form>
+          <pre id="kafka-create-user-result" class="result-box" aria-live="polite"></pre>
+        </section>
+
         <section id="view-openapi" class="view-panel" aria-hidden="true">
           <h2 class="form-heading">OpenAPI</h2>
           <p class="form-hint">
@@ -379,6 +401,28 @@
       (function () {
         var navButtons = document.querySelectorAll(".sidebar-btn[data-view]");
         var viewPanels = document.querySelectorAll(".view-panel");
+
+        function newRequestId() {
+          if (typeof crypto !== "undefined" && crypto.randomUUID) {
+            return crypto.randomUUID();
+          }
+          return "req-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+        }
+
+        var pageRequestId = newRequestId();
+
+        function apiHeaders(extra) {
+          var headers = {
+            "X-Request-ID": pageRequestId,
+            Accept: "application/json"
+          };
+          if (extra) {
+            Object.keys(extra).forEach(function (key) {
+              headers[key] = extra[key];
+            });
+          }
+          return headers;
+        }
 
         function showView(viewId, navId) {
           viewPanels.forEach(function (panel) {
@@ -481,6 +525,62 @@
                 resultEl.textContent = "Created item #" + item.id + ": " + item.name;
                 resultEl.className = "result-box";
                 if (nameInput) nameInput.value = "";
+              })
+              .catch(function (err) {
+                resultEl.textContent = String(err.message || err);
+                resultEl.className = "result-box status-err";
+              });
+          });
+        }
+
+        var kafkaForm = document.getElementById("kafka-create-user-form");
+        if (kafkaForm) {
+          kafkaForm.addEventListener("submit", function (ev) {
+            ev.preventDefault();
+            var nameInput = document.getElementById("kafka-user-name");
+            var emailInput = document.getElementById("kafka-user-email");
+            var resultEl = document.getElementById("kafka-create-user-result");
+            var name = nameInput && nameInput.value ? nameInput.value.trim() : "";
+            var email = emailInput && emailInput.value ? emailInput.value.trim() : "";
+            if (!name || !email) {
+              resultEl.textContent = "Name and email are required.";
+              resultEl.className = "result-box status-err";
+              return;
+            }
+            resultEl.textContent =
+              "Publishing create-user event…\nrequest_id=" + pageRequestId;
+            resultEl.className = "result-box";
+            var url =
+              "/api/users/publish-create-user?name=" +
+              encodeURIComponent(name) +
+              "&email=" +
+              encodeURIComponent(email);
+            fetch(url, {
+              method: "POST",
+              credentials: "same-origin",
+              headers: apiHeaders()
+            })
+              .then(function (res) {
+                return res.json().then(function (data) {
+                  return { httpOk: res.ok, status: res.status, data: data };
+                });
+              })
+              .then(function (r) {
+                var lines = ["Rust publish HTTP " + r.status];
+                var d = r.data || {};
+                lines.push("request_id=" + (d.requestId || pageRequestId));
+                if (d.event) lines.push("event=" + d.event);
+                if (d.topic) lines.push("topic=" + d.topic);
+                if (d.error) lines.push("Error: " + d.error);
+                if (r.httpOk && d.ok === true) {
+                  lines.push("Shared consumer group exercises-create-user — one app will insert the user.");
+                  if (nameInput) nameInput.value = "";
+                  if (emailInput) emailInput.value = "";
+                  resultEl.className = "result-box";
+                } else {
+                  resultEl.className = "result-box status-err";
+                }
+                resultEl.textContent = lines.join("\n");
               })
               .catch(function (err) {
                 resultEl.textContent = String(err.message || err);

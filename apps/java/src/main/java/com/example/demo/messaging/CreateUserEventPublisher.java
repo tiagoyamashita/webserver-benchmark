@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
-/** Publishes {@link CreateUserEvent} messages to Kafka for Rust to consume. */
+/** Publishes {@link CreateUserEvent} messages to Kafka for Java and Rust consumers. */
 @Service
 public class CreateUserEventPublisher {
 
@@ -35,8 +35,8 @@ public class CreateUserEventPublisher {
   }
 
   /**
-   * Publishes a {@code create-user} event. Rust {@code exercises-rust-create-user} consumer inserts
-   * the row into Postgres {@code users}.
+   * Publishes a {@code create-user} event. Java and Rust share consumer group
+   * {@code exercises-create-user}; one app inserts into Postgres {@code users} per message.
    */
   public void publishCreateUser(String name, String email) throws JsonProcessingException {
     String requestId = RequestIdContext.get();

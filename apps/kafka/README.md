@@ -78,7 +78,7 @@ podman compose -f docker-compose.apps.yml exec kafka \
 |--|--|
 | Topic | `create-user` |
 | Producer | Java `CreateUserEventPublisher` (dashboard **Kafka create user** or `POST /dashboard/users/publish-create-user`) |
-| Consumer group | `exercises-rust-create-user` |
+| Consumer group (Java + Rust, shared) | `exercises-create-user` |
 | Effect | Rust inserts into Postgres `users` |
 
 Event JSON:

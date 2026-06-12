@@ -357,9 +357,9 @@
         <section id="view-kafka-create-user" class="view-panel" aria-hidden="true">
           <h2 class="form-heading">Kafka create user</h2>
           <p class="form-hint">
-            Java publishes a <code>create-user</code> event to Kafka. The Rust consumer group
-            <code>exercises-rust-create-user</code> reads the message and inserts the row into PostgreSQL
-            <code>users</code>. Use <strong>List users</strong> after a few seconds to confirm.
+            Publishes a <code>create-user</code> event to Kafka. Java and Rust share consumer group
+            <code>exercises-create-user</code> — only one app processes each message and inserts into
+            PostgreSQL <code>users</code>. Use <strong>List users</strong> after a few seconds to confirm.
           </p>
           <div class="field-row">
             <label for="kafka-user-name">Name</label>
@@ -751,7 +751,7 @@
                 if (d.topic) lines.push("topic=" + d.topic);
                 if (d.error) lines.push("Error: " + d.error);
                 if (r.httpOk && d.ok === true) {
-                  lines.push("Rust consumer will insert the user — refresh List users shortly.");
+                  lines.push("Shared consumer group exercises-create-user — one app will insert the user.");
                   kafkaUserName.value = "";
                   kafkaUserEmail.value = "";
                 }

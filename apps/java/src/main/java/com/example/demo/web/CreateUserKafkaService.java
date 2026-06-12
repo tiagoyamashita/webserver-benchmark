@@ -27,8 +27,8 @@ public class CreateUserKafkaService {
   }
 
   /**
-   * Validates input and publishes a {@code create-user} Kafka event. Rust consumes the message and
-   * inserts into Postgres {@code users}.
+   * Validates input and publishes a {@code create-user} Kafka event. Java and Rust consumers insert
+   * into Postgres {@code users}.
    */
   public Map<String, Object> publishCreateUserEvent(String name, String email) {
     String trimmedName = name == null ? "" : name.trim();

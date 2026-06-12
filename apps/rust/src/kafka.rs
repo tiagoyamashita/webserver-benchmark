@@ -1,26 +1,32 @@
-//! Kafka admin (create `create-user` topic on startup) and consumer (Java → Rust user insert).
+//! Kafka admin (create `create-user` topic on startup), producer (dashboard publish), and consumer.
+//! Java and Rust share consumer group `exercises-create-user` (one app processes each message).
 
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Json, Response};
 use rdkafka::admin::{AdminClient, AdminOptions, NewTopic, TopicReplication};
 use rdkafka::client::DefaultClientContext;
 use rdkafka::config::ClientConfig;
 use rdkafka::consumer::{Consumer, StreamConsumer};
 use rdkafka::error::RDKafkaErrorCode;
-use rdkafka::message::{Headers, Message};
-use rdkafka::types::RDKafkaRespErr;
+use rdkafka::message::{Header, Headers, Message, OwnedHeaders};
 use rdkafka::metadata::MetadataTopic;
-use serde::Deserialize;
+use rdkafka::producer::{FutureProducer, FutureRecord};
+use rdkafka::types::RDKafkaRespErr;
+use rdkafka::util::Timeout;
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use std::time::Duration;
 
 const SOURCE: &str = "src/kafka.rs";
 pub const CREATE_USER_TOPIC: &str = "create-user";
-pub const CREATE_USER_GROUP: &str = "exercises-rust-create-user";
+pub const CREATE_USER_CONSUMER_GROUP: &str = "exercises-create-user";
 
 /// Mirrors Java `app.kafka.*` / `spring.kafka.admin.fail-fast`.
 #[derive(Clone, Debug)]
 pub struct KafkaAdminConfig {
     pub bootstrap_servers: String,
     pub create_user_topic: String,
+    pub create_user_consumer_group: String,
     pub create_user_partitions: i32,
     pub create_user_replicas: i32,
     pub fail_fast: bool,
@@ -33,6 +39,8 @@ impl KafkaAdminConfig {
                 .unwrap_or_else(|_| "127.0.0.1:9092".into()),
             create_user_topic: std::env::var("KAFKA_CREATE_USER_TOPIC")
                 .unwrap_or_else(|_| CREATE_USER_TOPIC.into()),
+            create_user_consumer_group: std::env::var("KAFKA_CREATE_USER_CONSUMER_GROUP")
+                .unwrap_or_else(|_| CREATE_USER_CONSUMER_GROUP.into()),
             create_user_partitions: env_i32("KAFKA_CREATE_USER_PARTITIONS", 1),
             create_user_replicas: env_i32("KAFKA_CREATE_USER_REPLICAS", 1),
             fail_fast: env_bool("KAFKA_ADMIN_FAIL_FAST", true),
@@ -132,6 +140,232 @@ pub async fn ensure_kafka_admin(config: &KafkaAdminConfig) -> Result<(), String>
     Ok(())
 }
 
+#[derive(Debug, Deserialize)]
+pub struct PublishCreateUserQuery {
+    pub name: String,
+    pub email: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PublishCreateUserResponse {
+    pub ok: bool,
+    #[serde(rename = "requestId")]
+    pub request_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub event: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub topic: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+/// Publishes a `create-user` event to Kafka (Rust dashboard or API clients).
+pub async fn publish_create_user_event(
+    config: &KafkaAdminConfig,
+    query: PublishCreateUserQuery,
+    request_id: &str,
+) -> Response {
+    let trimmed_name = query.name.trim().to_string();
+    let trimmed_email = query.email.trim().to_string();
+    let id_for_log = request_id;
+
+    if trimmed_name.is_empty() {
+        tracing::warn!(
+            source = SOURCE,
+            controller = "publish_create_user_event",
+            method = "POST",
+            path = "/api/users/publish-create-user",
+            request_id = id_for_log,
+            reason = "blank-name",
+            "publish_create_user_event validation failed"
+        );
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(PublishCreateUserResponse {
+                ok: false,
+                request_id: request_id.to_string(),
+                event: None,
+                name: None,
+                email: None,
+                topic: None,
+                error: Some("name must not be blank".into()),
+            }),
+        )
+            .into_response();
+    }
+    if trimmed_email.is_empty() {
+        tracing::warn!(
+            source = SOURCE,
+            controller = "publish_create_user_event",
+            method = "POST",
+            path = "/api/users/publish-create-user",
+            request_id = id_for_log,
+            reason = "blank-email",
+            "publish_create_user_event validation failed"
+        );
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(PublishCreateUserResponse {
+                ok: false,
+                request_id: request_id.to_string(),
+                event: None,
+                name: None,
+                email: None,
+                topic: None,
+                error: Some("email must not be blank".into()),
+            }),
+        )
+            .into_response();
+    }
+
+    tracing::info!(
+        source = SOURCE,
+        controller = "publish_create_user_event",
+        method = "POST",
+        path = "/api/users/publish-create-user",
+        request_id = id_for_log,
+        event = CREATE_USER_TOPIC,
+        name = %trimmed_name,
+        email = %trimmed_email,
+        topic = %config.create_user_topic,
+        "publish_create_user_event publishing"
+    );
+
+    let payload = match serde_json::to_string(&CreateUserEvent {
+        event: CREATE_USER_TOPIC.to_string(),
+        name: trimmed_name.clone(),
+        email: trimmed_email.clone(),
+        request_id: Some(request_id.to_string()),
+    }) {
+        Ok(json) => json,
+        Err(e) => {
+            let error = format!("failed to serialize create-user event: {e}");
+            tracing::error!(
+                source = SOURCE,
+                controller = "publish_create_user_event",
+                request_id = id_for_log,
+                name = %trimmed_name,
+                email = %trimmed_email,
+                error = %error,
+                "publish_create_user_event failed"
+            );
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(PublishCreateUserResponse {
+                    ok: false,
+                    request_id: request_id.to_string(),
+                    event: Some(CREATE_USER_TOPIC.to_string()),
+                    name: Some(trimmed_name),
+                    email: Some(trimmed_email),
+                    topic: None,
+                    error: Some(error),
+                }),
+            )
+                .into_response();
+        }
+    };
+
+    let producer: FutureProducer = match ClientConfig::new()
+        .set("bootstrap.servers", &config.bootstrap_servers)
+        .create()
+    {
+        Ok(p) => p,
+        Err(e) => {
+            let error = format!("Kafka producer client: {e}");
+            tracing::error!(
+                source = SOURCE,
+                controller = "publish_create_user_event",
+                request_id = id_for_log,
+                bootstrap = %config.bootstrap_servers,
+                error = %error,
+                "publish_create_user_event failed"
+            );
+            return (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(PublishCreateUserResponse {
+                    ok: false,
+                    request_id: request_id.to_string(),
+                    event: Some(CREATE_USER_TOPIC.to_string()),
+                    name: Some(trimmed_name),
+                    email: Some(trimmed_email),
+                    topic: None,
+                    error: Some(error),
+                }),
+            )
+                .into_response();
+        }
+    };
+
+    let mut record = FutureRecord::to(config.create_user_topic.as_str())
+        .key(&trimmed_email)
+        .payload(&payload);
+    if !request_id.is_empty() {
+        record = record.headers(
+            OwnedHeaders::new().insert(Header {
+                key: "X-Request-ID",
+                value: Some(request_id),
+            }),
+        );
+    }
+
+    if let Err((e, _)) = producer
+        .send(record, Timeout::After(Duration::from_secs(10)))
+        .await
+    {
+        let error = format!("Kafka publish failed: {e}");
+        tracing::error!(
+            source = SOURCE,
+            controller = "publish_create_user_event",
+            request_id = id_for_log,
+            topic = %config.create_user_topic,
+            error = %error,
+            "publish_create_user_event failed"
+        );
+        return (
+            StatusCode::BAD_GATEWAY,
+            Json(PublishCreateUserResponse {
+                ok: false,
+                request_id: request_id.to_string(),
+                event: Some(CREATE_USER_TOPIC.to_string()),
+                name: Some(trimmed_name),
+                email: Some(trimmed_email),
+                topic: Some(config.create_user_topic.clone()),
+                error: Some(error),
+            }),
+        )
+            .into_response();
+    }
+
+    tracing::info!(
+        source = SOURCE,
+        controller = "publish_create_user_event",
+        request_id = id_for_log,
+        event = CREATE_USER_TOPIC,
+        name = %trimmed_name,
+        email = %trimmed_email,
+        topic = %config.create_user_topic,
+        "publish_create_user_event succeeded"
+    );
+
+    (
+        StatusCode::OK,
+        Json(PublishCreateUserResponse {
+            ok: true,
+            request_id: request_id.to_string(),
+            event: Some(CREATE_USER_TOPIC.to_string()),
+            name: Some(trimmed_name),
+            email: Some(trimmed_email),
+            topic: Some(config.create_user_topic.clone()),
+            error: None,
+        }),
+    )
+        .into_response()
+}
+
 enum TopicState {
     Missing,
     Valid,
@@ -202,7 +436,7 @@ pub fn spawn_create_user_consumer(pool: PgPool, config: KafkaAdminConfig) {
     });
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct CreateUserEvent {
     event: String,
     name: String,
@@ -218,7 +452,7 @@ async fn run_create_user_consumer(
     let topic = config.create_user_topic.as_str();
     let consumer: StreamConsumer = ClientConfig::new()
         .set("bootstrap.servers", &config.bootstrap_servers)
-        .set("group.id", CREATE_USER_GROUP)
+        .set("group.id", config.create_user_consumer_group.as_str())
         .set("enable.auto.commit", "true")
         .set("auto.offset.reset", "earliest")
         .create()?;
@@ -228,7 +462,7 @@ async fn run_create_user_consumer(
         source = SOURCE,
         controller = "create_user_consumer",
         topic = topic,
-        group = CREATE_USER_GROUP,
+        group = %config.create_user_consumer_group,
         bootstrap = %config.bootstrap_servers,
         "create-user Kafka consumer started"
     );

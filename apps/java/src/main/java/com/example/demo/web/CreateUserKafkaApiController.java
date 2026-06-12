@@ -28,8 +28,8 @@ public class CreateUserKafkaApiController {
   }
 
   /**
-   * AJAX from dashboard: publishes a {@code create-user} Kafka event. Rust consumer inserts the user
-   * into Postgres.
+   * AJAX from dashboard: publishes a {@code create-user} Kafka event. Java and Rust Kafka consumers
+   * insert into Postgres {@code users}.
    */
   @PostMapping(value = "/publish-create-user", produces = MediaType.APPLICATION_JSON_VALUE)
   public Map<String, Object> publishCreateUser(

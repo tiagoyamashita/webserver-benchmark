@@ -198,14 +198,14 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "sum(kafka_consumergroup_lag{consumergroup=\"exercises-rust-create-user\",topic=\"create-user\"})",
+          "expr": "sum(kafka_consumergroup_lag{consumergroup=\"exercises-create-user\",topic=\"create-user\"})",
           "instant": true,
           "legendFormat": "lag",
           "range": false,
           "refId": "A"
         }
       ],
-      "title": "Rust consumer lag (create-user)",
+      "title": "create-user consumer lag",
       "type": "stat"
     },
     {
@@ -263,13 +263,13 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "sum(kafka_consumergroup_lag{consumergroup=\"exercises-rust-create-user\",topic=\"create-user\"})",
+          "expr": "sum(kafka_consumergroup_lag{consumergroup=\"exercises-create-user\",topic=\"create-user\"})",
           "legendFormat": "lag",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Rust consumer lag over time",
+      "title": "create-user consumer lag over time",
       "type": "timeseries"
     },
     {
@@ -370,5 +370,5 @@
   "timezone": "browser",
   "title": "Exercises — Kafka",
   "uid": "exercises-kafka",
-  "version": 1
+  "version": 2
 }

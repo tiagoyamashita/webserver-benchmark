@@ -38,15 +38,22 @@ pub struct AppState {
     pub tera: Arc<Tera>,
     pub stack_links: crate::stack_ping::StackLinks,
     pub pg_pool: Option<PgPool>,
+    pub kafka_config: Option<crate::kafka::KafkaAdminConfig>,
 }
 
 impl AppState {
-    pub fn new(project_root: PathBuf, tera: Tera, pg_pool: Option<PgPool>) -> Self {
+    pub fn new(
+        project_root: PathBuf,
+        tera: Tera,
+        pg_pool: Option<PgPool>,
+        kafka_config: Option<crate::kafka::KafkaAdminConfig>,
+    ) -> Self {
         Self {
             project_root,
             tera: Arc::new(tera),
             stack_links: crate::stack_ping::StackLinks::from_env(),
             pg_pool,
+            kafka_config,
         }
     }
 }
@@ -60,6 +67,7 @@ fn route_endpoint_label(path: &str) -> &'static str {
         "/tests/run" => "run_tests_post",
         "/tests/source" => "test_source",
         "/api/items" => "create_item",
+        "/api/users/publish-create-user" => "publish_create_user_kafka",
         "/metrics" => "metrics",
         _ => "other",
     }
@@ -265,6 +273,42 @@ async fn create_item(
     .into_response()
 }
 
+async fn publish_create_user_kafka(
+    State(state): State<AppState>,
+    Extension(request_id): Extension<crate::request_id::RequestId>,
+    Query(query): Query<crate::kafka::PublishCreateUserQuery>,
+) -> impl IntoResponse {
+    tracing::info!(
+        source = "src/app.rs",
+        controller = "publish_create_user_kafka",
+        method = "POST",
+        path = "/api/users/publish-create-user",
+        request_id = %request_id.0,
+        name = %query.name,
+        email = %query.email,
+        "publish_create_user_kafka request received"
+    );
+    let Some(config) = state.kafka_config.as_ref() else {
+        tracing::warn!(
+            source = "src/app.rs",
+            controller = "publish_create_user_kafka",
+            request_id = %request_id.0,
+            reason = "kafka-not-configured",
+            "publish_create_user_kafka unavailable"
+        );
+        return (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(serde_json::json!({
+                "ok": false,
+                "requestId": request_id.0,
+                "error": "Kafka not configured (set KAFKA_BOOTSTRAP_SERVERS and ensure broker is reachable)"
+            })),
+        )
+            .into_response();
+    };
+    crate::kafka::publish_create_user_event(config, query, &request_id.0).await
+}
+
 async fn welcome_redirect(
     Extension(request_id): Extension<crate::request_id::RequestId>,
 ) -> Redirect {
@@ -452,6 +496,12 @@ pub async fn serve() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         }
     };
 
+    let kafka_publish_config = if kafka_ready {
+        Some(kafka_config.clone())
+    } else {
+        None
+    };
+
     let pg_pool = match crate::db::connect_pool().await {
         Ok(pool) => {
             eprintln!("exercises-web: connected to Postgres (items + users tables)");
@@ -465,7 +515,7 @@ pub async fn serve() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             None
         }
     };
-    let state = AppState::new(project_root, tera, pg_pool);
+    let state = AppState::new(project_root, tera, pg_pool, kafka_publish_config);
     let app = build_router(state);
     let port: u16 = std::env::var("EXERCISES_WEB_PORT")
         .ok()
@@ -507,6 +557,10 @@ pub fn build_router(state: AppState) -> Router {
         .route("/tests/run", post(run_tests_post))
         .route("/tests/source", get(test_source))
         .route("/api/items", get(list_items).post(create_item))
+        .route(
+            "/api/users/publish-create-user",
+            post(publish_create_user_kafka),
+        )
         .route("/metrics", get(metrics))
         .layer(middleware::from_fn(record_http_request_metrics))
         .layer(middleware::from_fn(crate::request_id::assign_request_id))

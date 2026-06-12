@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class KafkaAppProperties {
 
   private String createUserTopic = "create-user";
+  private String createUserConsumerGroup = "exercises-create-user";
   private int createUserPartitions = 1;
   private short createUserReplicas = 1;
 
@@ -15,6 +16,14 @@ public class KafkaAppProperties {
 
   public void setCreateUserTopic(String createUserTopic) {
     this.createUserTopic = createUserTopic;
+  }
+
+  public String getCreateUserConsumerGroup() {
+    return createUserConsumerGroup;
+  }
+
+  public void setCreateUserConsumerGroup(String createUserConsumerGroup) {
+    this.createUserConsumerGroup = createUserConsumerGroup;
   }
 
   public int getCreateUserPartitions() {
