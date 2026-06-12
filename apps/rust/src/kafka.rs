@@ -6,6 +6,7 @@ use rdkafka::config::ClientConfig;
 use rdkafka::consumer::{Consumer, StreamConsumer};
 use rdkafka::error::RDKafkaErrorCode;
 use rdkafka::message::{Headers, Message};
+use rdkafka::types::RDKafkaRespErr;
 use rdkafka::metadata::MetadataTopic;
 use serde::Deserialize;
 use sqlx::PgPool;
@@ -150,7 +151,7 @@ fn topic_state(
         return Ok(TopicState::Missing);
     };
 
-    if found.error() == Some(RDKafkaErrorCode::UnknownTopicOrPartition) {
+    if found.error() == Some(RDKafkaRespErr::RD_KAFKA_RESP_ERR_UNKNOWN_TOPIC_OR_PART) {
         return Ok(TopicState::Missing);
     }
     if let Some(err) = found.error() {
