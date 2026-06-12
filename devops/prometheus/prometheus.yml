@@ -35,3 +35,9 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets: ["logstash-exporter:9304"]
+
+  # danielqsj/kafka-exporter — broker / topic / consumer-group metrics.
+  - job_name: exercises-kafka
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["kafka-exporter:9308"]

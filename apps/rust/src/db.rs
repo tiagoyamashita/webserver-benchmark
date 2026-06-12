@@ -78,6 +78,37 @@ pub async fn list_items(pool: &PgPool, request_id: Option<&str>) -> Result<Vec<I
         .collect())
 }
 
+pub struct InsertedUser {
+    pub id: i64,
+    pub name: String,
+    pub email: String,
+    pub created_at: String,
+}
+
+pub async fn insert_user(
+    pool: &PgPool,
+    name: &str,
+    email: &str,
+    request_id: Option<&str>,
+) -> Result<InsertedUser, sqlx::Error> {
+    let mut conn = pool.acquire().await?;
+    stamp_application_name(&mut conn, request_id).await?;
+    let row: (i64, String, String, NaiveDateTime) = sqlx::query_as(
+        "INSERT INTO users (name, email, created_at) VALUES ($1, $2, NOW()) RETURNING id, name, email, created_at",
+    )
+    .bind(name)
+    .bind(email)
+    .fetch_one(&mut *conn)
+    .await?;
+
+    Ok(InsertedUser {
+        id: row.0,
+        name: row.1,
+        email: row.2,
+        created_at: format_created_at(row.3),
+    })
+}
+
 pub async fn insert_item(
     pool: &PgPool,
     name: &str,

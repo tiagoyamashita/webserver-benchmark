@@ -66,8 +66,9 @@ Use **Docker Engine** the same way with `docker compose` instead of `podman comp
 | Service | Folder | Role | Host port | Compose file | With **`docker-compose.dev.yml`** |
 |---------|--------|------|-----------|--------------|-----------------------------------|
 | **postgres** | `apps/postgres/` | PostgreSQL 16 | **5432** | apps | Same image (no dev overlay) |
-| **kafka** | `apps/kafka/` | Apache Kafka 3.9 (KRaft) | **9092** | apps | Same image (no dev overlay) |
+| **kafka** | `apps/kafka/` | Apache Kafka 3.9 (KRaft) | **9092** | apps | JSON logs → ELK; **kafka-exporter** → Prometheus |
 | **kafka-ui** | `apps/kafka/` | UI for Apache Kafka | **8090** | apps | Waits for healthy `kafka` |
+| **kafka-exporter** | `apps/kafka/` | Kafka metrics for Prometheus | *(internal)* | apps | Scraped as **`exercises-kafka`** |
 | **java** | `apps/java/` | Spring Boot API + UI | **8080** | apps | `spring-boot:run`, source mounted |
 | **python** | `apps/python/` | Flask dashboard + `/api/items` | **5000** | apps | `FLASK_DEBUG=1` reloader |
 | **rust** | `apps/rust/` | Axum dashboard + `/api/items` | **8082** | apps | `cargo-watch` rebuild on change |
@@ -77,13 +78,13 @@ Use **Docker Engine** the same way with `docker compose` instead of `podman comp
 | **elasticsearch** | `devops/elk/` | Log / search store | **9200** | observability | — |
 | **logstash** | `devops/elk/` | Beats → Elasticsearch | **5044** | observability | — |
 | **kibana** | `devops/elk/` | Log UI | **5601** | observability | — |
-| **filebeat** | `devops/elk/` | Tails app + Postgres JSON logs | *(internal)* | observability | — |
+| **filebeat** | `devops/elk/` | Tails app, Postgres, and Kafka JSON logs | *(internal)* | observability | — |
 
 **apps** = `docker-compose.apps.yml` · **observability** = `docker-compose.observability.yml`. Restart apps without touching Grafana / ELK: `podman compose -f docker-compose.apps.yml restart java rust`.
 
 ### App and Postgres logs in Kibana
 
-**Filebeat** tails JSON log files from Java, Python, Rust, **React Node**, and Postgres, then ships them through **Logstash** into **Elasticsearch** for **Kibana**.
+**Filebeat** tails JSON log files from Java, Python, Rust, **React Node**, Postgres, and **Kafka**, then ships them through **Logstash** into **Elasticsearch** for **Kibana**.
 
 | Service | Host log file | Kibana filter (`service`) |
 |---------|---------------|---------------------------|
@@ -92,6 +93,7 @@ Use **Docker Engine** the same way with `docker compose` instead of `podman comp
 | Rust | `apps/rust/logs/demo-app.json.log` | `exercises-rust` |
 | React Node | `apps/react-node/logs/demo-app.json.log` | `exercises-react-node` |
 | Postgres | `apps/postgres/logs/postgresql-*` | `exercises-postgres` |
+| Kafka | `apps/kafka/logs/kafka*.json.log` | `exercises-kafka` |
 
 **1. Start both stacks** (same Compose project / `exercises` network):
 

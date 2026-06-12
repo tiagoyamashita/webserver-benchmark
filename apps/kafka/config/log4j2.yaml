@@ -1,0 +1,39 @@
+# Broker logs for Filebeat → Logstash → Elasticsearch (service: exercises-kafka).
+# Mounted over /opt/kafka/config/log4j2.yaml in Compose.
+Configuration:
+  status: WARN
+  monitorInterval: 30
+
+  Appenders:
+    Console:
+      name: STDOUT
+      target: SYSTEM_OUT
+      PatternLayout:
+        pattern: "%d{yyyy-MM-dd HH:mm:ss} %p %m (%c)%n"
+
+    RollingFile:
+      name: EXERCISES_JSON
+      fileName: /var/log/kafka/kafka.json.log
+      filePattern: /var/log/kafka/kafka-%d{yyyy-MM-dd}.json.log
+      JsonLayout:
+        compact: true
+        eventEol: true
+      Policies:
+        TimeBasedTriggeringPolicy:
+          interval: 1
+          modulate: true
+
+  Loggers:
+    Logger:
+      - name: org.apache.kafka
+        level: info
+      - name: kafka
+        level: info
+      - name: org.apache.zookeeper
+        level: warn
+
+    Root:
+      level: info
+      AppenderRef:
+        - ref: STDOUT
+        - ref: EXERCISES_JSON

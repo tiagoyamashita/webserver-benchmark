@@ -433,9 +433,31 @@ pub async fn serve() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     );
     let mut tera = load_tera(&project_root)?;
     tera.autoescape_on(vec!["html"]);
+
+    let kafka_config = crate::kafka::KafkaAdminConfig::from_env();
+    let kafka_ready = match crate::kafka::ensure_kafka_admin(&kafka_config).await {
+        Ok(()) => {
+            eprintln!(
+                "exercises-web: Kafka topic `{}` ready (bootstrap={})",
+                kafka_config.create_user_topic, kafka_config.bootstrap_servers
+            );
+            true
+        }
+        Err(e) => {
+            if kafka_config.fail_fast {
+                return Err(e.into());
+            }
+            eprintln!("exercises-web: Kafka admin skipped ({e}); create-user consumer disabled");
+            false
+        }
+    };
+
     let pg_pool = match crate::db::connect_pool().await {
         Ok(pool) => {
-            eprintln!("exercises-web: connected to Postgres (items table)");
+            eprintln!("exercises-web: connected to Postgres (items + users tables)");
+            if kafka_ready {
+                crate::kafka::spawn_create_user_consumer(pool.clone(), kafka_config);
+            }
             Some(pool)
         }
         Err(e) => {

@@ -226,6 +226,7 @@
         <button type="button" class="sidebar-btn sub" id="nav-list-items" data-view="view-list-items">List items</button>
         <button type="button" class="sidebar-btn sub" id="nav-create-item" data-view="view-create-item">Create item</button>
         <button type="button" class="sidebar-btn sub" id="nav-rust-relay" data-view="view-rust-relay">Rust item relay</button>
+        <button type="button" class="sidebar-btn sub" id="nav-kafka-create-user" data-view="view-kafka-create-user">Kafka create user</button>
         <p class="sidebar-section">API</p>
         <button type="button" class="sidebar-btn sub" id="nav-openapi" data-view="view-openapi">OpenAPI</button>
       </nav>
@@ -351,6 +352,25 @@
             <button type="button" class="btn" id="rust-item-add">Add via Rust</button>
           </div>
           <pre id="rust-item-result" class="result-box"></pre>
+        </section>
+
+        <section id="view-kafka-create-user" class="view-panel" aria-hidden="true">
+          <h2 class="form-heading">Kafka create user</h2>
+          <p class="form-hint">
+            Java publishes a <code>create-user</code> event to Kafka. The Rust consumer group
+            <code>exercises-rust-create-user</code> reads the message and inserts the row into PostgreSQL
+            <code>users</code>. Use <strong>List users</strong> after a few seconds to confirm.
+          </p>
+          <div class="field-row">
+            <label for="kafka-user-name">Name</label>
+            <input type="text" id="kafka-user-name" placeholder="Jane Doe" autocomplete="name"/>
+          </div>
+          <div class="field-row">
+            <label for="kafka-user-email">Email</label>
+            <input type="email" id="kafka-user-email" placeholder="jane@example.com" autocomplete="email"/>
+            <button type="button" class="btn" id="kafka-user-publish">Publish create-user event</button>
+          </div>
+          <pre id="kafka-user-result" class="result-box" aria-live="polite"></pre>
         </section>
 
         <section id="view-openapi" class="view-panel" aria-hidden="true">
@@ -693,6 +713,53 @@
                   "\n" + JSON.stringify(r.data, null, 2);
               })
               .catch(function (err) { userResult.textContent = String(err.message || err); });
+          });
+        }
+
+        var kafkaPublishBtn = document.getElementById("kafka-user-publish");
+        var kafkaUserName = document.getElementById("kafka-user-name");
+        var kafkaUserEmail = document.getElementById("kafka-user-email");
+        var kafkaUserResult = document.getElementById("kafka-user-result");
+        if (kafkaPublishBtn && kafkaUserName && kafkaUserEmail && kafkaUserResult) {
+          kafkaPublishBtn.addEventListener("click", function () {
+            var name = (kafkaUserName.value || "").trim();
+            var email = (kafkaUserEmail.value || "").trim();
+            if (!name || !email) {
+              kafkaUserResult.textContent = "Name and email are required.";
+              return;
+            }
+            kafkaUserResult.textContent =
+              "Publishing create-user event…\nrequest_id=" + pageRequestId + "\ndashboard_page=" + currentView;
+            var headers = apiHeaders({ Accept: "application/json" });
+            var url =
+              "/dashboard/users/publish-create-user?name=" +
+              encodeURIComponent(name) +
+              "&email=" +
+              encodeURIComponent(email);
+            fetch(url, { method: "POST", credentials: "same-origin", headers: headers })
+              .then(function (res) {
+                return res.json().then(function (data) {
+                  return { httpOk: res.ok, status: res.status, data: data };
+                });
+              })
+              .then(function (r) {
+                var lines = ["Java publish HTTP " + r.status];
+                var d = r.data || {};
+                lines.push("request_id=" + (d.requestId || pageRequestId));
+                lines.push("dashboard_page=" + currentView);
+                if (d.event) lines.push("event=" + d.event);
+                if (d.topic) lines.push("topic=" + d.topic);
+                if (d.error) lines.push("Error: " + d.error);
+                if (r.httpOk && d.ok === true) {
+                  lines.push("Rust consumer will insert the user — refresh List users shortly.");
+                  kafkaUserName.value = "";
+                  kafkaUserEmail.value = "";
+                }
+                kafkaUserResult.textContent = lines.join("\n");
+              })
+              .catch(function (err) {
+                kafkaUserResult.textContent = String(err.message || err);
+              });
           });
         }
 

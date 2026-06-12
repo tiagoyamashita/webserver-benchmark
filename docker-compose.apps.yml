@@ -62,8 +62,11 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_LOG4J_ROOT_LOGLEVEL: INFO
     volumes:
       - exercises_kafka_data:/var/lib/kafka/data
+      - ./apps/kafka/config/log4j2.yaml:/opt/kafka/config/log4j2.yaml:ro
+      - ./apps/kafka/logs:/var/log/kafka
     healthcheck:
       test:
         [
@@ -88,6 +91,18 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+
+  kafka-exporter:
+    image: docker.io/danielqsj/kafka-exporter:v1.9.0
+    networks: [exercises]
+    depends_on:
+      kafka:
+        condition: service_healthy
+    command:
+      - --kafka.server=kafka:9092
+      - --web.listen-address=:9308
+      - --log.level=info
+    restart: unless-stopped
 
   java:
     build:
@@ -181,11 +196,19 @@ services:
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_CREATE_USER_TOPIC: create-user
+      KAFKA_CREATE_USER_PARTITIONS: "1"
+      KAFKA_CREATE_USER_REPLICAS: "1"
+      KAFKA_ADMIN_FAIL_FAST: "true"
     volumes:
       - ./apps/rust/logs:/app/logs
     depends_on:
-      - postgres
-      - java
+      postgres:
+        condition: service_started
+      java:
+        condition: service_started
+      kafka:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8082/health"]
       interval: 15s

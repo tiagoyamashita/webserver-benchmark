@@ -12,11 +12,18 @@ if ($LASTEXITCODE -eq 0) {
 
 podman volume create exercises-kafka-data 2>$null | Out-Null
 
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$KafkaRoot = Split-Path -Parent $ScriptDir
+$LogConfig = Join-Path $KafkaRoot "config\log4j2.yaml"
+$LogDir = Join-Path $KafkaRoot "logs"
+
 podman run -d `
   --name $ContainerName `
   --hostname kafka `
   -p "${HostPort}:9092" `
   -v exercises-kafka-data:/var/lib/kafka/data `
+  -v "${LogConfig}:/opt/kafka/config/log4j2.yaml:ro" `
+  -v "${LogDir}:/var/log/kafka" `
   -e KAFKA_NODE_ID=1 `
   -e KAFKA_PROCESS_ROLES=broker,controller `
   -e KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093 `

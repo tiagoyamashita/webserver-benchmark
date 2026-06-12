@@ -1,6 +1,9 @@
 # syntax=docker/dockerfile:1
 # icu_* needs rustc >= 1.86; home pinned to 0.5.11 (0.5.12 needs 1.88).
 FROM rust:1.86-bookworm AS build
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends cmake pkg-config libssl-dev libsasl2-dev \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /build
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src

@@ -12,11 +12,18 @@ fi
 
 podman volume create exercises-kafka-data >/dev/null 2>&1 || true
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+KAFKA_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+LOG_CONFIG="${KAFKA_ROOT}/config/log4j2.yaml"
+LOG_DIR="${KAFKA_ROOT}/logs"
+
 podman run -d \
   --name "$CONTAINER_NAME" \
   --hostname kafka \
   -p "${HOST_PORT}:9092" \
   -v exercises-kafka-data:/var/lib/kafka/data \
+  -v "${LOG_CONFIG}:/opt/kafka/config/log4j2.yaml:ro" \
+  -v "${LOG_DIR}:/var/log/kafka" \
   -e KAFKA_NODE_ID=1 \
   -e KAFKA_PROCESS_ROLES=broker,controller \
   -e KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093 \

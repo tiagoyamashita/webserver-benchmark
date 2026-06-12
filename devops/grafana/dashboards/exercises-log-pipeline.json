@@ -135,6 +135,22 @@
           "query": "service:\"exercises-postgres\"",
           "refId": "E",
           "timeField": "@timestamp"
+        },
+        {
+          "alias": "exercises-kafka",
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "2",
+              "settings": { "interval": "auto", "min_doc_count": "0" },
+              "type": "date_histogram"
+            }
+          ],
+          "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+          "metrics": [{ "id": "1", "type": "count" }],
+          "query": "service:\"exercises-kafka\"",
+          "refId": "F",
+          "timeField": "@timestamp"
         }
       ],
       "title": "Documents ingested by service",

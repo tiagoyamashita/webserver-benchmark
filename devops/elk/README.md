@@ -70,7 +70,7 @@ Until Filebeat (or another Beat) sends events through Logstash, indices may not 
 
 Logstash normalizes Rust tracing JSON (flattens nested `fields` to top-level keys) so Grafana/Kibana queries match Java and Python log shape. **Restart Logstash** after changing `logstash/pipeline/logstash.conf`.
 
-**Filter by app in Discover:** `service: "exercises-java"` · `service: "exercises-python"` · `service: "exercises-rust"` · `service: "exercises-react-node"` · `service: "exercises-postgres"`. By file path: `log.file.path: *react-node*` · `log.file.path: *postgresql*`.
+**Filter by app in Discover:** `service: "exercises-java"` · `service: "exercises-python"` · `service: "exercises-rust"` · `service: "exercises-react-node"` · `service: "exercises-postgres"` · `service: "exercises-kafka"`. By file path: `log.file.path: *react-node*` · `log.file.path: *postgresql*` · `log.file.path: *kafka*`.
 
 ### HTTP ↔ Postgres correlation (Kibana)
 

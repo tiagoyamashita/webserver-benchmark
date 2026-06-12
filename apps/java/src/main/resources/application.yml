@@ -22,6 +22,15 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:127.0.0.1:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    admin:
+      # Fail startup if Kafka is unreachable or topic admin (create-user) cannot be applied.
+      fail-fast: true
+      auto-create: true
 
 server:
   port: 8080
@@ -50,6 +59,10 @@ management:
       show-details: when_authorized
 
 app:
+  kafka:
+    create-user-topic: create-user
+    create-user-partitions: 1
+    create-user-replicas: 1
   project:
     # Optional: absolute path to the directory that contains pom.xml (otherwise auto-detected).
     module-dir: ""

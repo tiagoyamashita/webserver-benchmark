@@ -68,6 +68,19 @@ filebeat.inputs:
       service: exercises-postgres
     fields_under_root: true
 
+  - type: filestream
+    id: exercises-kafka-json
+    enabled: true
+    paths:
+      - /var/log/kafka/kafka*.json.log
+    parsers:
+      - ndjson:
+          keys_under_root: true
+          add_error_key: true
+    fields:
+      service: exercises-kafka
+    fields_under_root: true
+
 processors:
   # Java dashboard logs use a string field "event"; Logstash beats input expects ECS "event" as an object.
   - rename:

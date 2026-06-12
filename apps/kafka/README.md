@@ -72,6 +72,36 @@ podman compose -f docker-compose.apps.yml exec kafka \
   --create --topic demo-events --partitions 1 --replication-factor 1
 ```
 
+### `create-user` (Java producer → Rust consumer)
+
+| | |
+|--|--|
+| Topic | `create-user` |
+| Producer | Java `CreateUserEventPublisher` (dashboard **Kafka create user** or `POST /dashboard/users/publish-create-user`) |
+| Consumer group | `exercises-rust-create-user` |
+| Effect | Rust inserts into Postgres `users` |
+
+Event JSON:
+
+```json
+{"event":"create-user","name":"Jane Doe","email":"jane@example.com","requestId":"…"}
+```
+
+**Topic creation:** Java and Rust both ensure `create-user` on startup when it is missing (fail-fast if Kafka is down or config mismatches). No manual `kafka-topics.sh` step is required when Kafka is healthy before the apps start.
+
+| App | Config |
+|-----|--------|
+| Java | `KafkaTopicConfig`, `app.kafka.create-user-*`, `spring.kafka.admin.fail-fast: true` |
+| Rust | `KAFKA_CREATE_USER_*`, `KAFKA_ADMIN_FAIL_FAST=true` (see `.env.apps.example`) |
+
+Optional manual create (same settings as config):
+
+```bash
+podman compose -f docker-compose.apps.yml exec kafka \
+  /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
+  --create --if-not-exists --topic create-user --partitions 1 --replication-factor 1
+```
+
 Produce / consume smoke test:
 
 ```bash
@@ -90,4 +120,20 @@ Set in Compose or `.env.apps` (see `.env.apps.example` at repo root):
 KAFKA_BOOTSTRAP_SERVERS=kafka:9092
 ```
 
-Wire producers/consumers in each app when you add messaging exercises.
+**Wired today:** Java publishes `create-user` events; Rust consumes and creates users in Postgres. Add more producers/consumers in each app as needed.
+
+## Observability (Grafana + Elasticsearch)
+
+| Path | Role |
+|------|------|
+| **`config/log4j2.yaml`** | Broker JSON logs → **`logs/kafka.json.log`** (Compose mount) |
+| **`logs/`** | Tailed by **Filebeat** as **`service: exercises-kafka`** → Logstash → Elasticsearch |
+| **`kafka-exporter`** (Compose) | Prometheus job **`exercises-kafka`** — broker / topic / consumer-group metrics |
+| **Grafana** | Dashboard **Exercises — Kafka** (`devops/grafana/dashboards/exercises-kafka.json`) |
+
+After changing broker logging or adding the exporter, rebuild/restart **kafka**, **kafka-exporter**, and **filebeat** (or full stacks). Reload Prometheus if needed:
+
+```bash
+curl -X POST http://127.0.0.1:9090/-/reload
+podman compose -f docker-compose.observability.yml restart filebeat grafana
+```

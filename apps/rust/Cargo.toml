@@ -32,6 +32,7 @@ chrono = { version = "0.4", features = ["serde"] }
 home = "=0.5.11"
 utoipa = { version = "5", features = ["axum_extras"] }
 utoipa-swagger-ui = { version = "8", features = ["axum"] }
+rdkafka = { version = "0.37", features = ["tokio"] }
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }

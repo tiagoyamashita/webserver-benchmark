@@ -1,3 +1,6 @@
 # Optional local overrides (do not commit secrets)
 .env
 *.local
+
+logs/
+!logs/.gitkeep
