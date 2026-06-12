@@ -9,6 +9,8 @@ if [ ! -f "$WARM_MARKER" ] || [ pom.xml -nt "$WARM_MARKER" ]; then
   ./mvnw -B clean compile -DskipTests
   touch "$WARM_MARKER"
 fi
+# Copy src/main/resources (static HTML/JS, templates) into target/classes on every start.
+./mvnw -B resources:resources -DskipTests
 # excludeDevtools: full JVM restarts pick up new pom dependencies (RestartClassLoader cannot).
 exec ./mvnw -B compile spring-boot:run \
   -Dspring-boot.run.excludeDevtools=true \
