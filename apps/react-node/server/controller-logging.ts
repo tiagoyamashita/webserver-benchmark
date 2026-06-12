@@ -3,6 +3,7 @@
 import type { Request } from "express";
 
 import { requestBody, requestHeaders, requestUrlParams } from "./request-snapshot.js";
+import { currentSessionId } from "./request-context.js";
 import { writeLog } from "./observability-logging.js";
 
 type Fields = Record<string, unknown>;
@@ -15,7 +16,13 @@ function emit(
   source: string,
   fields?: Fields,
 ): void {
-  const extra = { source, controller: handler, ...fields };
+  const sessionId = currentSessionId();
+  const extra = {
+    source,
+    controller: handler,
+    ...(sessionId ? { session_id: sessionId } : {}),
+    ...fields,
+  };
   const fileLevel = level === "TRACE" ? "TRACE" : level;
   writeLog(fileLevel, message, extra);
   const line = JSON.stringify({ level: fileLevel, message, ...extra });
@@ -55,7 +62,6 @@ export function logReceivedFromRequest(
   fields?: Fields,
 ): void {
   logReceived(handler, source, method, path, {
-    request_id: req.requestId,
     ...httpRequestFields(req),
     ...fields,
   });

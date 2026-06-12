@@ -29,11 +29,8 @@ public class CreateUserEventConsumer {
       groupId = "${app.kafka.create-user-consumer-group}")
   public void onCreateUser(ConsumerRecord<String, String> record) {
     String requestIdHeader = headerValue(record, "X-Request-ID");
-    String idForLog = requestIdHeader != null ? requestIdHeader : "";
-
     log.trace(
-        "CreateUserEventConsumer.onCreateUser record request_id={}",
-        idForLog,
+        "CreateUserEventConsumer.onCreateUser record",
         kv("source", SOURCE),
         kv("controller", "CreateUserEventConsumer"),
         kv("request_id", requestIdHeader),

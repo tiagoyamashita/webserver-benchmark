@@ -100,22 +100,25 @@ def log_trace(
     )
 
 
-def _current_request_id() -> str | None:
+def _current_session_id() -> str | None:
     try:
         from flask import g
 
-        value = getattr(g, "request_id", None)
-        return value if isinstance(value, str) and value else None
+        session = getattr(g, "shared_session", None)
+        if session is not None:
+            session_id = getattr(session, "session_id", None)
+            return session_id if isinstance(session_id, str) and session_id else None
     except RuntimeError:
         return None
+    return None
 
 
 def _extra(source: str, handler: str, **fields: Any) -> dict[str, Any]:
     extra: dict[str, Any] = {"source": source, "controller": handler}
-    if "request_id" not in fields:
-        request_id = _current_request_id()
-        if request_id is not None:
-            extra["request_id"] = request_id
+    if "session_id" not in fields:
+        session_id = _current_session_id()
+        if session_id is not None:
+            extra["session_id"] = session_id
     for key, value in fields.items():
         if key in _RECORD_STANDARD:
             raise ValueError(f"reserved log record field: {key}")

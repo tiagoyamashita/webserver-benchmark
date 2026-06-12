@@ -19,6 +19,7 @@ import { metricsHandler, metricsMiddleware } from "./metrics.js";
 import { registerOpenApiRoutes } from "./openapi.js";
 import { probeById } from "./probe.js";
 import { requestIdMiddleware } from "./request-id.js";
+import { requestContext } from "./request-context.js";
 import { requestBody, requestHeaders, requestUrlParams } from "./request-snapshot.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -51,6 +52,9 @@ export function createApp(options: CreateAppOptions = {}): Express {
   app.use(express.json());
   app.use(requestIdMiddleware);
   app.use(sessionMiddleware(authRuntime.auth));
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    requestContext.run({ sessionId: req.sharedSession?.sessionId }, () => next());
+  });
   app.use(metricsMiddleware);
 
   registerOpenApiRoutes(app);
@@ -141,13 +145,12 @@ export function createApp(options: CreateAppOptions = {}): Express {
     logReceivedFromRequest(req, "listItems", SOURCE, "GET", "/api/items");
     try {
       const items = await fetchItems(fetchImpl, req.requestId);
-      logSucceeded("listItems", SOURCE, { count: items.length, request_id: req.requestId });
-      logTrace("listItems", SOURCE, "listItems result", { items, request_id: req.requestId });
+      logSucceeded("listItems", SOURCE, { count: items.length });
+      logTrace("listItems", SOURCE, "listItems result", { items });
       res.json(items);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       logError("listItems", SOURCE, "listItems failed", {
-        request_id: req.requestId,
         error: message,
       });
       res.status(502).json({ error: message });
@@ -161,7 +164,6 @@ export function createApp(options: CreateAppOptions = {}): Express {
       logWarn("createItem", SOURCE, "createItem validation failed", {
         name: req.body?.name,
         reason: "blank-name",
-        request_id: req.requestId,
       });
       res.status(400).json({ error: "name must not be blank" });
       return;
@@ -171,14 +173,12 @@ export function createApp(options: CreateAppOptions = {}): Express {
       logSucceeded("createItem", SOURCE, {
         id: item.id,
         name: item.name,
-        request_id: req.requestId,
       });
       res.status(201).json(item);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       logError("createItem", SOURCE, "createItem failed", {
         name,
-        request_id: req.requestId,
         error: message,
       });
       res.status(502).json({ error: message });

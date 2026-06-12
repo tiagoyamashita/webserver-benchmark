@@ -5,7 +5,7 @@ use axum::Json;
 use chrono::Utc;
 
 use crate::app::AppState;
-use crate::request_id::{RequestHttpSnapshot, RequestId};
+use crate::request_id::RequestHttpSnapshot;
 
 use super::cookies::{append_clear_session_cookie, append_session_cookie};
 use super::service::{self, AuthServiceError};
@@ -25,7 +25,6 @@ fn log_controller_received(
     controller: &str,
     method: &str,
     path: &str,
-    request_id: &RequestId,
     http: &RequestHttpSnapshot,
 ) {
     let headers =
@@ -38,7 +37,6 @@ fn log_controller_received(
         controller = controller,
         method = method,
         path = path,
-        request_id = %request_id.0,
         headers = %headers,
         url_params = %url_params,
         body = %body,
@@ -48,12 +46,11 @@ fn log_controller_received(
 
 pub async fn ensure_session(
     State(state): State<AppState>,
-    Extension(request_id): Extension<RequestId>,
     Extension(http): Extension<RequestHttpSnapshot>,
     current: Option<Extension<CurrentSession>>,
     body: Option<Json<EnsureSessionRequest>>,
 ) -> Response {
-    log_controller_received("ensure_session", "POST", "/api/auth/ensure", &request_id, &http);
+    log_controller_received("ensure_session", "POST", "/api/auth/ensure", &http);
     let Some(auth) = state.auth.as_ref() else {
         return auth_unavailable();
     };
@@ -79,7 +76,6 @@ pub async fn ensure_session(
             tracing::info!(
                 source = SOURCE,
                 controller = "ensure_session",
-                request_id = %request_id.0,
                 session_id = %result.session.session_id,
                 session_created = result.created,
                 user_id = result.session.user_id,
@@ -93,7 +89,6 @@ pub async fn ensure_session(
             tracing::warn!(
                 source = SOURCE,
                 controller = "ensure_session",
-                request_id = %request_id.0,
                 error = %err,
                 "ensure_session failed"
             );
@@ -108,11 +103,10 @@ pub async fn ensure_session(
 
 pub async fn login(
     State(state): State<AppState>,
-    Extension(request_id): Extension<RequestId>,
     Extension(http): Extension<RequestHttpSnapshot>,
     Json(body): Json<LoginRequest>,
 ) -> Response {
-    log_controller_received("login", "POST", "/api/auth/login", &request_id, &http);
+    log_controller_received("login", "POST", "/api/auth/login", &http);
     let Some(auth) = state.auth.as_ref() else {
         return auth_unavailable();
     };
@@ -131,7 +125,6 @@ pub async fn login(
             tracing::info!(
                 source = SOURCE,
                 controller = "login",
-                request_id = %request_id.0,
                 session_id = %session.session_id,
                 user_id = session.user_id,
                 "login succeeded"
@@ -140,17 +133,16 @@ pub async fn login(
             append_session_cookie(res.headers_mut(), &auth.config, &session.session_id);
             res
         }
-        Err(err) => map_auth_error(err, "login", &request_id.0),
+        Err(err) => map_auth_error(err, "login"),
     }
 }
 
 pub async fn logout(
     State(state): State<AppState>,
-    Extension(request_id): Extension<RequestId>,
     Extension(http): Extension<RequestHttpSnapshot>,
     current: Option<Extension<CurrentSession>>,
 ) -> Response {
-    log_controller_received("logout", "POST", "/api/auth/logout", &request_id, &http);
+    log_controller_received("logout", "POST", "/api/auth/logout", &http);
     let Some(auth) = state.auth.as_ref() else {
         return auth_unavailable();
     };
@@ -166,7 +158,6 @@ pub async fn logout(
         tracing::warn!(
             source = SOURCE,
             controller = "logout",
-            request_id = %request_id.0,
             error = %err,
             "logout redis delete failed"
         );
@@ -174,7 +165,6 @@ pub async fn logout(
     tracing::info!(
         source = SOURCE,
         controller = "logout",
-        request_id = %request_id.0,
         session_id = %session.session_id,
         "logout succeeded"
     );
@@ -184,12 +174,11 @@ pub async fn logout(
 }
 
 pub async fn current_session(
-    Extension(request_id): Extension<RequestId>,
     Extension(http): Extension<RequestHttpSnapshot>,
     State(state): State<AppState>,
     current: Option<Extension<CurrentSession>>,
 ) -> Response {
-    log_controller_received("current_session", "GET", "/api/auth/session", &request_id, &http);
+    log_controller_received("current_session", "GET", "/api/auth/session", &http);
     let Some(auth) = state.auth.as_ref() else {
         return auth_unavailable();
     };
@@ -212,7 +201,6 @@ pub async fn current_session(
     tracing::info!(
         source = SOURCE,
         controller = "current_session",
-        request_id = %request_id.0,
         session_id = %session.session_id,
         user_id = session.user_id,
         "current_session succeeded"
@@ -228,33 +216,29 @@ fn auth_unavailable() -> Response {
         .into_response()
 }
 
-fn map_auth_error(err: AuthServiceError, action: &str, request_id: &str) -> Response {
+fn map_auth_error(err: AuthServiceError, action: &str) -> Response {
     match &err {
         AuthServiceError::BadRequest(msg) => tracing::warn!(
             source = SOURCE,
             action = action,
-            request_id = request_id,
             error = %msg,
             "auth request rejected"
         ),
         AuthServiceError::NotFound(msg) => tracing::warn!(
             source = SOURCE,
             action = action,
-            request_id = request_id,
             error = %msg,
             "auth user not found"
         ),
         AuthServiceError::Db(e) => tracing::warn!(
             source = SOURCE,
             action = action,
-            request_id = request_id,
             error = %e,
             "auth database error"
         ),
         AuthServiceError::Redis(e) => tracing::warn!(
             source = SOURCE,
             action = action,
-            request_id = request_id,
             error = %e,
             "auth redis error"
         ),

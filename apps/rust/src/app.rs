@@ -223,7 +223,6 @@ async fn list_items(
             controller = "list_items",
             method = "GET",
             path = "/api/items",
-            request_id = %request_id.0,
             reason = "postgres-not-configured",
             "list_items database not configured"
         );
@@ -255,7 +254,6 @@ async fn create_item(
             method = "POST",
             path = "/api/items",
             name = %query.name,
-            request_id = %request_id.0,
             reason = "postgres-not-configured",
             "create_item database not configured"
         );
@@ -290,7 +288,6 @@ async fn publish_create_user_kafka(
         controller = "publish_create_user_kafka",
         method = "POST",
         path = "/api/users/publish-create-user",
-        request_id = %request_id.0,
         name = %query.name,
         email = %query.email,
         "publish_create_user_kafka request received"
@@ -299,7 +296,6 @@ async fn publish_create_user_kafka(
         tracing::warn!(
             source = "src/app.rs",
             controller = "publish_create_user_kafka",
-            request_id = %request_id.0,
             reason = "kafka-not-configured",
             "publish_create_user_kafka unavailable"
         );
@@ -324,13 +320,11 @@ async fn welcome_redirect(
         controller = "welcome_redirect",
         method = "GET",
         path = "/welcome",
-        request_id = %request_id.0,
         "welcome_redirect request received"
     );
     tracing::info!(
         source = "src/app.rs",
         controller = "welcome_redirect",
-        request_id = %request_id.0,
         redirect = "/",
         "welcome_redirect succeeded"
     );
@@ -343,13 +337,11 @@ async fn health(Extension(request_id): Extension<crate::request_id::RequestId>) 
         controller = "health",
         method = "GET",
         path = "/health",
-        request_id = %request_id.0,
         "health request received"
     );
     tracing::info!(
         source = "src/app.rs",
         controller = "health",
-        request_id = %request_id.0,
         "health succeeded"
     );
     (
@@ -369,20 +361,17 @@ async fn observability_sample_log(
         controller = "observability_sample_log",
         method = "GET",
         path = "/api/observability/sample-log",
-        request_id = %request_id.0,
         "observability_sample_log request received"
     );
     tracing::info!(
         source = "src/app.rs",
         controller = "observability_sample_log",
-        request_id = %request_id.0,
         service = "exercises-rust",
         "Observability sample event (JSON log file -> Filebeat -> Logstash -> Elasticsearch)"
     );
     tracing::info!(
         source = "src/app.rs",
         controller = "observability_sample_log",
-        request_id = %request_id.0,
         "observability_sample_log succeeded"
     );
     (
@@ -403,7 +392,6 @@ async fn stack_landing(
         controller = "stack_landing",
         method = "GET",
         path = "/",
-        request_id = %request_id.0,
         "stack_landing request received"
     );
     let page = StackLandingPage {
@@ -417,7 +405,6 @@ async fn stack_landing(
     tracing::info!(
         source = "src/app.rs",
         controller = "stack_landing",
-        request_id = %request_id.0,
         template = "landing.html",
         "stack_landing succeeded"
     );
@@ -433,7 +420,6 @@ async fn tests_dashboard(
         controller = "tests_dashboard",
         method = "GET",
         path = "/tests",
-        request_id = %request_id.0,
         "tests_dashboard request received"
     );
     let flash = crate::flash::take_flash(&state.project_root);
@@ -467,7 +453,6 @@ async fn tests_dashboard(
     tracing::info!(
         source = "src/app.rs",
         controller = "tests_dashboard",
-        request_id = %request_id.0,
         result_count = page.test_results.len(),
         has_report_file = has_report_file,
         "tests_dashboard succeeded"
@@ -599,6 +584,7 @@ pub fn build_router(state: AppState) -> Router {
             session_state,
             crate::auth::resolve_session,
         ))
+        .layer(middleware::from_fn(crate::auth::session_log_span))
         .layer(middleware::from_fn(crate::request_id::assign_request_id))
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .with_state(state)
@@ -637,7 +623,6 @@ async fn run_tests_post(
         controller = "run_tests_post",
         method = "POST",
         path = "/tests/run",
-        request_id = %request_id.0,
         nodeid = ?filter,
         "run_tests_post request received"
     );
@@ -649,7 +634,6 @@ async fn run_tests_post(
             tracing::error!(
                 source = "src/app.rs",
                 controller = "run_tests_post",
-                request_id = %request_id.0,
                 nodeid = ?filter,
                 error = %e,
                 "run_tests_post failed"
@@ -677,7 +661,6 @@ async fn run_tests_post(
         tracing::info!(
             source = "src/app.rs",
             controller = "run_tests_post",
-            request_id = %request_id.0,
             nodeid = ?filter,
             exit_code = code,
             "run_tests_post succeeded"
@@ -687,7 +670,6 @@ async fn run_tests_post(
         tracing::warn!(
             source = "src/app.rs",
             controller = "run_tests_post",
-            request_id = %request_id.0,
             nodeid = ?filter,
             exit_code = code,
             "run_tests_post finished with errors"
@@ -713,7 +695,6 @@ async fn test_source(
         controller = "test_source",
         method = "GET",
         path = "/tests/source",
-        request_id = %request_id.0,
         className = %q.class_name,
         "test_source request received"
     );
@@ -722,7 +703,6 @@ async fn test_source(
             tracing::info!(
                 source = "src/app.rs",
                 controller = "test_source",
-                request_id = %request_id.0,
                 className = %q.class_name,
                 path = %path,
                 "test_source succeeded"
@@ -738,7 +718,6 @@ async fn test_source(
             tracing::warn!(
                 source = "src/app.rs",
                 controller = "test_source",
-                request_id = %request_id.0,
                 className = %q.class_name,
                 "test_source not found"
             );

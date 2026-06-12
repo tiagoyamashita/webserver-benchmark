@@ -172,7 +172,6 @@ pub async fn publish_create_user_event(
     let trimmed_name = query.name.trim().to_string();
     let trimmed_email = query.email.trim().to_string();
     let outbound_id = crate::request_id::resolve_outbound_request_id(Some(request_id));
-    let id_for_log = outbound_id.as_str();
 
     if trimmed_name.is_empty() {
         tracing::warn!(
@@ -180,7 +179,6 @@ pub async fn publish_create_user_event(
             controller = "publish_create_user_event",
             method = "POST",
             path = "/api/users/publish-create-user",
-            request_id = id_for_log,
             reason = "blank-name",
             "publish_create_user_event validation failed"
         );
@@ -204,7 +202,6 @@ pub async fn publish_create_user_event(
             controller = "publish_create_user_event",
             method = "POST",
             path = "/api/users/publish-create-user",
-            request_id = id_for_log,
             reason = "blank-email",
             "publish_create_user_event validation failed"
         );
@@ -228,7 +225,6 @@ pub async fn publish_create_user_event(
         controller = "publish_create_user_event",
         method = "POST",
         path = "/api/users/publish-create-user",
-        request_id = id_for_log,
         kafka_event = CREATE_USER_TOPIC,
         name = %trimmed_name,
         email = %trimmed_email,
@@ -248,7 +244,6 @@ pub async fn publish_create_user_event(
             tracing::error!(
                 source = SOURCE,
                 controller = "publish_create_user_event",
-                request_id = id_for_log,
                 name = %trimmed_name,
                 email = %trimmed_email,
                 error = %error,
@@ -280,7 +275,6 @@ pub async fn publish_create_user_event(
             tracing::error!(
                 source = SOURCE,
                 controller = "publish_create_user_event",
-                request_id = id_for_log,
                 bootstrap = %config.bootstrap_servers,
                 error = %error,
                 "publish_create_user_event failed"
@@ -319,7 +313,6 @@ pub async fn publish_create_user_event(
         tracing::error!(
             source = SOURCE,
             controller = "publish_create_user_event",
-            request_id = id_for_log,
             topic = %config.create_user_topic,
             error = %error,
             "publish_create_user_event failed"
@@ -342,7 +335,6 @@ pub async fn publish_create_user_event(
     tracing::info!(
         source = SOURCE,
         controller = "publish_create_user_event",
-        request_id = id_for_log,
         kafka_event = CREATE_USER_TOPIC,
         name = %trimmed_name,
         email = %trimmed_email,

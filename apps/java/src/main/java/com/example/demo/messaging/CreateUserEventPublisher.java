@@ -40,17 +40,14 @@ public class CreateUserEventPublisher {
    */
   public void publishCreateUser(String name, String email) throws JsonProcessingException {
     String requestId = RequestIdRelay.resolveOutboundRequestId();
-    String idForLog = requestId;
     CreateUserEvent event = CreateUserEvent.of(name, email, requestId);
     String topic = kafkaAppProperties.getCreateUserTopic();
     String payload = objectMapper.writeValueAsString(event);
 
     log.info(
-        "CreateUserEventPublisher.publishCreateUser publishing request_id={}",
-        idForLog,
+        "CreateUserEventPublisher.publishCreateUser publishing",
         kv("source", SOURCE),
         kv("controller", "CreateUserEventPublisher"),
-        kv("request_id", requestId),
         kv("topic", topic),
         kv("kafka_event", CreateUserEvent.EVENT_TYPE),
         kv("name", name),
@@ -64,11 +61,9 @@ public class CreateUserEventPublisher {
     kafkaTemplate.send(record);
 
     log.info(
-        "CreateUserEventPublisher.publishCreateUser succeeded request_id={}",
-        idForLog,
+        "CreateUserEventPublisher.publishCreateUser succeeded",
         kv("source", SOURCE),
         kv("controller", "CreateUserEventPublisher"),
-        kv("request_id", requestId),
         kv("topic", topic),
         kv("kafka_event", CreateUserEvent.EVENT_TYPE),
         kv("name", name),

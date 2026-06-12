@@ -299,7 +299,6 @@ pub async fn stack_ping_handler(
         controller = "stack_ping_handler",
         method = "GET",
         path = "/stack-ping/{target}",
-        request_id = %request_id.0,
         target = %target,
         "stack_ping_handler request received"
     );
@@ -319,7 +318,6 @@ pub async fn stack_ping_handler(
         tracing::info!(
             source = "src/stack_ping.rs",
             controller = "stack_ping_handler",
-            request_id = %request_id.0,
             target = %result.stack,
             ok = result.ok,
             status = ?result.status,
@@ -330,7 +328,6 @@ pub async fn stack_ping_handler(
         tracing::warn!(
             source = "src/stack_ping.rs",
             controller = "stack_ping_handler",
-            request_id = %request_id.0,
             target = %result.stack,
             ok = result.ok,
             status = ?result.status,

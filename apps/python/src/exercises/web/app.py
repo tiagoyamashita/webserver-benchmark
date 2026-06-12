@@ -303,7 +303,6 @@ def create_app() -> Flask:
             extra={
                 "source": _APP_SOURCE,
                 "controller": "observability_sample_log",
-                "request_id": getattr(g, "request_id", None),
             },
         )
         log_succeeded(_APP_LOG, "observability_sample_log", _APP_SOURCE)

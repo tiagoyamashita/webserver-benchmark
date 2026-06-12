@@ -3,7 +3,6 @@ package com.example.demo.auth;
 import static net.logstash.logback.argument.StructuredArguments.kv;
 
 import com.example.demo.config.SessionProperties;
-import com.example.demo.observability.RequestIdContext;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -47,12 +46,12 @@ public class AuthController {
     log.info(
         "AuthController.ensure request received",
         kv("source", SOURCE),
-        kv("request_id", RequestIdContext.get()),
         kv("controller", "AuthController"),
         kv("method", "POST"),
         kv("path", "/api/auth/ensure"),
         kv("clientSessionId", clientSessionId));
     EnsureSessionResult result = authService.ensureSession(clientSessionId, SessionContext.get());
+    SessionContext.set(result.session());
     response.addHeader(
         HttpHeaders.SET_COOKIE, sessionCookie(result.session().sessionId()).toString());
     SessionResponse payload =
@@ -60,8 +59,6 @@ public class AuthController {
     log.info(
         "AuthController.ensure succeeded",
         kv("source", SOURCE),
-        kv("request_id", RequestIdContext.get()),
-        kv("sessionId", result.session().sessionId()),
         kv("created", result.created()),
         kv("userId", result.session().userId()));
     return ResponseEntity.status(result.created() ? HttpStatus.CREATED : HttpStatus.OK)
@@ -74,21 +71,19 @@ public class AuthController {
     log.info(
         "AuthController.login request received",
         kv("source", SOURCE),
-        kv("request_id", RequestIdContext.get()),
         kv("controller", "AuthController"),
         kv("method", "POST"),
         kv("path", "/api/auth/login"),
         kv("email", body.email()),
         kv("userId", body.userId()));
     SharedSession session = authService.login(body);
+    SessionContext.set(session);
     response.addHeader(HttpHeaders.SET_COOKIE, sessionCookie(session.sessionId()).toString());
     SessionResponse payload =
         SessionResponse.from(session, authService.redisKey(session.sessionId()));
     log.info(
         "AuthController.login succeeded",
         kv("source", SOURCE),
-        kv("request_id", RequestIdContext.get()),
-        kv("sessionId", session.sessionId()),
         kv("userId", session.userId()),
         kv("redisKey", payload.redisKey()));
     return ResponseEntity.status(HttpStatus.CREATED).body(payload);
@@ -99,7 +94,6 @@ public class AuthController {
     log.info(
         "AuthController.logout request received",
         kv("source", SOURCE),
-        kv("request_id", RequestIdContext.get()),
         kv("controller", "AuthController"),
         kv("method", "POST"),
         kv("path", "/api/auth/logout"));
@@ -108,9 +102,7 @@ public class AuthController {
     response.addHeader(HttpHeaders.SET_COOKIE, clearSessionCookie().toString());
     log.info(
         "AuthController.logout succeeded",
-        kv("source", SOURCE),
-        kv("request_id", RequestIdContext.get()),
-        kv("sessionId", session.sessionId()));
+        kv("source", SOURCE));
     return ResponseEntity.noContent().build();
   }
 
@@ -119,7 +111,6 @@ public class AuthController {
     log.info(
         "AuthController.currentSession request received",
         kv("source", SOURCE),
-        kv("request_id", RequestIdContext.get()),
         kv("controller", "AuthController"),
         kv("method", "GET"),
         kv("path", "/api/auth/session"));
@@ -129,8 +120,6 @@ public class AuthController {
     log.info(
         "AuthController.currentSession succeeded",
         kv("source", SOURCE),
-        kv("request_id", RequestIdContext.get()),
-        kv("sessionId", session.sessionId()),
         kv("userId", session.userId()));
     return payload;
   }

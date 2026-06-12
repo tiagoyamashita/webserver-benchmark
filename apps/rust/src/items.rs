@@ -41,9 +41,7 @@ pub async fn list_items(pool: PgPool, request_id: Option<&str>) -> impl IntoResp
         controller = "list_items",
         method = "GET",
         path = "/api/items",
-        request_id = request_id.unwrap_or(""),
-        "list_items request received request_id={}",
-        request_id.unwrap_or("")
+        "list_items request received"
     );
     match crate::db::list_items(&pool, request_id).await {
         Ok(rows) => {
@@ -59,15 +57,12 @@ pub async fn list_items(pool: PgPool, request_id: Option<&str>) -> impl IntoResp
             tracing::info!(
                 source = SOURCE,
                 controller = "list_items",
-                request_id = request_id.unwrap_or(""),
                 count = count,
-                "list_items succeeded request_id={}",
-                request_id.unwrap_or("")
+                "list_items succeeded"
             );
             tracing::trace!(
                 source = SOURCE,
                 controller = "list_items",
-                request_id = request_id.unwrap_or(""),
                 items = ?responses,
                 "list_items result"
             );
@@ -77,7 +72,6 @@ pub async fn list_items(pool: PgPool, request_id: Option<&str>) -> impl IntoResp
             tracing::error!(
                 source = SOURCE,
                 controller = "list_items",
-                request_id = request_id.unwrap_or(""),
                 error = %e,
                 "list_items failed"
             );
@@ -108,7 +102,6 @@ pub async fn create_item(
 ) -> impl IntoResponse {
     let name = query.name.trim().to_string();
     let id_source = request_id_source_label(request_id_source);
-    let id_for_log = request_id.unwrap_or("");
     let seq = log_seq.map(crate::request_id::RequestLogSeq::next).unwrap_or(0);
     tracing::info!(
         source = SOURCE,
@@ -116,21 +109,19 @@ pub async fn create_item(
         method = "POST",
         path = "/api/items",
         name = %name,
-        request_id = id_for_log,
         request_id_source = id_source,
         request_origin = request_origin.unwrap_or(""),
         log_seq = seq,
-        "create_item request received request_id={id_for_log}"
+        "create_item request received"
     );
     if name.is_empty() {
         tracing::warn!(
             source = SOURCE,
             controller = "create_item",
-            request_id = id_for_log,
             name = %query.name,
             reason = "blank-name",
             log_seq = log_seq.map(crate::request_id::RequestLogSeq::next).unwrap_or(0),
-            "create_item validation failed request_id={id_for_log}"
+            "create_item validation failed"
         );
         return (
             StatusCode::BAD_REQUEST,
@@ -151,13 +142,12 @@ pub async fn create_item(
             tracing::info!(
                 source = SOURCE,
                 controller = "create_item",
-                request_id = id_for_log,
                 request_id_source = id_source,
                 request_origin = request_origin.unwrap_or(""),
                 id = row.id,
                 name = %row.name,
                 log_seq = log_seq.map(crate::request_id::RequestLogSeq::next).unwrap_or(0),
-                "create_item succeeded request_id={id_for_log}"
+                "create_item succeeded"
             );
             (
                 StatusCode::CREATED,
@@ -176,11 +166,10 @@ pub async fn create_item(
             tracing::error!(
                 source = SOURCE,
                 controller = "create_item",
-                request_id = id_for_log,
                 name = %name,
                 error = %e,
                 log_seq = log_seq.map(crate::request_id::RequestLogSeq::next).unwrap_or(0),
-                "create_item failed request_id={id_for_log}"
+                "create_item failed"
             );
             (
                 StatusCode::INTERNAL_SERVER_ERROR,

@@ -110,7 +110,9 @@ log.trace("ItemController.list result", kv("source", SOURCE), kv("items", result
 
 ## Do not duplicate
 
-- `HttpRequestLoggingFilter` (`observability` profile) already logs HTTP method/path/status/ms — controller logs add **business context** and **handler source file**, not another access log per line.
+- `HttpRequestLoggingFilter` (`observability` profile) already logs HTTP method/path/status/ms and **`request_id`** — controller logs add **business context** and **handler source file**, not another access log per line. Do **not** repeat `request_id` in controller message text or structured fields for HTTP handlers.
+- HTTP access logs do **not** emit a top-level **`session_id`** — controller helpers auto-include **`session_id`** from the resolved Redis session when present (Java: `ObservabilityJsonProvider`; Python: `controller_logging`; React Node: `requestContext`; Rust: `session_log_span` middleware).
+- Kafka/async handlers (no HTTP access line) may still emit **`request_id`** as a structured field for correlation.
 
 ## Python (Flask)
 
@@ -127,11 +129,11 @@ log_succeeded(_LOG, "create_item", SOURCE, id=body["id"], name=body["name"])
 
 JSON file logs (`observability_logging.py`) include all `extra={...}` fields in ELK.
 
-`g.request_id` is set from incoming `X-Request-ID` (or a new UUID) in `app.py` `before_request`. Controller helpers **auto-include** `request_id` on every line when present. HTTP access logs (`http.request` logger) also emit `request_id`.
+`g.request_id` is set from incoming `X-Request-ID` (or a new UUID) in `app.py` `before_request`. HTTP access logs (`http.request` logger) emit `request_id`; controller helpers do **not** repeat it.
 
 ## Rust (Axum)
 
-`assign_request_id` middleware reads `X-Request-ID`, stores `RequestId` in extensions, and echoes it on the response. Include `request_id = %request_id.0` on **every** controller log line (received, succeeded, warn, error) and use `request_id = %…` (not `?`) in the HTTP access log middleware.
+`assign_request_id` middleware reads `X-Request-ID`, stores `RequestId` in extensions, and echoes it on the response. Use `request_id = %…` in the **HTTP access log middleware only** — omit it from controller handler logs.
 
 ```rust
 const SOURCE: &str = "src/items.rs";
@@ -141,11 +143,10 @@ tracing::info!(
     controller = "create_item",
     method = "POST",
     path = "/api/items",
-    request_id = %request_id.0,
     name = %name,
     "create_item request received"
 );
-tracing::info!(source = SOURCE, controller = "create_item", request_id = %request_id.0, id = row.id, "create_item succeeded");
+tracing::info!(source = SOURCE, controller = "create_item", id = row.id, "create_item succeeded");
 tracing::warn!(source = SOURCE, controller = "create_item", reason = "blank-name", "create_item validation failed");
 tracing::error!(source = SOURCE, controller = "create_item", error = %e, "create_item failed");
 tracing::trace!(source = SOURCE, controller = "list_items", items = ?responses, "list_items result");
@@ -158,9 +159,9 @@ Helper: `server/controller-logging.ts` — `logReceived`, `logSucceeded`, `logWa
 ```typescript
 const SOURCE = "server/app.ts";
 
-logReceived("createItem", SOURCE, "POST", "/api/items", { name, request_id: req.requestId });
+logReceived("createItem", SOURCE, "POST", "/api/items", { name });
 // ... proxy to Java ...
-logSucceeded("createItem", SOURCE, { id: item.id, name: item.name, request_id: req.requestId });
+logSucceeded("createItem", SOURCE, { id: item.id, name: item.name });
 ```
 
 Logs emit structured JSON to stdout and to `${LOG_PATH}/demo-app.json.log` when `EXERCISES_OBSERVABILITY=true`.

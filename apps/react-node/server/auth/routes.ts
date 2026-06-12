@@ -51,7 +51,7 @@ export function registerAuthRoutes(app: Express, runtime: AuthRuntime): void {
   app.post("/api/auth/ensure", async (req, res) => {
     logReceivedFromRequest(req, "authEnsure", SOURCE, "POST", "/api/auth/ensure");
     if (!runtime.auth) {
-      logWarn("authEnsure", SOURCE, "redis not configured", { request_id: req.requestId });
+      logWarn("authEnsure", SOURCE, "redis not configured");
       res.status(503).json({ error: "Redis session store not configured" });
       return;
     }
@@ -71,7 +71,6 @@ export function registerAuthRoutes(app: Express, runtime: AuthRuntime): void {
         .setHeader("Set-Cookie", sessionCookieValue(runtime.auth.config, result.session.sessionId))
         .json(payload);
       logSucceeded("authEnsure", SOURCE, {
-        request_id: req.requestId,
         session_id: result.session.sessionId,
         created: result.created,
         user_id: result.session.userId,
@@ -79,7 +78,6 @@ export function registerAuthRoutes(app: Express, runtime: AuthRuntime): void {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       logError("authEnsure", SOURCE, "authEnsure failed", {
-        request_id: req.requestId,
         error: message,
       });
       res.status(503).json({ error: message });
@@ -101,14 +99,12 @@ export function registerAuthRoutes(app: Express, runtime: AuthRuntime): void {
         .setHeader("Set-Cookie", sessionCookieValue(runtime.auth.config, session.sessionId))
         .json(payload);
       logSucceeded("authLogin", SOURCE, {
-        request_id: req.requestId,
         session_id: session.sessionId,
         user_id: session.userId,
       });
     } catch (error) {
       if (error instanceof AuthServiceError) {
         logWarn("authLogin", SOURCE, "authLogin rejected", {
-          request_id: req.requestId,
           error: error.message,
         });
         res.status(error.status).json({ error: error.message });
@@ -116,7 +112,6 @@ export function registerAuthRoutes(app: Express, runtime: AuthRuntime): void {
       }
       const message = error instanceof Error ? error.message : String(error);
       logError("authLogin", SOURCE, "authLogin failed", {
-        request_id: req.requestId,
         error: message,
       });
       res.status(503).json({ error: message });
@@ -138,7 +133,6 @@ export function registerAuthRoutes(app: Express, runtime: AuthRuntime): void {
       await logout(runtime.auth, session.sessionId);
     } catch (error) {
       logWarn("authLogout", SOURCE, "authLogout redis delete failed", {
-        request_id: req.requestId,
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -147,7 +141,6 @@ export function registerAuthRoutes(app: Express, runtime: AuthRuntime): void {
       .setHeader("Set-Cookie", clearSessionCookieValue(runtime.auth.config))
       .end();
     logSucceeded("authLogout", SOURCE, {
-      request_id: req.requestId,
       session_id: session.sessionId,
     });
   });
@@ -169,7 +162,6 @@ export function registerAuthRoutes(app: Express, runtime: AuthRuntime): void {
     }
     const payload = toSessionResponse(session, redisKey(runtime.auth.config, session.sessionId));
     logSucceeded("authSession", SOURCE, {
-      request_id: req.requestId,
       session_id: session.sessionId,
       user_id: session.userId,
     });

@@ -27,11 +27,9 @@ public class CreateUserEventHandler {
   }
 
   public void handle(String payload, String requestIdHeader) {
-    String requestId = requestIdHeader != null ? requestIdHeader : "";
     if (payload == null || payload.isBlank()) {
       log.warn(
-          "CreateUserEventHandler.handle skipped request_id={}",
-          requestId,
+          "CreateUserEventHandler.handle skipped",
           kv("source", SOURCE),
           kv("controller", "CreateUserEventHandler"),
           kv("request_id", requestIdHeader),
@@ -44,8 +42,7 @@ public class CreateUserEventHandler {
       event = objectMapper.readValue(payload, CreateUserEvent.class);
     } catch (JsonProcessingException e) {
       log.error(
-          "CreateUserEventHandler.handle parse failed request_id={}",
-          requestId,
+          "CreateUserEventHandler.handle parse failed",
           kv("source", SOURCE),
           kv("controller", "CreateUserEventHandler"),
           kv("request_id", requestIdHeader),
@@ -55,8 +52,7 @@ public class CreateUserEventHandler {
 
     if (!CreateUserEvent.EVENT_TYPE.equals(event.event())) {
       log.warn(
-          "CreateUserEventHandler.handle skipped request_id={}",
-          requestId,
+          "CreateUserEventHandler.handle skipped",
           kv("source", SOURCE),
           kv("controller", "CreateUserEventHandler"),
           kv("request_id", requestIdHeader),
@@ -69,14 +65,12 @@ public class CreateUserEventHandler {
         event.requestId() != null && !event.requestId().isBlank()
             ? event.requestId()
             : requestIdHeader;
-    String idForLog = effectiveRequestId != null ? effectiveRequestId : "";
 
     String trimmedName = event.name() == null ? "" : event.name().trim();
     String trimmedEmail = event.email() == null ? "" : event.email().trim();
     if (trimmedName.isEmpty() || trimmedEmail.isEmpty()) {
       log.warn(
-          "CreateUserEventHandler.handle validation failed request_id={}",
-          idForLog,
+          "CreateUserEventHandler.handle validation failed",
           kv("source", SOURCE),
           kv("controller", "CreateUserEventHandler"),
           kv("request_id", effectiveRequestId),
@@ -87,8 +81,7 @@ public class CreateUserEventHandler {
     }
 
     log.info(
-        "CreateUserEventHandler.handle received request_id={}",
-        idForLog,
+        "CreateUserEventHandler.handle received",
         kv("source", SOURCE),
         kv("controller", "CreateUserEventHandler"),
         kv("request_id", effectiveRequestId),
@@ -99,8 +92,7 @@ public class CreateUserEventHandler {
     try {
       User saved = users.save(new User(trimmedName, trimmedEmail));
       log.info(
-          "CreateUserEventHandler.handle succeeded request_id={}",
-          idForLog,
+          "CreateUserEventHandler.handle succeeded",
           kv("source", SOURCE),
           kv("controller", "CreateUserEventHandler"),
           kv("request_id", effectiveRequestId),
@@ -109,8 +101,7 @@ public class CreateUserEventHandler {
           kv("email", saved.getEmail()));
     } catch (RuntimeException e) {
       log.error(
-          "CreateUserEventHandler.handle failed request_id={}",
-          idForLog,
+          "CreateUserEventHandler.handle failed",
           kv("source", SOURCE),
           kv("controller", "CreateUserEventHandler"),
           kv("request_id", effectiveRequestId),

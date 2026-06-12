@@ -5,7 +5,7 @@ mod repository;
 mod service;
 mod session;
 
-pub use middleware::{bootstrap_page_session, resolve_session};
+pub use middleware::{bootstrap_page_session, resolve_session, session_log_span};
 pub use session::redis_url_from_env;
 pub use session::SessionConfig;
 

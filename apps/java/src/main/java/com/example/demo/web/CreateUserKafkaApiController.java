@@ -3,7 +3,6 @@ package com.example.demo.web;
 import static net.logstash.logback.argument.StructuredArguments.kv;
 
 import com.example.demo.observability.DashboardPageContext;
-import com.example.demo.observability.RequestIdContext;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,16 +33,12 @@ public class CreateUserKafkaApiController {
   @PostMapping(value = "/publish-create-user", produces = MediaType.APPLICATION_JSON_VALUE)
   public Map<String, Object> publishCreateUser(
       @RequestParam("name") String name, @RequestParam("email") String email) {
-    String requestId = RequestIdContext.get();
-    String idForLog = requestId != null ? requestId : "";
     log.info(
-        "CreateUserKafkaApiController.publishCreateUser request received request_id={}",
-        idForLog,
+        "CreateUserKafkaApiController.publishCreateUser request received",
         kv("source", SOURCE),
         kv("controller", "CreateUserKafkaApiController"),
         kv("method", "POST"),
         kv("path", "/dashboard/users/publish-create-user"),
-        kv("request_id", requestId),
         kv("dashboard_page", DashboardPageContext.get()),
         kv("name", name),
         kv("email", email),
@@ -52,21 +47,17 @@ public class CreateUserKafkaApiController {
     Map<String, Object> result = createUserKafkaService.publishCreateUserEvent(name, email);
     if (Boolean.FALSE.equals(result.get("ok"))) {
       log.warn(
-          "CreateUserKafkaApiController.publishCreateUser failed request_id={}",
-          idForLog,
+          "CreateUserKafkaApiController.publishCreateUser failed",
           kv("source", SOURCE),
           kv("controller", "CreateUserKafkaApiController"),
-          kv("request_id", requestId),
           kv("name", name),
           kv("email", email),
           kv("error", result.get("error")));
     } else {
       log.info(
-          "CreateUserKafkaApiController.publishCreateUser succeeded request_id={}",
-          idForLog,
+          "CreateUserKafkaApiController.publishCreateUser succeeded",
           kv("source", SOURCE),
           kv("controller", "CreateUserKafkaApiController"),
-          kv("request_id", requestId),
           kv("name", name),
           kv("email", email),
           kv("topic", result.get("topic")));

@@ -46,29 +46,24 @@ public class RustItemRelayService {
   public Map<String, Object> addItemViaRust(String name) {
     String trimmed = name == null ? "" : name.trim();
     String requestId = RequestIdContext.get();
-    String idForLog = requestId != null ? requestId : "";
     if (trimmed.isEmpty()) {
       log.warn(
-          "RustItemRelayService.addItemViaRust validation failed request_id={}",
-          idForLog,
+          "RustItemRelayService.addItemViaRust validation failed",
           kv("source", SOURCE),
           kv("controller", "RustItemRelayService"),
           kv("method", "POST"),
           kv("path", "/dashboard/items/add-via-rust"),
-          kv("request_id", requestId),
           kv("ui_event", "dashboard.ui"),
           kv("action", "add-item-via-rust"),
           kv("reason", "blank-name"));
       return Map.of("ok", false, "error", "name must not be blank", "requestId", requestId != null ? requestId : "");
     }
     log.info(
-        "RustItemRelayService.addItemViaRust calling Rust request_id={}",
-        idForLog,
+        "RustItemRelayService.addItemViaRust calling Rust",
         kv("source", SOURCE),
         kv("controller", "RustItemRelayService"),
         kv("method", "POST"),
         kv("path", "/dashboard/items/add-via-rust"),
-        kv("request_id", requestId),
         kv("dashboard_page", DashboardPageContext.get()),
         kv("relay_target", "exercises-rust"),
         kv("relay_origin", RequestIdRelay.SERVICE),
@@ -97,11 +92,9 @@ public class RustItemRelayService {
       parseRustJsonBody(rawBody).ifPresent(rust -> out.put("rust", rust));
       if (ok) {
         log.info(
-            "RustItemRelayService.addItemViaRust succeeded request_id={}",
-            idForLog,
+            "RustItemRelayService.addItemViaRust succeeded",
             kv("source", SOURCE),
             kv("controller", "RustItemRelayService"),
-            kv("request_id", requestId),
             kv("relay_target", "exercises-rust"),
             kv("relay_origin", RequestIdRelay.SERVICE),
             kv("name", trimmed),
@@ -111,11 +104,9 @@ public class RustItemRelayService {
             kv("action", "add-item-via-rust"));
       } else {
         log.warn(
-            "RustItemRelayService.addItemViaRust failed request_id={}",
-            idForLog,
+            "RustItemRelayService.addItemViaRust failed",
             kv("source", SOURCE),
             kv("controller", "RustItemRelayService"),
-            kv("request_id", requestId),
             kv("name", trimmed),
             kv("rustStatus", res.getStatusCode().value()),
             kv("rustUrl", uri.toString()),
@@ -126,11 +117,9 @@ public class RustItemRelayService {
     } catch (RestClientException e) {
       String error = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
       log.warn(
-          "RustItemRelayService.addItemViaRust failed request_id={}",
-          idForLog,
+          "RustItemRelayService.addItemViaRust failed",
           kv("source", SOURCE),
           kv("controller", "RustItemRelayService"),
-          kv("request_id", requestId),
           kv("name", trimmed),
           kv("rustUrl", uri.toString()),
           kv("error", error),

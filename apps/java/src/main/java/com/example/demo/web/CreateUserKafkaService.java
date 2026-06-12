@@ -34,17 +34,14 @@ public class CreateUserKafkaService {
     String trimmedName = name == null ? "" : name.trim();
     String trimmedEmail = email == null ? "" : email.trim();
     String requestId = RequestIdContext.get();
-    String idForLog = requestId != null ? requestId : "";
 
     if (trimmedName.isEmpty()) {
       log.warn(
-          "CreateUserKafkaService.publishCreateUserEvent validation failed request_id={}",
-          idForLog,
+          "CreateUserKafkaService.publishCreateUserEvent validation failed",
           kv("source", SOURCE),
           kv("controller", "CreateUserKafkaService"),
           kv("method", "POST"),
           kv("path", "/dashboard/users/publish-create-user"),
-          kv("request_id", requestId),
           kv("ui_event", "dashboard.ui"),
           kv("action", "publish-create-user"),
           kv("reason", "blank-name"));
@@ -58,13 +55,11 @@ public class CreateUserKafkaService {
     }
     if (trimmedEmail.isEmpty()) {
       log.warn(
-          "CreateUserKafkaService.publishCreateUserEvent validation failed request_id={}",
-          idForLog,
+          "CreateUserKafkaService.publishCreateUserEvent validation failed",
           kv("source", SOURCE),
           kv("controller", "CreateUserKafkaService"),
           kv("method", "POST"),
           kv("path", "/dashboard/users/publish-create-user"),
-          kv("request_id", requestId),
           kv("ui_event", "dashboard.ui"),
           kv("action", "publish-create-user"),
           kv("reason", "blank-email"));
@@ -78,13 +73,11 @@ public class CreateUserKafkaService {
     }
 
     log.info(
-        "CreateUserKafkaService.publishCreateUserEvent publishing request_id={}",
-        idForLog,
+        "CreateUserKafkaService.publishCreateUserEvent publishing",
         kv("source", SOURCE),
         kv("controller", "CreateUserKafkaService"),
         kv("method", "POST"),
         kv("path", "/dashboard/users/publish-create-user"),
-        kv("request_id", requestId),
         kv("dashboard_page", DashboardPageContext.get()),
         kv("kafka_event", CreateUserEvent.EVENT_TYPE),
         kv("name", trimmedName),
@@ -103,11 +96,9 @@ public class CreateUserKafkaService {
       out.put("ok", true);
       out.put("topic", "create-user");
       log.info(
-          "CreateUserKafkaService.publishCreateUserEvent succeeded request_id={}",
-          idForLog,
+          "CreateUserKafkaService.publishCreateUserEvent succeeded",
           kv("source", SOURCE),
           kv("controller", "CreateUserKafkaService"),
-          kv("request_id", requestId),
           kv("kafka_event", CreateUserEvent.EVENT_TYPE),
           kv("name", trimmedName),
           kv("email", trimmedEmail),
@@ -117,11 +108,9 @@ public class CreateUserKafkaService {
     } catch (JsonProcessingException e) {
       String error = "failed to serialize create-user event";
       log.error(
-          "CreateUserKafkaService.publishCreateUserEvent failed request_id={}",
-          idForLog,
+          "CreateUserKafkaService.publishCreateUserEvent failed",
           kv("source", SOURCE),
           kv("controller", "CreateUserKafkaService"),
-          kv("request_id", requestId),
           kv("name", trimmedName),
           kv("email", trimmedEmail),
           kv("error", error),
@@ -133,11 +122,9 @@ public class CreateUserKafkaService {
     } catch (RuntimeException e) {
       String error = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
       log.warn(
-          "CreateUserKafkaService.publishCreateUserEvent failed request_id={}",
-          idForLog,
+          "CreateUserKafkaService.publishCreateUserEvent failed",
           kv("source", SOURCE),
           kv("controller", "CreateUserKafkaService"),
-          kv("request_id", requestId),
           kv("name", trimmedName),
           kv("email", trimmedEmail),
           kv("error", error),

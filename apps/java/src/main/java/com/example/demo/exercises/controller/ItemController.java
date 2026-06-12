@@ -49,7 +49,6 @@ public class ItemController {
     log.info(
         "ItemController.list request received",
         kv("source", SOURCE),
-        kv("request_id", RequestIdContext.get()),
         kv("controller", "ItemController"),
         kv("method", "GET"),
         kv("path", "/api/items"));
@@ -57,12 +56,10 @@ public class ItemController {
     log.info(
         "ItemController.list succeeded",
         kv("source", SOURCE),
-        kv("request_id", RequestIdContext.get()),
         kv("count", result.size()));
     log.trace(
         "ItemController.list result",
         kv("source", SOURCE),
-        kv("request_id", RequestIdContext.get()),
         kv("items", result));
     return result;
   }
@@ -73,7 +70,6 @@ public class ItemController {
     log.info(
         "ItemController.create request received",
         kv("source", SOURCE),
-        kv("request_id", RequestIdContext.get()),
         kv("controller", "ItemController"),
         kv("method", "POST"),
         kv("path", "/api/items"),
@@ -83,7 +79,6 @@ public class ItemController {
     log.info(
         "ItemController.create succeeded",
         kv("source", SOURCE),
-        kv("request_id", RequestIdContext.get()),
         kv("id", saved.getId()),
         kv("name", saved.getName()));
     return response;
@@ -94,7 +89,6 @@ public class ItemController {
     log.info(
         "ItemController.getById request received",
         kv("source", SOURCE),
-        kv("request_id", RequestIdContext.get()),
         kv("controller", "ItemController"),
         kv("method", "GET"),
         kv("path", "/api/items/{id}"),
@@ -108,7 +102,6 @@ public class ItemController {
       log.warn(
           "ItemController.getById not found",
           kv("source", SOURCE),
-        kv("request_id", RequestIdContext.get()),
           kv("id", id));
       return ResponseEntity.notFound().build();
     }
@@ -116,7 +109,6 @@ public class ItemController {
     log.info(
         "ItemController.getById succeeded",
         kv("source", SOURCE),
-        kv("request_id", RequestIdContext.get()),
         kv("id", id),
         kv("name", response != null ? response.name() : null));
     return found.get();
@@ -128,7 +120,6 @@ public class ItemController {
     log.info(
         "ItemController.replace request received",
         kv("source", SOURCE),
-        kv("request_id", RequestIdContext.get()),
         kv("controller", "ItemController"),
         kv("method", "PUT"),
         kv("path", "/api/items/{id}"),
@@ -147,7 +138,6 @@ public class ItemController {
       log.warn(
           "ItemController.replace not found",
           kv("source", SOURCE),
-        kv("request_id", RequestIdContext.get()),
           kv("id", id),
           kv("name", body.name()));
       return ResponseEntity.notFound().build();
@@ -156,7 +146,6 @@ public class ItemController {
     log.info(
         "ItemController.replace succeeded",
         kv("source", SOURCE),
-        kv("request_id", RequestIdContext.get()),
         kv("id", id),
         kv("name", response != null ? response.name() : null));
     return found.get();
@@ -168,7 +157,6 @@ public class ItemController {
     log.info(
         "ItemController.updateName request received",
         kv("source", SOURCE),
-        kv("request_id", RequestIdContext.get()),
         kv("controller", "ItemController"),
         kv("method", "PATCH"),
         kv("path", "/api/items/{id}"),
@@ -187,7 +175,6 @@ public class ItemController {
       log.warn(
           "ItemController.updateName not found",
           kv("source", SOURCE),
-        kv("request_id", RequestIdContext.get()),
           kv("id", id),
           kv("name", body.name()));
       return ResponseEntity.notFound().build();
@@ -196,7 +183,6 @@ public class ItemController {
     log.info(
         "ItemController.updateName succeeded",
         kv("source", SOURCE),
-        kv("request_id", RequestIdContext.get()),
         kv("id", id),
         kv("name", response != null ? response.name() : null));
     return found.get();
@@ -207,7 +193,6 @@ public class ItemController {
     log.info(
         "ItemController.delete request received",
         kv("source", SOURCE),
-        kv("request_id", RequestIdContext.get()),
         kv("controller", "ItemController"),
         kv("method", "DELETE"),
         kv("path", "/api/items/{id}"),
@@ -216,7 +201,6 @@ public class ItemController {
       log.warn(
           "ItemController.delete not found",
           kv("source", SOURCE),
-        kv("request_id", RequestIdContext.get()),
           kv("id", id));
       return ResponseEntity.notFound().build();
     }
@@ -224,7 +208,6 @@ public class ItemController {
     log.info(
         "ItemController.delete succeeded",
         kv("source", SOURCE),
-        kv("request_id", RequestIdContext.get()),
         kv("id", id));
     return ResponseEntity.noContent().build();
   }
