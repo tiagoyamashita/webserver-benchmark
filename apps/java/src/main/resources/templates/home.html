@@ -193,7 +193,7 @@
       Dashboard v2 — Stack services (Grafana, React Node), Rust→Postgres item relay.
     </p>
     <p class="hint" style="margin: 0 0 0.75rem; font-size: 0.85rem;">
-      Browser session request ID: <code id="page-request-id"></code>
+      Last request ID: <code id="page-request-id">—</code> (new id per API call)
     </p>
 
     <section class="stack-services" id="stack-services" aria-labelledby="stack-services-heading">
@@ -354,15 +354,14 @@
           return 'req-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
         }
 
-        var pageRequestId = newRequestId();
-        var pageRequestIdEl = document.getElementById('page-request-id');
-        if (pageRequestIdEl) {
-          pageRequestIdEl.textContent = pageRequestId;
-        }
-
-        function apiHeaders(page, extra) {
+        function apiRequest(page, extra) {
+          var requestId = newRequestId();
+          var pageRequestIdEl = document.getElementById('page-request-id');
+          if (pageRequestIdEl) {
+            pageRequestIdEl.textContent = requestId;
+          }
           var headers = {
-            'X-Request-ID': pageRequestId,
+            'X-Request-ID': requestId,
             'X-Dashboard-Page': page
           };
           if (extra) {
@@ -370,12 +369,11 @@
               headers[key] = extra[key];
             });
           }
-          return headers;
+          return { requestId: requestId, headers: headers };
         }
 
         window.exercisesPageSession = {
-          pageRequestId: pageRequestId,
-          apiHeaders: apiHeaders
+          apiRequest: apiRequest
         };
 
         var routes = {
@@ -396,10 +394,11 @@
           if (!target || !routes[target]) return;
           console.log('[dashboard] stack ping button click: ' + target);
           statusEl.textContent = 'Requesting ' + target + '…';
+          var pingReq = apiRequest('home-stack-ping');
           fetch(routes[target], {
             method: 'GET',
             credentials: 'same-origin',
-            headers: apiHeaders('home-stack-ping')
+            headers: pingReq.headers
           })
             .then(function (res) {
               return res.json().then(function (data) {
@@ -433,13 +432,12 @@
         if (!addBtn || !nameInput || !resultEl) return;
         var addUrl = /*[[@{/dashboard/items/add-via-rust}]]*/ '/dashboard/items/add-via-rust';
         var session = window.exercisesPageSession || {};
-        var pageRequestId = session.pageRequestId || '';
-        var apiHeaders = session.apiHeaders || function (page, extra) {
+        var apiRequest = session.apiRequest || function (page, extra) {
           var headers = { 'X-Dashboard-Page': page };
           if (extra) {
             Object.keys(extra).forEach(function (key) { headers[key] = extra[key]; });
           }
-          return headers;
+          return { requestId: '', headers: headers };
         };
 
         function showResult(text) {
@@ -452,12 +450,13 @@
             showResult('Enter an item name.');
             return;
           }
-          showResult('Calling Rust…\nrequest_id=' + pageRequestId + '\ndashboard_page=home-rust-relay');
+          var rustReq = apiRequest('home-rust-relay', { Accept: 'application/json' });
+          showResult('Calling Rust…\nrequest_id=' + rustReq.requestId + '\ndashboard_page=home-rust-relay');
           var url = addUrl + '?name=' + encodeURIComponent(name);
           fetch(url, {
             method: 'POST',
             credentials: 'same-origin',
-            headers: apiHeaders('home-rust-relay', { Accept: 'application/json' })
+            headers: rustReq.headers
           })
             .then(function (res) {
               return res.json().then(function (data) {
@@ -470,7 +469,7 @@
               var lines = [];
               lines.push('Java relay HTTP ' + (r.httpOk ? 'OK' : 'error'));
               var d = r.data || {};
-              lines.push('request_id=' + (d.requestId || pageRequestId));
+              lines.push('request_id=' + (d.requestId || rustReq.requestId));
               lines.push('dashboard_page=home-rust-relay');
               if (d.rustUrl) lines.push('Rust URL: ' + d.rustUrl);
               if (d.status != null) lines.push('Rust HTTP status: ' + d.status);

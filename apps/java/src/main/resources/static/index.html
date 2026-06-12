@@ -214,7 +214,7 @@
   <body>
     <h1>Java APP</h1>
     <p class="page-subtitle">Use the menu on the left to open connectivity checks or action forms.</p>
-    <p class="page-subtitle">Browser session request ID: <code id="page-request-id"></code> (included on every API call from this page load)</p>
+    <p class="page-subtitle">Last request ID: <code id="page-request-id">—</code> (new id per API call — use to isolate actions in logs)</p>
     <p class="page-subtitle">Shared Redis session ID: <code id="page-session-id">…</code> (auto-created on load if missing; stored in Redis for cross-app auth)</p>
 
     <div class="dashboard">
@@ -470,16 +470,16 @@
           return "req-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
         }
 
-        var pageRequestId = newRequestId();
         var currentView = "view-connectivity";
-        var pageRequestIdEl = document.getElementById("page-request-id");
-        if (pageRequestIdEl) {
-          pageRequestIdEl.textContent = pageRequestId;
-        }
 
-        function apiHeaders(extra) {
+        function apiRequest(extra) {
+          var requestId = newRequestId();
+          var pageRequestIdEl = document.getElementById("page-request-id");
+          if (pageRequestIdEl) {
+            pageRequestIdEl.textContent = requestId;
+          }
           var headers = window.exercisesSession.withSessionHeaders({
-            "X-Request-ID": pageRequestId,
+            "X-Request-ID": requestId,
             "X-Dashboard-Page": currentView
           });
           if (extra) {
@@ -487,7 +487,7 @@
               headers[key] = extra[key];
             });
           }
-          return headers;
+          return { requestId: requestId, headers: headers };
         }
 
         function renderSessionStatus(data) {
@@ -509,10 +509,11 @@
 
         function refreshSessionView() {
           var resultEl = document.getElementById("session-result");
+          var req = apiRequest({ Accept: "application/json" });
           fetch("/api/auth/session", {
             method: "GET",
             credentials: "same-origin",
-            headers: apiHeaders({ Accept: "application/json" })
+            headers: req.headers
           })
             .then(function (res) {
               return res.text().then(function (text) {
@@ -626,7 +627,8 @@
           if (!route) return Promise.resolve();
           var t0 = performance.now();
           setStatus(target, '<span class="status-pending">Pinging…</span>');
-          return fetch(route, { method: "GET", credentials: "same-origin", headers: apiHeaders() })
+          var req = apiRequest();
+          return fetch(route, { method: "GET", credentials: "same-origin", headers: req.headers })
             .then(function (res) { return res.json().then(function (data) { return { data: data }; }); })
             .then(function (r) {
               var d = r.data || {};
@@ -648,7 +650,8 @@
 
         document.getElementById("ping-all").addEventListener("click", function () {
           Object.keys(routes).forEach(function (t) { setStatus(t, '<span class="status-pending">Pinging…</span>'); });
-          fetch("/dashboard/stack-ping/all", { method: "GET", credentials: "same-origin", headers: apiHeaders() })
+          var pingAllReq = apiRequest();
+          fetch("/dashboard/stack-ping/all", { method: "GET", credentials: "same-origin", headers: pingAllReq.headers })
             .then(function (res) { return res.json(); })
             .then(function (body) {
               (body && body.results ? body.results : []).forEach(function (d) {
@@ -683,10 +686,11 @@
             if (email) body.email = email;
             if (userIdRaw) body.userId = Number(userIdRaw);
             if (sessionResult) sessionResult.textContent = "Logging in…";
+            var loginReq = apiRequest({ "Content-Type": "application/json", Accept: "application/json" });
             fetch("/api/auth/login", {
               method: "POST",
               credentials: "same-origin",
-              headers: apiHeaders({ "Content-Type": "application/json", Accept: "application/json" }),
+              headers: loginReq.headers,
               body: JSON.stringify(body)
             })
               .then(function (res) {
@@ -722,10 +726,11 @@
         if (sessionLogoutBtn) {
           sessionLogoutBtn.addEventListener("click", function () {
             if (sessionResult) sessionResult.textContent = "Logging out…";
+            var logoutReq = apiRequest({ Accept: "application/json" });
             fetch("/api/auth/logout", {
               method: "POST",
               credentials: "same-origin",
-              headers: apiHeaders({ Accept: "application/json" })
+              headers: logoutReq.headers
             })
               .then(function (res) {
                 window.exercisesSession.setStoredSessionId("");
@@ -772,7 +777,8 @@
           usersTableBody.innerHTML =
             '<tr><td colspan="4" class="status-pending">Loading…</td></tr>';
           if (listUsersError) listUsersError.textContent = "";
-          fetch("/api/users", { method: "GET", credentials: "same-origin", headers: apiHeaders({ Accept: "application/json" }) })
+          var usersReq = apiRequest({ Accept: "application/json" });
+          fetch("/api/users", { method: "GET", credentials: "same-origin", headers: usersReq.headers })
             .then(function (res) {
               return res.json().then(function (data) {
                 return { httpOk: res.ok, status: res.status, data: data };
@@ -827,7 +833,8 @@
           itemsTableBody.innerHTML =
             '<tr><td colspan="3" class="status-pending">Loading…</td></tr>';
           if (listItemsError) listItemsError.textContent = "";
-          fetch("/api/items", { method: "GET", credentials: "same-origin", headers: apiHeaders({ Accept: "application/json" }) })
+          var itemsReq = apiRequest({ Accept: "application/json" });
+          fetch("/api/items", { method: "GET", credentials: "same-origin", headers: itemsReq.headers })
             .then(function (res) {
               return res.json().then(function (data) {
                 return { httpOk: res.ok, status: res.status, data: data };
@@ -878,12 +885,12 @@
             ev.preventDefault();
             var name = (document.getElementById("item-name").value || "").trim();
             if (!name) { itemResult.textContent = "Name is required."; return; }
-            itemResult.textContent = "Saving…\nrequest_id=" + pageRequestId + "\ndashboard_page=" + currentView;
-            var headers = apiHeaders({ Accept: "application/json", "Content-Type": "application/json" });
+            var itemReq = apiRequest({ Accept: "application/json", "Content-Type": "application/json" });
+            itemResult.textContent = "Saving…\nrequest_id=" + itemReq.requestId + "\ndashboard_page=" + currentView;
             fetch("/api/items", {
               method: "POST",
               credentials: "same-origin",
-              headers: headers,
+              headers: itemReq.headers,
               body: JSON.stringify({ name: name })
             })
               .then(function (res) { return res.json().then(function (data) { return { httpOk: res.ok, status: res.status, data: data }; }); })
@@ -892,12 +899,12 @@
                   var item = r.data || {};
                   itemResult.textContent =
                     "Saved item id=" + item.id + " name=" + item.name +
-                    "\nrequest_id=" + pageRequestId + "\ndashboard_page=" + currentView;
+                    "\nrequest_id=" + itemReq.requestId + "\ndashboard_page=" + currentView;
                   itemForm.reset();
                   return;
                 }
                 itemResult.textContent =
-                  "HTTP " + r.status + "\nrequest_id=" + pageRequestId + "\ndashboard_page=" + currentView +
+                  "HTTP " + r.status + "\nrequest_id=" + itemReq.requestId + "\ndashboard_page=" + currentView +
                   "\n" + JSON.stringify(r.data, null, 2);
               })
               .catch(function (err) { itemResult.textContent = String(err.message || err); });
@@ -910,12 +917,12 @@
             var name = (document.getElementById("user-name").value || "").trim();
             var email = (document.getElementById("user-email").value || "").trim();
             if (!name || !email) { userResult.textContent = "Name and email are required."; return; }
-            userResult.textContent = "Saving…\nrequest_id=" + pageRequestId + "\ndashboard_page=" + currentView;
-            var headers = apiHeaders({ Accept: "application/json", "Content-Type": "application/json" });
+            var userReq = apiRequest({ Accept: "application/json", "Content-Type": "application/json" });
+            userResult.textContent = "Saving…\nrequest_id=" + userReq.requestId + "\ndashboard_page=" + currentView;
             fetch("/api/users", {
               method: "POST",
               credentials: "same-origin",
-              headers: headers,
+              headers: userReq.headers,
               body: JSON.stringify({ name: name, email: email })
             })
               .then(function (res) { return res.json().then(function (data) { return { httpOk: res.ok, status: res.status, data: data }; }); })
@@ -924,12 +931,12 @@
                   var u = r.data || {};
                   userResult.textContent =
                     "Saved user id=" + u.id + " name=" + u.name + " email=" + u.email +
-                    "\nrequest_id=" + pageRequestId + "\ndashboard_page=" + currentView;
+                    "\nrequest_id=" + userReq.requestId + "\ndashboard_page=" + currentView;
                   userForm.reset();
                   return;
                 }
                 userResult.textContent =
-                  "HTTP " + r.status + "\nrequest_id=" + pageRequestId + "\ndashboard_page=" + currentView +
+                  "HTTP " + r.status + "\nrequest_id=" + userReq.requestId + "\ndashboard_page=" + currentView +
                   "\n" + JSON.stringify(r.data, null, 2);
               })
               .catch(function (err) { userResult.textContent = String(err.message || err); });
@@ -948,15 +955,15 @@
               kafkaUserResult.textContent = "Name and email are required.";
               return;
             }
+            var kafkaReq = apiRequest({ Accept: "application/json" });
             kafkaUserResult.textContent =
-              "Publishing create-user event…\nrequest_id=" + pageRequestId + "\ndashboard_page=" + currentView;
-            var headers = apiHeaders({ Accept: "application/json" });
+              "Publishing create-user event…\nrequest_id=" + kafkaReq.requestId + "\ndashboard_page=" + currentView;
             var url =
               "/dashboard/users/publish-create-user?name=" +
               encodeURIComponent(name) +
               "&email=" +
               encodeURIComponent(email);
-            fetch(url, { method: "POST", credentials: "same-origin", headers: headers })
+            fetch(url, { method: "POST", credentials: "same-origin", headers: kafkaReq.headers })
               .then(function (res) {
                 return res.json().then(function (data) {
                   return { httpOk: res.ok, status: res.status, data: data };
@@ -965,7 +972,7 @@
               .then(function (r) {
                 var lines = ["Java publish HTTP " + r.status];
                 var d = r.data || {};
-                lines.push("request_id=" + (d.requestId || pageRequestId));
+                lines.push("request_id=" + (d.requestId || kafkaReq.requestId));
                 lines.push("dashboard_page=" + currentView);
                 if (d.event) lines.push("event=" + d.event);
                 if (d.topic) lines.push("topic=" + d.topic);
@@ -990,19 +997,19 @@
           addBtn.addEventListener("click", function () {
             var name = (nameInput.value || "").trim();
             if (!name) { resultEl.textContent = "Enter an item name."; return; }
+            var rustReq = apiRequest({ Accept: "application/json" });
             resultEl.textContent =
-              "Calling Rust…\nrequest_id=" + pageRequestId + "\ndashboard_page=" + currentView;
-            var headers = apiHeaders({ Accept: "application/json" });
+              "Calling Rust…\nrequest_id=" + rustReq.requestId + "\ndashboard_page=" + currentView;
             fetch("/dashboard/items/add-via-rust?name=" + encodeURIComponent(name), {
               method: "POST",
               credentials: "same-origin",
-              headers: headers
+              headers: rustReq.headers
             })
               .then(function (res) { return res.json().then(function (data) { return { httpOk: res.ok, status: res.status, data: data }; }); })
               .then(function (r) {
                 var lines = ["Java relay HTTP " + r.status];
                 var d = r.data || {};
-                lines.push("request_id=" + (d.requestId || pageRequestId));
+                lines.push("request_id=" + (d.requestId || rustReq.requestId));
                 lines.push("dashboard_page=" + currentView);
                 if (d.rustUrl) lines.push("Rust: " + d.rustUrl);
                 if (d.status != null) lines.push("Rust response HTTP " + d.status);

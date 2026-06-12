@@ -25,6 +25,13 @@
     }
   }
 
+  function newRequestId() {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    return "req-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+  }
+
   function withSessionHeaders(headers) {
     var next = headers || {};
     var sessionId = storedSessionId();
@@ -39,7 +46,8 @@
     var sessionId = storedSessionId();
     var headers = {
       Accept: "application/json",
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      "X-Request-ID": newRequestId()
     };
     if (sessionId) {
       headers["X-Session-ID"] = sessionId;
