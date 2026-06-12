@@ -52,7 +52,7 @@ public class CreateUserEventPublisher {
         kv("controller", "CreateUserEventPublisher"),
         kv("request_id", requestId),
         kv("topic", topic),
-        kv("event", CreateUserEvent.EVENT_TYPE),
+        kv("kafka_event", CreateUserEvent.EVENT_TYPE),
         kv("name", name),
         kv("email", email));
 
@@ -70,7 +70,7 @@ public class CreateUserEventPublisher {
         kv("controller", "CreateUserEventPublisher"),
         kv("request_id", requestId),
         kv("topic", topic),
-        kv("event", CreateUserEvent.EVENT_TYPE),
+        kv("kafka_event", CreateUserEvent.EVENT_TYPE),
         kv("name", name),
         kv("email", email));
   }

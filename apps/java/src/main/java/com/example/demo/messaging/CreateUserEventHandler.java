@@ -60,7 +60,7 @@ public class CreateUserEventHandler {
           kv("source", SOURCE),
           kv("controller", "CreateUserEventHandler"),
           kv("request_id", requestIdHeader),
-          kv("event", event.event()),
+          kv("kafka_event", event.event()),
           kv("reason", "unexpected-event-type"));
       return;
     }
@@ -92,7 +92,7 @@ public class CreateUserEventHandler {
         kv("source", SOURCE),
         kv("controller", "CreateUserEventHandler"),
         kv("request_id", effectiveRequestId),
-        kv("event", event.event()),
+        kv("kafka_event", event.event()),
         kv("name", trimmedName),
         kv("email", trimmedEmail));
 

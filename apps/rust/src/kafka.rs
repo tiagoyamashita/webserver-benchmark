@@ -229,7 +229,7 @@ pub async fn publish_create_user_event(
         method = "POST",
         path = "/api/users/publish-create-user",
         request_id = id_for_log,
-        event = CREATE_USER_TOPIC,
+        kafka_event = CREATE_USER_TOPIC,
         name = %trimmed_name,
         email = %trimmed_email,
         topic = %config.create_user_topic,
@@ -343,7 +343,7 @@ pub async fn publish_create_user_event(
         source = SOURCE,
         controller = "publish_create_user_event",
         request_id = id_for_log,
-        event = CREATE_USER_TOPIC,
+        kafka_event = CREATE_USER_TOPIC,
         name = %trimmed_name,
         email = %trimmed_email,
         topic = %config.create_user_topic,
@@ -499,7 +499,7 @@ async fn run_create_user_consumer(
                                 source = SOURCE,
                                 controller = "create_user_consumer",
                                 request_id = id_for_log,
-                                event = %event.event,
+                                kafka_event = %event.event,
                                 reason = "unexpected-event-type",
                                 "create-user event skipped"
                             );
@@ -509,7 +509,7 @@ async fn run_create_user_consumer(
                             source = SOURCE,
                             controller = "create_user_consumer",
                             request_id = id_for_log,
-                            event = %event.event,
+                            kafka_event = %event.event,
                             name = %event.name,
                             email = %event.email,
                             "create-user event received"

@@ -82,11 +82,11 @@ filebeat.inputs:
     fields_under_root: true
 
 processors:
-  # Java dashboard logs use a string field "event"; Logstash beats input expects ECS "event" as an object.
+  # Kafka logs use string field "event"; Logstash beats input expects ECS "event" as an object.
   - rename:
       fields:
         - from: event
-          to: ui_event
+          to: kafka_event
       ignore_missing: true
       fail_on_error: false
   # Prefer application event time over Filebeat harvest time (more precise for call-stack ordering).
