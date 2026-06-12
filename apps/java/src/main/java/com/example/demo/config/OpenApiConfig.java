@@ -16,6 +16,7 @@ public class OpenApiConfig {
                 .title("Exercises Java API")
                 .version("1.0")
                 .description(
-                    "REST CRUD for users and items (`/api/users`, `/api/items`)."));
+                    "REST CRUD for users and items (`/api/users`, `/api/items`). "
+                        + "Shared Redis sessions at `/api/auth` (key `exercises:session:{sessionId}`)."));
   }
 }

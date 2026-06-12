@@ -2,6 +2,7 @@ package com.example.demo.web;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
 
+import com.example.demo.auth.AuthException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -19,6 +20,30 @@ public class RestExceptionLoggingAdvice {
   private static final String SOURCE =
       "src/main/java/com/example/demo/web/RestExceptionLoggingAdvice.java";
   private static final Logger log = LoggerFactory.getLogger(RestExceptionLoggingAdvice.class);
+
+  @ExceptionHandler(AuthException.class)
+  public ResponseEntity<Object> handleAuth(AuthException ex, HttpServletRequest request) {
+    HttpStatus status = ex.getStatus();
+    if (status.is4xxClientError() && status != HttpStatus.INTERNAL_SERVER_ERROR) {
+      log.warn(
+          "REST auth failed",
+          kv("source", SOURCE),
+          kv("method", request.getMethod()),
+          kv("path", request.getRequestURI()),
+          kv("status", status.value()),
+          kv("error", ex.getMessage()));
+    } else {
+      log.error(
+          "REST auth failed",
+          kv("source", SOURCE),
+          kv("method", request.getMethod()),
+          kv("path", request.getRequestURI()),
+          kv("status", status.value()),
+          kv("error", ex.getMessage()),
+          ex);
+    }
+    return ResponseEntity.status(status).body(ex.getMessage());
+  }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<Object> handleValidation(

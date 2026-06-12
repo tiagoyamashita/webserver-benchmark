@@ -68,6 +68,10 @@ management:
       show-details: when_authorized
 
 app:
+  session:
+    redis-key-prefix: "exercises:session:"
+    ttl: PT24H
+    cookie-name: exercises_session
   kafka:
     create-user-topic: create-user
     create-user-consumer-group: exercises-create-user

@@ -8,7 +8,7 @@
 # Observability only (leave running while restarting apps):
 #   podman compose -f docker-compose.observability.yml up -d
 #
-# Java: spring-boot:run (deps in maven-cache; re-runs go-offline when pom.xml changes; if still broken: podman volume rm exercises_maven-cache and up again).
+# Java: spring-boot:run without DevTools restart (excludeDevtools) so pom.xml dependency changes apply after container restart; re-runs go-offline + clean compile when pom.xml changes; if still broken: podman volume rm exercises_maven-cache and up again).
 # Python: FLASK_DEBUG=1 reloader when ./apps/python changes.
 # Rust: cargo-watch rebuilds on src/ and templates/ (first start compiles; can take a few minutes).
 # React Node: Express + Vite middleware on http://127.0.0.1:5174

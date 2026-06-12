@@ -221,6 +221,7 @@
         <p class="sidebar-title">Menu</p>
         <button type="button" class="sidebar-btn" id="nav-connectivity" aria-current="page" data-view="view-connectivity">Connectivity</button>
         <p class="sidebar-section">Actions</p>
+        <button type="button" class="sidebar-btn sub" id="nav-session" data-view="view-session">Session login</button>
         <button type="button" class="sidebar-btn sub" id="nav-create-user" data-view="view-create-user">Create user</button>
         <button type="button" class="sidebar-btn sub" id="nav-list-users" data-view="view-list-users">List users</button>
         <button type="button" class="sidebar-btn sub" id="nav-list-items" data-view="view-list-items">List items</button>
@@ -262,6 +263,29 @@
               </tbody>
             </table>
           </div>
+        </section>
+
+        <section id="view-session" class="view-panel" aria-hidden="true">
+          <h2 class="form-heading">Shared Redis session</h2>
+          <p class="form-hint">
+            Login stores a session in Redis at <code>exercises:session:{sessionId}</code>. Other apps authenticate with
+            <code>Authorization: Bearer …</code>, <code>X-Session-ID</code>, or the <code>exercises_session</code> cookie.
+          </p>
+          <p class="form-hint" id="session-status">Not logged in.</p>
+          <form id="session-login-form">
+            <div class="field-row">
+              <label for="session-email">User email</label>
+              <input type="email" id="session-email" name="email" autocomplete="email" placeholder="jane@example.com"/>
+            </div>
+            <div class="field-row">
+              <label for="session-user-id">Or user ID</label>
+              <input type="number" id="session-user-id" name="userId" min="1" step="1" placeholder="1"/>
+            </div>
+            <button type="submit" class="btn primary">Login (store in Redis)</button>
+            <button type="button" class="btn" id="session-logout-btn">Logout</button>
+            <button type="button" class="btn" id="session-refresh-btn">Refresh session</button>
+          </form>
+          <pre id="session-result" class="result-box" aria-live="polite"></pre>
         </section>
 
         <section id="view-create-user" class="view-panel" aria-hidden="true">
@@ -421,6 +445,7 @@
           return "req-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
         }
 
+        var SESSION_STORAGE_KEY = "exercises_session_id";
         var pageRequestId = newRequestId();
         var currentView = "view-connectivity";
         var pageRequestIdEl = document.getElementById("page-request-id");
@@ -428,17 +453,94 @@
           pageRequestIdEl.textContent = pageRequestId;
         }
 
+        function storedSessionId() {
+          try {
+            return localStorage.getItem(SESSION_STORAGE_KEY) || "";
+          } catch (e) {
+            return "";
+          }
+        }
+
+        function setStoredSessionId(sessionId) {
+          try {
+            if (sessionId) {
+              localStorage.setItem(SESSION_STORAGE_KEY, sessionId);
+            } else {
+              localStorage.removeItem(SESSION_STORAGE_KEY);
+            }
+          } catch (e) {
+            /* ignore */
+          }
+        }
+
         function apiHeaders(extra) {
           var headers = {
             "X-Request-ID": pageRequestId,
             "X-Dashboard-Page": currentView
           };
+          var sessionId = storedSessionId();
+          if (sessionId) {
+            headers["X-Session-ID"] = sessionId;
+            headers["Authorization"] = "Bearer " + sessionId;
+          }
           if (extra) {
             Object.keys(extra).forEach(function (key) {
               headers[key] = extra[key];
             });
           }
           return headers;
+        }
+
+        function renderSessionStatus(data) {
+          var el = document.getElementById("session-status");
+          if (!el) return;
+          if (!data || !data.sessionId) {
+            el.textContent = "Not logged in.";
+            return;
+          }
+          el.textContent =
+            "Logged in as " +
+            data.name +
+            " (" +
+            data.email +
+            ") — session " +
+            data.sessionId +
+            " — Redis key " +
+            data.redisKey;
+        }
+
+        function refreshSessionView() {
+          var resultEl = document.getElementById("session-result");
+          fetch("/api/auth/session", {
+            method: "GET",
+            credentials: "same-origin",
+            headers: apiHeaders({ Accept: "application/json" })
+          })
+            .then(function (res) {
+              return res.text().then(function (text) {
+                var data = text;
+                try {
+                  data = JSON.parse(text);
+                } catch (e) {
+                  /* plain error text */
+                }
+                return { ok: res.ok, status: res.status, data: data };
+              });
+            })
+            .then(function (r) {
+              if (!r.ok) {
+                setStoredSessionId("");
+                renderSessionStatus(null);
+                if (resultEl) resultEl.textContent = "HTTP " + r.status + "\n" + String(r.data);
+                return;
+              }
+              setStoredSessionId(r.data.sessionId);
+              renderSessionStatus(r.data);
+              if (resultEl) resultEl.textContent = JSON.stringify(r.data, null, 2);
+            })
+            .catch(function (err) {
+              if (resultEl) resultEl.textContent = String(err.message || err);
+            });
         }
 
         function showView(viewId, navId) {
@@ -453,6 +555,9 @@
               btn.removeAttribute("aria-current");
             }
           });
+          if (viewId === "view-session") {
+            refreshSessionView();
+          }
           if (viewId === "view-list-users") {
             loadUsers();
           }
@@ -557,6 +662,83 @@
               });
             });
         });
+
+        var sessionLoginForm = document.getElementById("session-login-form");
+        var sessionResult = document.getElementById("session-result");
+        var sessionLogoutBtn = document.getElementById("session-logout-btn");
+        var sessionRefreshBtn = document.getElementById("session-refresh-btn");
+
+        if (sessionLoginForm) {
+          sessionLoginForm.addEventListener("submit", function (ev) {
+            ev.preventDefault();
+            var emailInput = document.getElementById("session-email");
+            var userIdInput = document.getElementById("session-user-id");
+            var email = emailInput && emailInput.value ? emailInput.value.trim() : "";
+            var userIdRaw = userIdInput && userIdInput.value ? userIdInput.value.trim() : "";
+            var body = {};
+            if (email) body.email = email;
+            if (userIdRaw) body.userId = Number(userIdRaw);
+            if (sessionResult) sessionResult.textContent = "Logging in…";
+            fetch("/api/auth/login", {
+              method: "POST",
+              credentials: "same-origin",
+              headers: apiHeaders({ "Content-Type": "application/json", Accept: "application/json" }),
+              body: JSON.stringify(body)
+            })
+              .then(function (res) {
+                return res.text().then(function (text) {
+                  var data = text;
+                  try {
+                    data = JSON.parse(text);
+                  } catch (e) {
+                    /* plain error */
+                  }
+                  return { ok: res.ok, status: res.status, data: data };
+                });
+              })
+              .then(function (r) {
+                if (!r.ok) {
+                  setStoredSessionId("");
+                  renderSessionStatus(null);
+                  if (sessionResult) {
+                    sessionResult.textContent = "HTTP " + r.status + "\n" + String(r.data);
+                  }
+                  return;
+                }
+                setStoredSessionId(r.data.sessionId);
+                renderSessionStatus(r.data);
+                if (sessionResult) sessionResult.textContent = JSON.stringify(r.data, null, 2);
+              })
+              .catch(function (err) {
+                if (sessionResult) sessionResult.textContent = String(err.message || err);
+              });
+          });
+        }
+
+        if (sessionLogoutBtn) {
+          sessionLogoutBtn.addEventListener("click", function () {
+            if (sessionResult) sessionResult.textContent = "Logging out…";
+            fetch("/api/auth/logout", {
+              method: "POST",
+              credentials: "same-origin",
+              headers: apiHeaders({ Accept: "application/json" })
+            })
+              .then(function (res) {
+                setStoredSessionId("");
+                renderSessionStatus(null);
+                if (sessionResult) {
+                  sessionResult.textContent = res.ok ? "Logged out." : "HTTP " + res.status;
+                }
+              })
+              .catch(function (err) {
+                if (sessionResult) sessionResult.textContent = String(err.message || err);
+              });
+          });
+        }
+
+        if (sessionRefreshBtn) {
+          sessionRefreshBtn.addEventListener("click", refreshSessionView);
+        }
 
         var userForm = document.getElementById("create-user-form");
         var userResult = document.getElementById("create-user-result");

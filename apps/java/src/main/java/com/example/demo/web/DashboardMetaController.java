@@ -30,9 +30,9 @@ public class DashboardMetaController {
             "title", "Java APP",
             "template", "index.html",
             "path", "/",
-            "version", 7,
+            "version", 8,
             "features",
-                "sidebar,connectivity-ping,ping-all,user-create,user-list,item-list,item-create,rust-item-relay,openapi");
+                "sidebar,connectivity-ping,ping-all,session-auth,user-create,user-list,item-list,item-create,rust-item-relay,openapi");
     log.info(
         "DashboardMetaController.meta succeeded",
         kv("source", SOURCE),
