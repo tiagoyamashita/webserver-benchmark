@@ -14,6 +14,8 @@ This repo ships **three separate web apps** under **`apps/`**, plus **Postgres**
 | **React Node** | `apps/react-node/` | Stack probe UI (React + Express) | `http://127.0.0.1:5174/` |
 | **PostgreSQL** | `apps/postgres/` | Shared database (Compose scripts + log dir) | `127.0.0.1:5432` |
 | **Redis** | `apps/redis/` | Cache / session store (AOF persistence) | `127.0.0.1:6379` |
+| **RedisInsight** | `apps/redis/` | Official Redis GUI (`redis/redisinsight`) | `http://127.0.0.1:5540/` |
+| **RedisInsight (embed)** | `apps/redis/embed-proxy/` | nginx proxy for iframe embed | `http://127.0.0.1:5541/` |
 | **Kafka** | `apps/kafka/` | Message broker (KRaft, single node) | `127.0.0.1:9092` |
 | **Kafka UI** | `apps/kafka/` | Web UI for topics / messages (`provectuslabs/kafka-ui`) | `http://127.0.0.1:8090/` |
 | **Kafka UI (embed)** | `apps/kafka/embed-proxy/` | nginx proxy for iframe embed in dashboards | `http://127.0.0.1:8091/` |
@@ -69,6 +71,8 @@ Use **Docker Engine** the same way with `docker compose` instead of `podman comp
 |---------|--------|------|-----------|--------------|-----------------------------------|
 | **postgres** | `apps/postgres/` | PostgreSQL 16 | **5432** | apps | Same image (no dev overlay) |
 | **redis** | `apps/redis/` | Redis 7 (Alpine, AOF) | **6379** | apps | Same image (no dev overlay) |
+| **redisinsight** | `apps/redis/` | RedisInsight GUI (pre-connected to `redis`) | **5540** | apps | Waits for healthy `redis` |
+| **redisinsight-embed** | `apps/redis/embed-proxy/` | RedisInsight via nginx (iframe-safe) | **5541** | apps | Proxies `redisinsight` |
 | **kafka** | `apps/kafka/` | Apache Kafka 3.9 (KRaft) | **9092** | apps | JSON logs → ELK; **kafka-exporter** → Prometheus |
 | **kafka-ui** | `apps/kafka/` | UI for Apache Kafka | **8090** | apps | Waits for healthy `kafka` |
 | **kafka-ui-embed** | `apps/kafka/embed-proxy/` | Kafka UI via nginx (iframe-safe) | **8091** | apps | Proxies `kafka-ui` |

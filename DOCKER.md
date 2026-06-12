@@ -18,7 +18,7 @@ Compose is split so you can **restart apps without stopping observability**:
 
 | File | Services |
 |------|----------|
-| **`docker-compose.apps.yml`** | postgres, redis, kafka, kafka-ui, kafka-ui-embed, java, python, rust, react-node |
+| **`docker-compose.apps.yml`** | postgres, redis, redisinsight, redisinsight-embed, kafka, kafka-ui, kafka-ui-embed, java, python, rust, react-node |
 | **`docker-compose.observability.yml`** | prometheus, grafana, elasticsearch, logstash, kibana, filebeat |
 | **`docker-compose.yml`** | includes both (full stack) |
 
@@ -83,6 +83,8 @@ The **`unknown shorthand flag: 'd' in -d`** message usually means **`compose` wa
 
 - **`postgres`** — database on host port **5432** (named volume `exercises_pg_data`). JSON server logs land in **`postgres/logs/`** for **Filebeat → ELK** (see [postgres/README.md](postgres/README.md)).
 - **`redis`** — cache on host port **6379** (named volume `exercises_redis_data`, AOF on). Apps receive **`REDIS_URL=redis://redis:6379`** (see [apps/redis/README.md](apps/redis/README.md)).
+- **`redisinsight`** — [RedisInsight](https://redis.io/docs/latest/operate/redisinsight/) on **5540** → container **5540**; pre-configured connection **exercises** at `redis:6379` (`RI_REDIS_HOST` / `RI_REDIS_ALIAS`).
+- **`redisinsight-embed`** — nginx on **5541** proxies **`redisinsight`** and strips **`X-Frame-Options`** so dashboards can iframe RedisInsight (`apps/redis/embed-proxy/nginx.conf`).
 - **`kafka`** — single-node broker on host port **9092** (named volume `exercises_kafka_data`, KRaft). JSON broker logs land in **`apps/kafka/logs/`** for **Filebeat → ELK**; **`kafka-exporter`** exposes metrics for **Prometheus → Grafana** (see [apps/kafka/README.md](apps/kafka/README.md)).
 - **`kafka-exporter`** — Prometheus metrics for broker / topics / consumer groups (scraped as job **`exercises-kafka`**).
 - **`kafka-ui`** — [UI for Apache Kafka](https://github.com/provectus/kafka-ui) on **8090** → container **8080**; cluster **`exercises`** at `kafka:9092`.
@@ -104,6 +106,7 @@ All root-compose services attach to a **named bridge network** `exercises`. From
 
 - Postgres: `postgres:5432`
 - Redis: `redis:6379`
+- RedisInsight: `http://redisinsight:5540` (browser on host: `http://127.0.0.1:5540`, iframe embed: `http://127.0.0.1:5541`)
 - Kafka: `kafka:9092`
 - Kafka UI: `http://kafka-ui:8080` (browser on host: `http://127.0.0.1:8090`, iframe embed: `http://127.0.0.1:8091`)
 - Java: `http://java:8080`

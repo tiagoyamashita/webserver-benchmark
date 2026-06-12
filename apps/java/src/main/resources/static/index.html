@@ -231,6 +231,7 @@
         <p class="sidebar-section">API</p>
         <button type="button" class="sidebar-btn sub" id="nav-openapi" data-view="view-openapi">OpenAPI</button>
         <button type="button" class="sidebar-btn sub" id="nav-kafka-ui" data-view="view-kafka-ui">Kafka UI</button>
+        <button type="button" class="sidebar-btn sub" id="nav-redisinsight" data-view="view-redisinsight">RedisInsight</button>
       </nav>
 
       <div class="main-panel">
@@ -429,6 +430,22 @@
             referrerpolicy="no-referrer"
           ></iframe>
         </section>
+
+        <section id="view-redisinsight" class="view-panel" aria-hidden="true">
+          <h2 class="form-heading">RedisInsight</h2>
+          <p class="form-hint">
+            Embedded via nginx <code>redisinsight-embed</code> on port <strong>5541</strong> (iframe-safe proxy to
+            redis/redisinsight). Open standalone:
+            <a href="http://127.0.0.1:5540/" target="_blank" rel="noopener noreferrer">127.0.0.1:5540</a>.
+          </p>
+          <iframe
+            id="redisinsight-frame"
+            class="openapi-frame"
+            title="RedisInsight"
+            loading="lazy"
+            referrerpolicy="no-referrer"
+          ></iframe>
+        </section>
       </div>
     </div>
 
@@ -574,6 +591,12 @@
             var kafkaUiFrame = document.getElementById("kafka-ui-frame");
             if (kafkaUiFrame && !kafkaUiFrame.getAttribute("src")) {
               kafkaUiFrame.setAttribute("src", "http://127.0.0.1:8091/");
+            }
+          }
+          if (viewId === "view-redisinsight") {
+            var redisinsightFrame = document.getElementById("redisinsight-frame");
+            if (redisinsightFrame && !redisinsightFrame.getAttribute("src")) {
+              redisinsightFrame.setAttribute("src", "http://127.0.0.1:5541/");
             }
           }
         }
