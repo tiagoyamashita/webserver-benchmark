@@ -1,6 +1,6 @@
 import type { Express, NextFunction, Request, Response } from "express";
 
-import { logError, logReceived, logSucceeded, logWarn } from "../controller-logging.js";
+import { logError, logReceivedFromRequest, logSucceeded, logWarn } from "../controller-logging.js";
 import type { AuthState } from "./repository.js";
 import { sessionIdCandidates } from "./cookies.js";
 import {
@@ -49,7 +49,7 @@ export function sessionMiddleware(auth: AuthState | null) {
 
 export function registerAuthRoutes(app: Express, runtime: AuthRuntime): void {
   app.post("/api/auth/ensure", async (req, res) => {
-    logReceived("authEnsure", SOURCE, "POST", "/api/auth/ensure", { request_id: req.requestId });
+    logReceivedFromRequest(req, "authEnsure", SOURCE, "POST", "/api/auth/ensure");
     if (!runtime.auth) {
       logWarn("authEnsure", SOURCE, "redis not configured", { request_id: req.requestId });
       res.status(503).json({ error: "Redis session store not configured" });
@@ -87,7 +87,7 @@ export function registerAuthRoutes(app: Express, runtime: AuthRuntime): void {
   });
 
   app.post("/api/auth/login", async (req, res) => {
-    logReceived("authLogin", SOURCE, "POST", "/api/auth/login", { request_id: req.requestId });
+    logReceivedFromRequest(req, "authLogin", SOURCE, "POST", "/api/auth/login");
     if (!runtime.auth) {
       res.status(503).json({ error: "Redis session store not configured" });
       return;
@@ -124,7 +124,7 @@ export function registerAuthRoutes(app: Express, runtime: AuthRuntime): void {
   });
 
   app.post("/api/auth/logout", async (req, res) => {
-    logReceived("authLogout", SOURCE, "POST", "/api/auth/logout", { request_id: req.requestId });
+    logReceivedFromRequest(req, "authLogout", SOURCE, "POST", "/api/auth/logout");
     if (!runtime.auth) {
       res.status(503).json({ error: "Redis session store not configured" });
       return;
@@ -153,7 +153,7 @@ export function registerAuthRoutes(app: Express, runtime: AuthRuntime): void {
   });
 
   app.get("/api/auth/session", (req, res) => {
-    logReceived("authSession", SOURCE, "GET", "/api/auth/session", { request_id: req.requestId });
+    logReceivedFromRequest(req, "authSession", SOURCE, "GET", "/api/auth/session");
     if (!runtime.auth) {
       res.status(503).json({ error: "Redis session store not configured" });
       return;

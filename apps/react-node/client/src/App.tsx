@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { createItem, fetchItems, probeService } from "./api";
+import { subscribeLastRequestId } from "./api-request";
 import { formatProbeResult, probeResultClassName } from "./formatResult";
 import {
   ensureSession,
@@ -38,11 +39,14 @@ export default function App() {
   const [createMessage, setCreateMessage] = useState<string | null>(null);
   const [openapiSrc, setOpenapiSrc] = useState<string | null>(null);
   const [pageSessionId, setPageSessionId] = useState("…");
+  const [lastRequestId, setLastRequestId] = useState("—");
   const [sessionStatus, setSessionStatus] = useState("Loading session…");
   const [sessionResult, setSessionResult] = useState<string | null>(null);
   const [sessionEmail, setSessionEmail] = useState("");
   const [sessionUserId, setSessionUserId] = useState("");
   const [sessionPending, setSessionPending] = useState(false);
+
+  useEffect(() => subscribeLastRequestId(setLastRequestId), []);
 
   useEffect(() => {
     void ensureSession()
@@ -187,6 +191,9 @@ export default function App() {
     <main>
       <h1>React Node</h1>
       <p className="page-subtitle">Use the menu on the left to open connectivity checks or action forms.</p>
+      <p className="page-subtitle">
+        Last request ID: <code>{lastRequestId}</code> (new id per API call — use to isolate actions in logs)
+      </p>
       <p className="page-subtitle">
         Shared Redis session ID: <code>{pageSessionId}</code> (auto-created on load; stored in Redis for cross-app auth)
       </p>

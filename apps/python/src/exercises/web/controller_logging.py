@@ -5,9 +5,24 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from exercises.web.request_snapshot import request_body, request_headers, request_url_params
+
 _RECORD_STANDARD = frozenset(logging.makeLogRecord({}).__dict__.keys()) | frozenset(
     {"message", "asctime"}
 )
+
+
+def http_request_fields() -> dict[str, Any]:
+    """Headers, query params, and JSON/form body for the current Flask request."""
+    try:
+        from flask import request as flask_request
+    except RuntimeError:
+        return {}
+    return {
+        "headers": request_headers(flask_request),
+        "url_params": request_url_params(flask_request),
+        "body": request_body(flask_request),
+    }
 
 
 def log_received(
@@ -16,11 +31,17 @@ def log_received(
     source: str,
     method: str,
     path: str,
+    *,
+    include_http_request: bool = True,
     **params: Any,
 ) -> None:
+    fields = dict(params)
+    if include_http_request:
+        for key, value in http_request_fields().items():
+            fields.setdefault(key, value)
     logger.info(
         f"{handler} request received",
-        extra=_extra(source, handler, method=method, path=path, **params),
+        extra=_extra(source, handler, method=method, path=path, **fields),
     )
 
 

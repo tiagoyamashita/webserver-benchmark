@@ -1,3 +1,5 @@
+import { outboundRequestHeaders } from "./request-id.js";
+
 export type Item = {
   id: number;
   name: string;
@@ -13,13 +15,9 @@ export async function fetchItems(
   fetchImpl: typeof fetch = fetch,
   requestId?: string,
 ): Promise<Item[]> {
-  const headers: Record<string, string> = {};
-  if (requestId) {
-    headers["X-Request-ID"] = requestId;
-  }
   const response = await fetchImpl(`${itemsBaseUrl()}/api/items`, {
     method: "GET",
-    headers,
+    headers: outboundRequestHeaders(requestId),
     redirect: "follow",
     signal: AbortSignal.timeout(15_000),
   });
@@ -35,13 +33,12 @@ export async function createItem(
   fetchImpl: typeof fetch = fetch,
   requestId?: string,
 ): Promise<Item> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (requestId) {
-    headers["X-Request-ID"] = requestId;
-  }
   const response = await fetchImpl(`${itemsBaseUrl()}/api/items`, {
     method: "POST",
-    headers,
+    headers: {
+      ...outboundRequestHeaders(requestId),
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({ name }),
     redirect: "follow",
     signal: AbortSignal.timeout(15_000),

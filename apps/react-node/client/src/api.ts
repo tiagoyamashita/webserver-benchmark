@@ -1,12 +1,13 @@
 import type { Item, ProbeResult } from "./types";
-import { withSessionHeaders } from "./session";
+import { apiRequest } from "./api-request";
 
 export async function probeService(id: string): Promise<ProbeResult> {
+  const { headers } = apiRequest();
   const response = await fetch(`/api/probe/${encodeURIComponent(id)}`, {
     method: "GET",
     credentials: "same-origin",
     cache: "no-store",
-    headers: withSessionHeaders(),
+    headers,
   });
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as { error?: string };
@@ -21,11 +22,12 @@ export async function probeService(id: string): Promise<ProbeResult> {
 }
 
 export async function fetchItems(): Promise<Item[]> {
+  const { headers } = apiRequest();
   const response = await fetch("/api/items", {
     method: "GET",
     credentials: "same-origin",
     cache: "no-store",
-    headers: withSessionHeaders(),
+    headers,
   });
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as { error?: string };
@@ -35,10 +37,11 @@ export async function fetchItems(): Promise<Item[]> {
 }
 
 export async function createItem(name: string): Promise<Item> {
+  const { headers } = apiRequest({ "Content-Type": "application/json" });
   const response = await fetch("/api/items", {
     method: "POST",
     credentials: "same-origin",
-    headers: withSessionHeaders({ "Content-Type": "application/json" }),
+    headers,
     body: JSON.stringify({ name }),
   });
   if (!response.ok) {

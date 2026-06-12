@@ -171,7 +171,8 @@ pub async fn publish_create_user_event(
 ) -> Response {
     let trimmed_name = query.name.trim().to_string();
     let trimmed_email = query.email.trim().to_string();
-    let id_for_log = request_id;
+    let outbound_id = crate::request_id::resolve_outbound_request_id(Some(request_id));
+    let id_for_log = outbound_id.as_str();
 
     if trimmed_name.is_empty() {
         tracing::warn!(
@@ -239,7 +240,7 @@ pub async fn publish_create_user_event(
         event: CREATE_USER_TOPIC.to_string(),
         name: trimmed_name.clone(),
         email: trimmed_email.clone(),
-        request_id: Some(request_id.to_string()),
+        request_id: Some(outbound_id.clone()),
     }) {
         Ok(json) => json,
         Err(e) => {
@@ -303,14 +304,12 @@ pub async fn publish_create_user_event(
     let mut record = FutureRecord::to(config.create_user_topic.as_str())
         .key(&trimmed_email)
         .payload(&payload);
-    if !request_id.is_empty() {
-        record = record.headers(
-            OwnedHeaders::new().insert(Header {
-                key: "X-Request-ID",
-                value: Some(request_id),
-            }),
-        );
-    }
+    record = record.headers(
+        OwnedHeaders::new().insert(Header {
+            key: "X-Request-ID",
+            value: Some(outbound_id.as_str()),
+        }),
+    );
 
     if let Err((e, _)) = producer
         .send(record, Timeout::After(Duration::from_secs(10)))

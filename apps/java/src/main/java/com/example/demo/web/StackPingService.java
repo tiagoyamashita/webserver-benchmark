@@ -11,6 +11,7 @@ import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import com.example.demo.observability.RequestIdRelay;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -43,8 +44,9 @@ public class StackPingService {
   public Map<String, Object> emptyGet(String stack, String baseUrl) {
     String root = normalizeRoot(baseUrl);
     try {
-      ResponseEntity<Void> res =
-          restClient.get().uri(URI.create(root)).retrieve().toBodilessEntity();
+      var request = restClient.get().uri(URI.create(root));
+      RequestIdRelay.applyOutbound(request);
+      ResponseEntity<Void> res = request.retrieve().toBodilessEntity();
       Map<String, Object> result =
           Map.of(
               "stack", stack,

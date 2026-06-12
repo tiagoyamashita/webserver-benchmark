@@ -1,5 +1,8 @@
 /** Structured controller logging (see .cursor/skills/controller-logging/). */
 
+import type { Request } from "express";
+
+import { requestBody, requestHeaders, requestUrlParams } from "./request-snapshot.js";
 import { writeLog } from "./observability-logging.js";
 
 type Fields = Record<string, unknown>;
@@ -25,6 +28,14 @@ function emit(
   }
 }
 
+export function httpRequestFields(req: Request): Fields {
+  return {
+    headers: requestHeaders(req),
+    url_params: requestUrlParams(req),
+    body: requestBody(req),
+  };
+}
+
 export function logReceived(
   handler: string,
   source: string,
@@ -33,6 +44,21 @@ export function logReceived(
   fields?: Fields,
 ): void {
   emit("INFO", `${handler} request received`, handler, source, { method, path, ...fields });
+}
+
+export function logReceivedFromRequest(
+  req: Request,
+  handler: string,
+  source: string,
+  method: string,
+  path: string,
+  fields?: Fields,
+): void {
+  logReceived(handler, source, method, path, {
+    request_id: req.requestId,
+    ...httpRequestFields(req),
+    ...fields,
+  });
 }
 
 export function logSucceeded(handler: string, source: string, fields?: Fields): void {

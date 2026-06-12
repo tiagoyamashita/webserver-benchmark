@@ -3,6 +3,8 @@ import type { Request } from "express";
 const HEADER_ALLOW = new Set([
   "x-request-id",
   "x-request-origin",
+  "x-dashboard-page",
+  "x-session-id",
   "content-type",
   "accept",
   "user-agent",

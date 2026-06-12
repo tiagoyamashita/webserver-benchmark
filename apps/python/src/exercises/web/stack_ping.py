@@ -9,6 +9,8 @@ from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlparse
 
+from exercises.web.request_id import outbound_request_headers
+
 
 def _read_env(key: str, default: str) -> str:
     value = os.environ.get(key, "").strip()
@@ -91,7 +93,7 @@ class StackLinks:
             react_node_browser_url=self.react_node_browser_url,
         )
 
-    def ping(self, target: str) -> dict[str, Any]:
+    def ping(self, target: str, request_id: str | None = None) -> dict[str, Any]:
         key = target.strip().lower()
         if key == "postgres":
             return _ping_postgres()
@@ -117,7 +119,7 @@ class StackLinks:
                 "error": "unknown stack target",
             }
         stack, base = dispatch[key]
-        return _empty_get(stack, base)
+        return _empty_get(stack, base, request_id=request_id)
 
 
 def _ping_postgres() -> dict[str, Any]:
@@ -179,10 +181,10 @@ def _ping_redis() -> dict[str, Any]:
         }
 
 
-def _empty_get(stack: str, base_url: str) -> dict[str, Any]:
+def _empty_get(stack: str, base_url: str, *, request_id: str | None = None) -> dict[str, Any]:
     url = _normalize_root(base_url)
     try:
-        req = urllib.request.Request(url, method="GET")
+        req = urllib.request.Request(url, method="GET", headers=outbound_request_headers(request_id))
         with urllib.request.urlopen(req, timeout=15) as resp:
             status = resp.status
             return {

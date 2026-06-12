@@ -1,5 +1,6 @@
 //! HTTP request id (`X-Request-ID`) for log and Postgres correlation.
 
+use axum::body::{to_bytes, Body, Bytes};
 use axum::extract::Request;
 use axum::http::HeaderValue;
 use axum::middleware::Next;
@@ -10,6 +11,10 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub const ORIGIN_HEADER: &str = "x-request-origin";
+pub const REQUEST_ID_HEADER: &str = "x-request-id";
+pub const OUTBOUND_ORIGIN: &str = "exercises-rust";
+
+const MAX_BODY_LOG_BYTES: usize = 65_536;
 
 #[derive(Clone, Debug)]
 pub struct RequestId(pub String);
@@ -37,6 +42,13 @@ impl RequestLogSeq {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct RequestHttpSnapshot {
+    pub headers: Map<String, Value>,
+    pub url_params: Map<String, Value>,
+    pub body: Map<String, Value>,
+}
+
 pub fn postgres_application_name(service: &str, request_id: &str) -> String {
     let value = format!("{service};req={request_id}");
     if value.len() <= 63 {
@@ -44,6 +56,16 @@ pub fn postgres_application_name(service: &str, request_id: &str) -> String {
     } else {
         value[..63].to_string()
     }
+}
+
+pub fn resolve_outbound_request_id(current: Option<&str>) -> String {
+    if let Some(text) = current {
+        let trimmed = text.trim();
+        if is_safe_token(trimmed) {
+            return trimmed.to_string();
+        }
+    }
+    generate_request_id()
 }
 
 pub fn resolve_request_id(header: Option<&HeaderValue>) -> (RequestId, RequestIdSource) {
@@ -84,6 +106,8 @@ fn collect_headers(req: &Request) -> Map<String, Value> {
     const ALLOW: &[&str] = &[
         "x-request-id",
         "x-request-origin",
+        "x-dashboard-page",
+        "x-session-id",
         "content-type",
         "accept",
         "user-agent",
@@ -118,6 +142,28 @@ fn collect_url_params(query: Option<&str>) -> Map<String, Value> {
     out
 }
 
+fn collect_body(bytes: &Bytes) -> Map<String, Value> {
+    if bytes.is_empty() {
+        return Map::new();
+    }
+    if let Ok(value) = serde_json::from_slice::<Value>(bytes) {
+        return match value {
+            Value::Object(map) => map,
+            other => {
+                let mut out = Map::new();
+                out.insert("_json".into(), other);
+                out
+            }
+        };
+    }
+    let mut out = Map::new();
+    out.insert(
+        "_raw".into(),
+        Value::String(String::from_utf8_lossy(bytes).to_string()),
+    );
+    out
+}
+
 fn generate_request_id() -> String {
     static COUNTER: AtomicU64 = AtomicU64::new(0);
     let nanos = SystemTime::now()
@@ -128,14 +174,29 @@ fn generate_request_id() -> String {
     format!("{nanos:x}-{seq:x}")
 }
 
-pub async fn assign_request_id(mut req: Request, next: Next) -> Response {
+pub async fn assign_request_id(req: Request, next: Next) -> Response {
+    let (parts, body) = req.into_parts();
+    let body_bytes = to_bytes(body, MAX_BODY_LOG_BYTES)
+        .await
+        .unwrap_or_default();
+    let mut req = Request::from_parts(parts, Body::from(body_bytes.clone()));
+
     let (request_id, source) = resolve_request_id(req.headers().get("x-request-id"));
     let origin = resolve_request_origin(req.headers().get(ORIGIN_HEADER));
     let id = request_id.0.clone();
+    let headers = collect_headers(&req);
+    let url_params = collect_url_params(req.uri().query());
+    let body_map = collect_body(&body_bytes);
+    let snapshot = RequestHttpSnapshot {
+        headers: headers.clone(),
+        url_params: url_params.clone(),
+        body: body_map.clone(),
+    };
     req.extensions_mut().insert(request_id);
     req.extensions_mut().insert(source);
     req.extensions_mut().insert(origin);
     req.extensions_mut().insert(RequestLogSeq::new());
+    req.extensions_mut().insert(snapshot);
     let log_seq = req
         .extensions()
         .get::<RequestLogSeq>()
@@ -143,12 +204,11 @@ pub async fn assign_request_id(mut req: Request, next: Next) -> Response {
         .unwrap_or(0);
     let method = req.method().to_string();
     let path = req.uri().path().to_string();
-    let headers = collect_headers(&req);
-    let url_params = collect_url_params(req.uri().query());
     let headers_json =
         serde_json::to_string(&headers).unwrap_or_else(|_| "{}".to_string());
     let url_params_json =
         serde_json::to_string(&url_params).unwrap_or_else(|_| "{}".to_string());
+    let body_json = serde_json::to_string(&body_map).unwrap_or_else(|_| "{}".to_string());
     tracing::info!(
         method = %method,
         path = %path,
@@ -157,7 +217,7 @@ pub async fn assign_request_id(mut req: Request, next: Next) -> Response {
         phase = "received",
         headers = %headers_json,
         url_params = %url_params_json,
-        body = "{}",
+        body = %body_json,
         "{method} {path} request received request_id={id}"
     );
     let mut res = next.run(req).await;

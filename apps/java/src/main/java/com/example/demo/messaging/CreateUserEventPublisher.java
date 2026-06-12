@@ -3,7 +3,7 @@ package com.example.demo.messaging;
 import static net.logstash.logback.argument.StructuredArguments.kv;
 
 import com.example.demo.config.KafkaAppProperties;
-import com.example.demo.observability.RequestIdContext;
+import com.example.demo.observability.RequestIdRelay;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -39,8 +39,8 @@ public class CreateUserEventPublisher {
    * {@code exercises-create-user}; one app inserts into Postgres {@code users} per message.
    */
   public void publishCreateUser(String name, String email) throws JsonProcessingException {
-    String requestId = RequestIdContext.get();
-    String idForLog = requestId != null ? requestId : "";
+    String requestId = RequestIdRelay.resolveOutboundRequestId();
+    String idForLog = requestId;
     CreateUserEvent event = CreateUserEvent.of(name, email, requestId);
     String topic = kafkaAppProperties.getCreateUserTopic();
     String payload = objectMapper.writeValueAsString(event);
@@ -57,11 +57,9 @@ public class CreateUserEventPublisher {
         kv("email", email));
 
     ProducerRecord<String, String> record = new ProducerRecord<>(topic, email, payload);
-    if (requestId != null && !requestId.isBlank()) {
-      record
-          .headers()
-          .add(new RecordHeader("X-Request-ID", requestId.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
-    }
+    record
+        .headers()
+        .add(new RecordHeader("X-Request-ID", requestId.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
 
     kafkaTemplate.send(record);
 

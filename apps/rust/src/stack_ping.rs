@@ -86,19 +86,19 @@ impl StackLinks {
         }
     }
 
-    pub fn ping(&self, target: &str) -> StackPingResult {
+    pub fn ping(&self, target: &str, request_id: Option<&str>) -> StackPingResult {
         match target {
             "postgres" => ping_postgres(),
             "redis" => ping_redis(),
-            "java" => empty_get("java", &self.java_base_url),
-            "python" => empty_get("python", &self.python_base_url),
-            "prometheus" => empty_get("prometheus", &self.prometheus_base_url),
-            "grafana" => empty_get("grafana", &self.grafana_base_url),
-            "elasticsearch" => empty_get("elasticsearch", &self.elasticsearch_base_url),
-            "kibana" => empty_get("kibana", &self.kibana_base_url),
+            "java" => empty_get("java", &self.java_base_url, request_id),
+            "python" => empty_get("python", &self.python_base_url, request_id),
+            "prometheus" => empty_get("prometheus", &self.prometheus_base_url, request_id),
+            "grafana" => empty_get("grafana", &self.grafana_base_url, request_id),
+            "elasticsearch" => empty_get("elasticsearch", &self.elasticsearch_base_url, request_id),
+            "kibana" => empty_get("kibana", &self.kibana_base_url, request_id),
             "react-node" => {
                 let base = self.react_node_base_url.trim_end_matches('/');
-                empty_get("react-node", &format!("{base}/api/health"))
+                empty_get("react-node", &format!("{base}/api/health"), request_id)
             }
             _ => StackPingResult {
                 stack: target.to_string(),
@@ -250,9 +250,15 @@ fn ping_postgres() -> StackPingResult {
     }
 }
 
-fn empty_get(stack: &str, base_url: &str) -> StackPingResult {
+fn empty_get(stack: &str, base_url: &str, request_id: Option<&str>) -> StackPingResult {
+    let outbound_id = crate::request_id::resolve_outbound_request_id(request_id);
     let url = normalize_root(base_url);
-    match ureq::get(&url).timeout(Duration::from_secs(15)).call() {
+    match ureq::get(&url)
+        .set(crate::request_id::REQUEST_ID_HEADER, &outbound_id)
+        .set(crate::request_id::ORIGIN_HEADER, crate::request_id::OUTBOUND_ORIGIN)
+        .timeout(Duration::from_secs(15))
+        .call()
+    {
         Ok(resp) => {
             let status = resp.status();
             StackPingResult {
@@ -299,7 +305,8 @@ pub async fn stack_ping_handler(
     );
     let stack_name = target.clone();
     let stack = state.stack_links.clone();
-    let result = tokio::task::spawn_blocking(move || stack.ping(&target))
+    let rid = request_id.0.clone();
+    let result = tokio::task::spawn_blocking(move || stack.ping(&target, Some(&rid)))
         .await
         .unwrap_or_else(|e| StackPingResult {
             stack: stack_name,

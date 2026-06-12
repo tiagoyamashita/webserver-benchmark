@@ -68,9 +68,19 @@ Until Filebeat (or another Beat) sends events through Logstash, indices may not 
 
 **Java logs missing in Kibana?** Dashboard logs must not use a top-level JSON field named **`event`** (string) — Logstash’s Beats input expects ECS **`event`** as an object and will reset the connection. This repo uses **`ui_event`** instead; Filebeat also renames legacy **`event` → `ui_event`** before shipping.
 
-Logstash normalizes Rust tracing JSON (flattens nested `fields` to top-level keys) so Grafana/Kibana queries match Java and Python log shape. **Restart Logstash** after changing `logstash/pipeline/logstash.conf`.
+Logstash normalizes Rust tracing JSON (flattens nested `fields` to top-level keys) so Grafana/Kibana queries match Java and Python log shape. Controller HTTP snapshots (`headers`, `body`, `url_params`) are **JSON-stringified** before Elasticsearch so daily indices never reject object values against legacy `text` mappings. **Restart Logstash** after changing `logstash/pipeline/logstash.conf`, then **restart Filebeat** if the shipper was backlogged (`connection reset by peer` in `filebeat` logs).
+
+**Logs stopped appearing in Kibana/Grafana?** Check `podman compose -f docker-compose.observability.yml logs logstash --tail 30` for `document_parsing_exception` on `body` or `headers`. After updating `logstash.conf`, restart Logstash and Filebeat. Expand the time picker (dashboard default is **Last 6 hours**).
 
 **Filter by app in Discover:** `service: "exercises-java"` · `service: "exercises-python"` · `service: "exercises-rust"` · `service: "exercises-react-node"` · `service: "exercises-postgres"` · `service: "exercises-kafka"`. By file path: `log.file.path: *react-node*` · `log.file.path: *postgresql*` · `log.file.path: *kafka*`.
+
+**Find one request in Kibana Discover** (normal search only matches `message` text — paste the UUID as a field query):
+
+```text
+request_id: "paste-your-uuid-here"
+```
+
+For Postgres SQL lines use the imported data view runtime field: `correlation.request_id: "paste-your-uuid-here"`.
 
 ### HTTP ↔ Postgres correlation (Kibana)
 

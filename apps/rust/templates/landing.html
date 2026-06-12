@@ -222,6 +222,7 @@
   <body>
     <h1 id="stack-heading">Hello Rust</h1>
     <p class="page-subtitle">Use the menu on the left to open connectivity checks or action forms.</p>
+    <p class="page-subtitle">Last request ID: <code id="page-request-id">—</code> (new id per API call — use to isolate actions in logs)</p>
     <p class="page-subtitle">Shared Redis session ID: <code id="page-session-id">…</code> (auto-created on load if missing; stored in Redis for cross-app auth)</p>
 
     <div class="dashboard">
@@ -520,11 +521,17 @@
           return "req-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
         }
 
-        var pageRequestId = newRequestId();
+        var currentView = "view-connectivity";
 
-        function apiHeaders(extra) {
+        function apiRequest(extra) {
+          var requestId = newRequestId();
+          var pageRequestIdEl = document.getElementById("page-request-id");
+          if (pageRequestIdEl) {
+            pageRequestIdEl.textContent = requestId;
+          }
           var headers = window.exercisesSession.withSessionHeaders({
-            "X-Request-ID": pageRequestId,
+            "X-Request-ID": requestId,
+            "X-Dashboard-Page": currentView,
             Accept: "application/json"
           });
           if (extra) {
@@ -532,8 +539,10 @@
               headers[key] = extra[key];
             });
           }
-          return headers;
+          return { requestId: requestId, headers: headers };
         }
+
+        window.dashboardApiRequest = apiRequest;
 
         function renderSessionStatus(data) {
           var el = document.getElementById("session-status");
@@ -555,7 +564,7 @@
           fetch("/api/auth/session", {
             method: "GET",
             credentials: "same-origin",
-            headers: apiHeaders()
+            headers: apiRequest().headers
           }).then(function (res) {
             return res.text().then(function (text) {
               var data = text;
@@ -578,6 +587,7 @@
         }
 
         function showView(viewId, navId) {
+          currentView = viewId;
           viewPanels.forEach(function (panel) {
             panel.setAttribute("aria-hidden", panel.id === viewId ? "false" : "true");
           });
@@ -628,7 +638,7 @@
           if (!tbody) return;
           errEl.textContent = "";
           tbody.innerHTML = '<tr><td colspan="3" class="status-pending">Loading…</td></tr>';
-          fetch("/api/items", { credentials: "same-origin", cache: "no-store", headers: apiHeaders() })
+          fetch("/api/items", { credentials: "same-origin", cache: "no-store", headers: apiRequest().headers })
             .then(function (res) {
               return res.json().then(function (data) {
                 if (!res.ok) {
@@ -674,7 +684,7 @@
             fetch("/api/items?name=" + encodeURIComponent(name), {
               method: "POST",
               credentials: "same-origin",
-              headers: apiHeaders()
+              headers: apiRequest().headers
             })
               .then(function (res) {
                 return res.json().then(function (data) {
@@ -714,7 +724,7 @@
             fetch("/api/auth/login", {
               method: "POST",
               credentials: "same-origin",
-              headers: apiHeaders({ "Content-Type": "application/json" }),
+              headers: apiRequest({ "Content-Type": "application/json" }).headers,
               body: JSON.stringify(body)
             }).then(function (res) {
               return res.text().then(function (text) {
@@ -743,7 +753,7 @@
             fetch("/api/auth/logout", {
               method: "POST",
               credentials: "same-origin",
-              headers: apiHeaders()
+              headers: apiRequest().headers
             }).then(function (res) {
               window.exercisesSession.setStoredSessionId("");
               renderSessionStatus(null);
@@ -780,8 +790,9 @@
               resultEl.className = "result-box status-err";
               return;
             }
+            var kafkaReq = apiRequest();
             resultEl.textContent =
-              "Publishing create-user event…\nrequest_id=" + pageRequestId;
+              "Publishing create-user event…\nrequest_id=" + kafkaReq.requestId;
             resultEl.className = "result-box";
             var url =
               "/api/users/publish-create-user?name=" +
@@ -791,7 +802,7 @@
             fetch(url, {
               method: "POST",
               credentials: "same-origin",
-              headers: apiHeaders()
+              headers: kafkaReq.headers
             })
               .then(function (res) {
                 return res.json().then(function (data) {
@@ -801,7 +812,7 @@
               .then(function (r) {
                 var lines = ["Rust publish HTTP " + r.status];
                 var d = r.data || {};
-                lines.push("request_id=" + (d.requestId || pageRequestId));
+                lines.push("request_id=" + (d.requestId || kafkaReq.requestId));
                 if (d.event) lines.push("event=" + d.event);
                 if (d.topic) lines.push("topic=" + d.topic);
                 if (d.error) lines.push("Error: " + d.error);
@@ -888,10 +899,12 @@
         function ping(target) {
           setRowStatus(target, '<span class="status-pending">Pinging…</span>');
           statusEl.textContent = "Requesting " + target + "…";
+          var req = window.dashboardApiRequest ? window.dashboardApiRequest() : { headers: {} };
           return fetch("/stack-ping/" + encodeURIComponent(target), {
             method: "GET",
             credentials: "same-origin",
             cache: "no-store",
+            headers: req.headers,
           })
             .then(readStackPingJson)
             .then(function (r) {

@@ -1,3 +1,5 @@
+import { apiRequest } from "./api-request";
+
 const STORAGE_KEY = "exercises_session_id";
 
 export type SessionData = {
@@ -11,15 +13,7 @@ export type SessionData = {
   redisKey: string;
 };
 
-function newRequestId(): string {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  return `req-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-export function storedSessionId(): string {
-  try {
+export function storedSessionId(): string {  try {
     return localStorage.getItem(STORAGE_KEY) ?? "";
   } catch {
     return "";
@@ -50,15 +44,7 @@ export function withSessionHeaders(headers: Record<string, string> = {}): Record
 
 export async function ensureSession(): Promise<SessionData> {
   const sessionId = storedSessionId();
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-    "Content-Type": "application/json",
-    "X-Request-ID": newRequestId(),
-  };
-  if (sessionId) {
-    headers["X-Session-ID"] = sessionId;
-    headers.Authorization = `Bearer ${sessionId}`;
-  }
+  const { headers } = apiRequest({ "Content-Type": "application/json" });
   const response = await fetch("/api/auth/ensure", {
     method: "POST",
     credentials: "same-origin",
@@ -82,10 +68,11 @@ export async function ensureSession(): Promise<SessionData> {
 }
 
 export async function fetchCurrentSession(): Promise<SessionData> {
+  const { headers } = apiRequest();
   const response = await fetch("/api/auth/session", {
     method: "GET",
     credentials: "same-origin",
-    headers: withSessionHeaders({ Accept: "application/json" }),
+    headers,
   });
   const data = (await response.json()) as SessionData & { error?: string };
   if (!response.ok) {
@@ -99,13 +86,11 @@ export async function loginSession(body: {
   email?: string;
   userId?: number;
 }): Promise<SessionData> {
+  const { headers } = apiRequest({ "Content-Type": "application/json" });
   const response = await fetch("/api/auth/login", {
     method: "POST",
     credentials: "same-origin",
-    headers: withSessionHeaders({
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    }),
+    headers,
     body: JSON.stringify(body),
   });
   const data = (await response.json()) as SessionData & { error?: string };
@@ -117,10 +102,11 @@ export async function loginSession(body: {
 }
 
 export async function logoutSession(): Promise<void> {
+  const { headers } = apiRequest();
   const response = await fetch("/api/auth/logout", {
     method: "POST",
     credentials: "same-origin",
-    headers: withSessionHeaders({ Accept: "application/json" }),
+    headers,
   });
   setStoredSessionId("");
   if (!response.ok && response.status !== 204) {

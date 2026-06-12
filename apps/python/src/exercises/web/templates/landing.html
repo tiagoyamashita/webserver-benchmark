@@ -222,6 +222,7 @@
   <body>
     <h1 id="stack-heading">Hello Python</h1>
     <p class="page-subtitle">Use the menu on the left to open connectivity checks or action forms.</p>
+    <p class="page-subtitle">Last request ID: <code id="page-request-id">—</code> (new id per API call — use to isolate actions in logs)</p>
     <p class="page-subtitle">Shared Redis session ID: <code id="page-session-id">…</code> (auto-created on load; stored in Redis for cross-app auth)</p>
 
     <div class="dashboard">
@@ -419,15 +420,32 @@
         var navButtons = document.querySelectorAll(".sidebar-btn[data-view]");
         var viewPanels = document.querySelectorAll(".view-panel");
 
-        function apiHeaders(extra) {
-          var headers = window.exercisesSession.withSessionHeaders({ Accept: "application/json" });
+        function newRequestId() {
+          if (typeof crypto !== "undefined" && crypto.randomUUID) {
+            return crypto.randomUUID();
+          }
+          return "req-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+        }
+
+        function apiRequest(extra) {
+          var requestId = newRequestId();
+          var pageRequestIdEl = document.getElementById("page-request-id");
+          if (pageRequestIdEl) {
+            pageRequestIdEl.textContent = requestId;
+          }
+          var headers = window.exercisesSession.withSessionHeaders({
+            "X-Request-ID": requestId,
+            Accept: "application/json"
+          });
           if (extra) {
             Object.keys(extra).forEach(function (key) {
               headers[key] = extra[key];
             });
           }
-          return headers;
+          return { requestId: requestId, headers: headers };
         }
+
+        window.dashboardApiRequest = apiRequest;
 
         function renderSessionStatus(data) {
           var el = document.getElementById("session-status");
@@ -451,7 +469,7 @@
           fetch("/api/auth/session", {
             method: "GET",
             credentials: "same-origin",
-            headers: apiHeaders()
+            headers: apiRequest().headers
           })
             .then(function (res) {
               return res.text().then(function (text) {
@@ -513,7 +531,7 @@
           if (!tbody) return;
           errEl.textContent = "";
           tbody.innerHTML = '<tr><td colspan="3" class="status-pending">Loading…</td></tr>';
-          fetch("/api/items", { credentials: "same-origin", cache: "no-store", headers: apiHeaders() })
+          fetch("/api/items", { credentials: "same-origin", cache: "no-store", headers: apiRequest().headers })
             .then(function (res) {
               return res.json().then(function (data) {
                 if (!res.ok) {
@@ -559,7 +577,7 @@
             fetch("/api/items", {
               method: "POST",
               credentials: "same-origin",
-              headers: apiHeaders({ "Content-Type": "application/json" }),
+              headers: apiRequest({ "Content-Type": "application/json" }).headers,
               body: JSON.stringify({ name: name })
             })
               .then(function (res) {
@@ -608,7 +626,7 @@
             fetch("/api/auth/login", {
               method: "POST",
               credentials: "same-origin",
-              headers: apiHeaders({ "Content-Type": "application/json" }),
+              headers: apiRequest({ "Content-Type": "application/json" }).headers,
               body: JSON.stringify(body)
             }).then(function (res) {
               return res.text().then(function (text) {
@@ -637,7 +655,7 @@
             fetch("/api/auth/logout", {
               method: "POST",
               credentials: "same-origin",
-              headers: apiHeaders()
+              headers: apiRequest().headers
             }).then(function (res) {
               window.exercisesSession.setStoredSessionId("");
               renderSessionStatus(null);
@@ -723,10 +741,12 @@
         function ping(target) {
           setRowStatus(target, '<span class="status-pending">Pinging…</span>');
           statusEl.textContent = "Requesting " + target + "…";
+          var req = window.dashboardApiRequest ? window.dashboardApiRequest() : { headers: {} };
           return fetch("/stack-ping/" + encodeURIComponent(target), {
             method: "GET",
             credentials: "same-origin",
             cache: "no-store",
+            headers: req.headers,
           })
             .then(readStackPingJson)
             .then(function (r) {

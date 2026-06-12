@@ -198,7 +198,7 @@ def create_app() -> Flask:
             target=target,
         )
         links = StackLinks.from_env()
-        result = links.ping(target)
+        result = links.ping(target, getattr(g, "request_id", None))
         if result.get("ok") is False:
             log_warn(
                 _APP_LOG,

@@ -21,6 +21,7 @@ public final class HttpRequestSnapshot {
           "x-request-id",
           "x-request-origin",
           "x-dashboard-page",
+          "x-session-id",
           "content-type",
           "accept",
           "user-agent",

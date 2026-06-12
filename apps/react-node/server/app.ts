@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   logError,
-  logReceived,
+  logReceivedFromRequest,
   logSucceeded,
   logTrace,
   logWarn,
@@ -105,8 +105,8 @@ export function createApp(options: CreateAppOptions = {}): Express {
     const rawId = req.params.id;
     const id = Array.isArray(rawId) ? rawId[0] : rawId;
     const target = id ?? "";
-    logReceived("probe", SOURCE, "GET", "/api/probe/{id}", { target });
-    const result = await probeById(target, fetchImpl);
+    logReceivedFromRequest(req, "probe", SOURCE, "GET", "/api/probe/{id}", { target });
+    const result = await probeById(target, fetchImpl, req.requestId);
     if ("status" in result && "error" in result && !("ok" in result)) {
       logWarn("probe", SOURCE, "probe unknown target", {
         target,
@@ -138,9 +138,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
   });
 
   app.get("/api/items", async (req: Request, res: Response) => {
-    logReceived("listItems", SOURCE, "GET", "/api/items", {
-      request_id: req.requestId,
-    });
+    logReceivedFromRequest(req, "listItems", SOURCE, "GET", "/api/items");
     try {
       const items = await fetchItems(fetchImpl, req.requestId);
       logSucceeded("listItems", SOURCE, { count: items.length, request_id: req.requestId });
@@ -158,10 +156,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
 
   app.post("/api/items", async (req: Request, res: Response) => {
     const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
-    logReceived("createItem", SOURCE, "POST", "/api/items", {
-      name,
-      request_id: req.requestId,
-    });
+    logReceivedFromRequest(req, "createItem", SOURCE, "POST", "/api/items", { name });
     if (!name) {
       logWarn("createItem", SOURCE, "createItem validation failed", {
         name: req.body?.name,
