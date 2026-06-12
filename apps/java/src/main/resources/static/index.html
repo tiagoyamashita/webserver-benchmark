@@ -251,6 +251,7 @@
               </thead>
               <tbody id="connectivity-rows">
                 <tr data-target="postgres"><td>Postgres</td><td><button type="button" class="btn ping-btn" data-target="postgres">Ping</button></td><td class="status-cell"><span class="status-pending">—</span></td></tr>
+                <tr data-target="redis"><td>Redis</td><td><button type="button" class="btn ping-btn" data-target="redis">Ping</button></td><td class="status-cell"><span class="status-pending">—</span></td></tr>
                 <tr data-target="rust"><td>Rust</td><td><button type="button" class="btn ping-btn" data-target="rust">Ping</button></td><td class="status-cell"><span class="status-pending">—</span></td></tr>
                 <tr data-target="python"><td>Python</td><td><button type="button" class="btn ping-btn" data-target="python">Ping</button></td><td class="status-cell"><span class="status-pending">—</span></td></tr>
                 <tr data-target="prometheus"><td>Prometheus</td><td><button type="button" class="btn ping-btn" data-target="prometheus">Ping</button></td><td class="status-cell"><span class="status-pending">—</span></td></tr>
@@ -481,6 +482,7 @@
         var reach = function () { return window.exerciseReachabilityParent; };
         var routes = {
           postgres: "/dashboard/stack-ping/postgres",
+          redis: "/dashboard/stack-ping/redis",
           rust: "/dashboard/stack-ping/rust",
           python: "/dashboard/stack-ping/python",
           prometheus: "/dashboard/stack-ping/prometheus",

@@ -28,6 +28,11 @@ public class StackPingController {
     return ping("postgres", stackPingService::pingPostgres);
   }
 
+  @GetMapping("/redis")
+  public Map<String, Object> pingRedis() {
+    return ping("redis", stackPingService::pingRedis);
+  }
+
   @GetMapping("/rust")
   public Map<String, Object> pingRust() {
     return ping("rust", stackPingService::pingRust);

@@ -166,6 +166,7 @@ services:
       - ./apps/java/logs:/app/logs
     depends_on:
       - postgres
+      - redis
 
   python:
     build:

@@ -14,6 +14,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.ResourceAccessException;
@@ -28,12 +29,15 @@ public class StackPingService {
 
   private final RestClient restClient;
   private final StackPingProperties properties;
+  private final RedisConnectionFactory redisConnectionFactory;
 
   public StackPingService(
       @Qualifier("stackPingRestClient") RestClient stackPingRestClient,
-      StackPingProperties properties) {
+      StackPingProperties properties,
+      RedisConnectionFactory redisConnectionFactory) {
     this.restClient = stackPingRestClient;
     this.properties = properties;
+    this.redisConnectionFactory = redisConnectionFactory;
   }
 
   public Map<String, Object> emptyGet(String stack, String baseUrl) {
@@ -87,6 +91,7 @@ public class StackPingService {
     List<Map<String, Object>> results =
         List.of(
             pingPostgres(),
+            pingRedis(),
             pingRust(),
             pingPython(),
             pingPrometheus(),
@@ -167,6 +172,40 @@ public class StackPingService {
               "url", url,
               "ok", false,
               "error", "Cannot connect to Postgres. " + msg);
+      logStackPingResult(result);
+      return result;
+    }
+  }
+
+  public Map<String, Object> pingRedis() {
+    String host = envOrDefault("REDIS_HOST", "127.0.0.1");
+    String port = envOrDefault("REDIS_PORT", "6379");
+    String url = "redis://" + host + ":" + port;
+    try {
+      String pong = redisConnectionFactory.getConnection().ping();
+      boolean ok = pong != null && pong.equalsIgnoreCase("PONG");
+      Map<String, Object> result =
+          ok
+              ? Map.of(
+                  "stack", "redis",
+                  "url", url,
+                  "ok", true,
+                  "pong", pong)
+              : Map.of(
+                  "stack", "redis",
+                  "url", url,
+                  "ok", false,
+                  "error", "unexpected PING response: " + pong);
+      logStackPingResult(result);
+      return result;
+    } catch (RuntimeException e) {
+      String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+      Map<String, Object> result =
+          Map.of(
+              "stack", "redis",
+              "url", url,
+              "ok", false,
+              "error", "Cannot connect to Redis. " + msg);
       logStackPingResult(result);
       return result;
     }

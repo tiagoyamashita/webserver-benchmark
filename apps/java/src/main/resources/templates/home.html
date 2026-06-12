@@ -231,6 +231,12 @@
             </td>
           </tr>
           <tr>
+            <td>Redis</td>
+            <td class="stack-service-actions">
+              <button type="button" class="btn stack-ping-btn" data-target="redis">Ping</button>
+            </td>
+          </tr>
+          <tr>
             <td>Rust</td>
             <td class="stack-service-actions">
               <a class="btn" th:href="${stackLinks.rustBrowserUrl}" target="_blank" rel="noopener noreferrer">Open</a>
@@ -374,6 +380,7 @@
 
         var routes = {
           postgres: /*[[@{/dashboard/stack-ping/postgres}]]*/ '/dashboard/stack-ping/postgres',
+          redis: /*[[@{/dashboard/stack-ping/redis}]]*/ '/dashboard/stack-ping/redis',
           rust: /*[[@{/dashboard/stack-ping/rust}]]*/ '/dashboard/stack-ping/rust',
           python: /*[[@{/dashboard/stack-ping/python}]]*/ '/dashboard/stack-ping/python',
           prometheus: /*[[@{/dashboard/stack-ping/prometheus}]]*/ '/dashboard/stack-ping/prometheus',
