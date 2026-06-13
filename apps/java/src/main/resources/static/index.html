@@ -230,6 +230,7 @@
         <button type="button" class="sidebar-btn sub" id="nav-list-items" data-view="view-list-items">List items</button>
         <button type="button" class="sidebar-btn sub" id="nav-create-item" data-view="view-create-item">Create item</button>
         <button type="button" class="sidebar-btn sub" id="nav-rust-relay" data-view="view-rust-relay">Item relay</button>
+        <button type="button" class="sidebar-btn sub" id="nav-stack-relays" data-view="view-stack-relays">Stack relays</button>
         <button type="button" class="sidebar-btn sub" id="nav-kafka-create-user" data-view="view-kafka-create-user">Kafka create user</button>
         <p class="sidebar-section">API</p>
         <button type="button" class="sidebar-btn sub" id="nav-openapi" data-view="view-openapi">OpenAPI</button>
@@ -404,6 +405,25 @@
             <button type="button" class="btn primary" id="react-node-item-add">Add via React Node</button>
           </div>
           <pre id="react-node-item-result" class="result-box"></pre>
+        </section>
+
+        <section id="view-stack-relays" class="view-panel" aria-hidden="true">
+          <h2 class="form-heading">Stack relays</h2>
+          <p class="form-hint">
+            Multi-hop relays across stack services. Java forwards <code>X-Request-ID</code> and
+            <code>X-Request-Origin: exercises-java</code>; each hop logs with the same request id.
+          </p>
+          <h3 class="form-heading" style="font-size: 0.95rem; margin-top: 1.25rem;">Java → Python → React Node</h3>
+          <p class="form-hint">
+            Creates an item via Python <code>POST /api/relay/react</code>, which relays to React Node
+            <code>POST /api/items</code> (direct Postgres).
+          </p>
+          <div class="field-row">
+            <label for="python-react-relay-name">Item</label>
+            <input type="text" id="python-react-relay-name" placeholder="Item name"/>
+            <button type="button" class="btn primary" id="python-react-relay-add">Relay via Python → React</button>
+          </div>
+          <pre id="python-react-relay-result" class="result-box"></pre>
         </section>
 
         <section id="view-kafka-create-user" class="view-panel" aria-hidden="true">
@@ -1112,6 +1132,41 @@
                 reactNodeResultEl.textContent = lines.join("\n");
               })
               .catch(function (err) { reactNodeResultEl.textContent = String(err.message || err); });
+          });
+        }
+
+        var pythonReactRelayBtn = document.getElementById("python-react-relay-add");
+        var pythonReactRelayNameInput = document.getElementById("python-react-relay-name");
+        var pythonReactRelayResultEl = document.getElementById("python-react-relay-result");
+        if (pythonReactRelayBtn && pythonReactRelayNameInput && pythonReactRelayResultEl) {
+          pythonReactRelayBtn.addEventListener("click", function () {
+            var name = (pythonReactRelayNameInput.value || "").trim();
+            if (!name) { pythonReactRelayResultEl.textContent = "Enter an item name."; return; }
+            var relayReq = apiRequest({ Accept: "application/json", "Content-Type": "application/json" });
+            pythonReactRelayResultEl.textContent =
+              "Calling Python relay…\nrequest_id=" + relayReq.requestId + "\ndashboard_page=" + currentView;
+            fetch("/dashboard/relays/python-react", {
+              method: "POST",
+              credentials: "same-origin",
+              headers: relayReq.headers,
+              body: JSON.stringify({ name: name })
+            })
+              .then(function (res) { return res.json().then(function (data) { return { httpOk: res.ok, status: res.status, data: data }; }); })
+              .then(function (r) {
+                var lines = ["Java relay HTTP " + r.status];
+                var d = r.data || {};
+                lines.push("request_id=" + (d.requestId || relayReq.requestId));
+                lines.push("dashboard_page=" + currentView);
+                if (d.relayChain) lines.push("Chain: " + d.relayChain);
+                if (d.pythonRelayUrl) lines.push("Python relay: " + d.pythonRelayUrl);
+                if (d.status != null) lines.push("Python response HTTP " + d.status);
+                if (d.downstream) lines.push(JSON.stringify(d.downstream, null, 2));
+                else if (d.body) lines.push(String(d.body));
+                if (d.error) lines.push("Error: " + d.error);
+                if (r.httpOk && d.ok === true) pythonReactRelayNameInput.value = "";
+                pythonReactRelayResultEl.textContent = lines.join("\n");
+              })
+              .catch(function (err) { pythonReactRelayResultEl.textContent = String(err.message || err); });
           });
         }
       })();

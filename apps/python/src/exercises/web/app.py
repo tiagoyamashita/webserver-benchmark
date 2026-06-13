@@ -18,6 +18,7 @@ from exercises.web.controller_logging import (
     log_warn,
 )
 from exercises.web.items_api import register_items_routes
+from exercises.web.relay_api import register_relay_routes
 from exercises.web.openapi_routes import register_openapi_routes
 from exercises.web.observability_logging import observability_enabled
 from exercises.web.request_id import resolve_request_id
@@ -95,6 +96,7 @@ def create_app() -> Flask:
     app.secret_key = os.environ.get("SECRET_KEY", "dev-exercises-web")
     app.config["PROJECT_ROOT"] = resolve_project_root()
     register_items_routes(app)
+    register_relay_routes(app)
     register_openapi_routes(app)
     register_auth_routes(app)
 

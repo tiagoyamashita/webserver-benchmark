@@ -31,6 +31,8 @@ Open `http://127.0.0.1:5000/` for **stack connectivity** (GET probes to Java, Ru
 
 **Postgres items API:** with `DB_HOST` set (root Compose), Flask exposes **`/api/items`** CRUD against the shared `items` table (Flyway schema + seed from Java). Without `DB_*` env vars the routes return **503**.
 
+**Outbound relays:** **`GET /api/relay`** lists registered targets. **`GET|POST /api/relay/<id>`** forwards to another stack service (e.g. **`/api/relay/react`** → React Node **`/api/items`** direct Postgres). Add targets in `src/exercises/web/relay_registry.py`. Python forwards **`X-Request-ID`** and **`X-Request-Origin: exercises-python`**; outbound lines use logger **`http.client`**.
+
 ## Observability and logging
 
 When **`EXERCISES_OBSERVABILITY=1`** (set in root Compose), the app appends JSON lines to **`${LOG_PATH}/demo-app.json.log`** (default `logs/demo-app.json.log`) for Filebeat → Logstash → Elasticsearch. Console logging is unchanged.

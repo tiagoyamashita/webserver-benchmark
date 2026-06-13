@@ -30,9 +30,9 @@ public class DashboardMetaController {
             "title", "Java APP",
             "template", "index.html",
             "path", "/",
-            "version", 9,
+            "version", 10,
             "features",
-                "sidebar,connectivity-ping,ping-all,session-auth,user-create,user-list,item-list,item-create,rust-item-relay,python-item-relay,react-node-item-relay,openapi");
+                "sidebar,connectivity-ping,ping-all,session-auth,user-create,user-list,item-list,item-create,rust-item-relay,python-item-relay,react-node-item-relay,stack-relays,python-react-relay,openapi");
     log.info(
         "DashboardMetaController.meta succeeded",
         kv("source", SOURCE),

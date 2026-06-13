@@ -338,6 +338,25 @@
       <pre id="react-node-item-result" class="rust-item-result" aria-live="polite"></pre>
     </section>
 
+    <section class="rust-item-panel" id="stack-relays-panel" aria-labelledby="stack-relays-heading">
+      <h2 class="section" id="stack-relays-heading">Stack relay: Java → Python → React Node</h2>
+      <p class="hint" style="margin: 0 0 0.5rem;">
+        Java sends <code>POST</code> to Python <code>/api/relay/react</code>; Python relays to React Node
+        <code>/api/items</code> (direct Postgres).
+      </p>
+      <div class="rust-item-form" id="python-react-relay-form">
+        <label class="visually-hidden" for="python-react-relay-name">Item name</label>
+        <input
+            type="text"
+            id="python-react-relay-name"
+            name="name"
+            placeholder="Item name"
+            autocomplete="off"/>
+        <button type="button" class="btn primary" id="python-react-relay-add">Relay via Python → React</button>
+      </div>
+      <pre id="python-react-relay-result" class="rust-item-result" aria-live="polite"></pre>
+    </section>
+
     <p class="hint">
       Run JUnit tests on the host with <code>./mvnw test</code> from the <code>java/</code> module.
       Exercise helpers: <code>GET /dashboard/test-template</code>, <code>POST /dashboard/exercise-file</code>,
@@ -680,6 +699,91 @@
               } else if (d.body) {
                 lines.push('');
                 lines.push('React Node body:');
+                try {
+                  lines.push(JSON.stringify(JSON.parse(String(d.body)), null, 2));
+                } catch (e) {
+                  lines.push(String(d.body));
+                }
+              }
+              if (d.error) {
+                lines.push('');
+                lines.push('Error: ' + d.error);
+              }
+              if (r.httpOk && d.ok === true) {
+                nameInput.value = '';
+              }
+              showResult(lines.join('\n'));
+            })
+            .catch(function (err) {
+              showResult('Request failed: ' + String(err.message || err));
+            });
+        });
+
+        nameInput.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Enter') {
+            ev.preventDefault();
+            addBtn.click();
+          }
+        });
+      })();
+
+      (function () {
+        if (!window.fetch) return;
+        var addBtn = document.getElementById('python-react-relay-add');
+        var nameInput = document.getElementById('python-react-relay-name');
+        var resultEl = document.getElementById('python-react-relay-result');
+        if (!addBtn || !nameInput || !resultEl) return;
+        var addUrl = /*[[@{/dashboard/relays/python-react}]]*/ '/dashboard/relays/python-react';
+        var session = window.exercisesPageSession || {};
+        var apiRequest = session.apiRequest || function (page, extra) {
+          var headers = { 'X-Dashboard-Page': page };
+          if (extra) {
+            Object.keys(extra).forEach(function (key) { headers[key] = extra[key]; });
+          }
+          return { requestId: '', headers: headers };
+        };
+
+        function showResult(text) {
+          resultEl.textContent = text;
+        }
+
+        addBtn.addEventListener('click', function () {
+          var name = (nameInput.value || '').trim();
+          if (!name) {
+            showResult('Enter an item name.');
+            return;
+          }
+          var relayReq = apiRequest('home-python-react-relay', { Accept: 'application/json', 'Content-Type': 'application/json' });
+          showResult('Calling Python relay…\nrequest_id=' + relayReq.requestId + '\ndashboard_page=home-python-react-relay');
+          fetch(addUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: relayReq.headers,
+            body: JSON.stringify({ name: name })
+          })
+            .then(function (res) {
+              return res.json().then(function (data) {
+                return { httpOk: res.ok, data: data };
+              }, function () {
+                return { httpOk: res.ok, data: { error: 'Response was not JSON' } };
+              });
+            })
+            .then(function (r) {
+              var lines = [];
+              lines.push('Java relay HTTP ' + (r.httpOk ? 'OK' : 'error'));
+              var d = r.data || {};
+              lines.push('request_id=' + (d.requestId || relayReq.requestId));
+              lines.push('dashboard_page=home-python-react-relay');
+              if (d.relayChain) lines.push('Chain: ' + d.relayChain);
+              if (d.pythonRelayUrl) lines.push('Python relay URL: ' + d.pythonRelayUrl);
+              if (d.status != null) lines.push('Python HTTP status: ' + d.status);
+              if (d.downstream) {
+                lines.push('');
+                lines.push('Downstream response:');
+                lines.push(JSON.stringify(d.downstream, null, 2));
+              } else if (d.body) {
+                lines.push('');
+                lines.push('Response body:');
                 try {
                   lines.push(JSON.stringify(JSON.parse(String(d.body)), null, 2));
                 } catch (e) {
