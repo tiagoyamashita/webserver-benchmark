@@ -31,7 +31,7 @@ FIELD_FORMAT_MAP = {
 # Custom column labels in Discover / dashboards (field name in ES stays url_params).
 FIELD_ATTRS = {
     "url_params": {"customLabel": "Query string (?params)"},
-    "body": {"customLabel": "POST body (JSON/form)"},
+    "body": {"customLabel": "body"},
     "url_param_name": {"customLabel": "Query: name"},
     "url_param_email": {"customLabel": "Query: email"},
     "url_params.name": {"customLabel": "Query: name (runtime)"},
