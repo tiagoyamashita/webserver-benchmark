@@ -27,7 +27,7 @@ export const openApiSpec = {
         tags: ["Items (Postgres)"],
         summary: "List items from Postgres",
         description:
-          "Reads from the shared `items` table. Sets Postgres `application_name` from `X-Request-ID` when present.",
+          "Reads from the shared `items` table. Requires an active Redis session when session auth is configured (or `X-Request-Origin` from a stack relay). Sets Postgres `application_name` from `X-Request-ID` when present.",
         responses: {
           "200": {
             description: "All items",
@@ -37,6 +37,14 @@ export const openApiSpec = {
                   type: "array",
                   items: { $ref: "#/components/schemas/Item" },
                 },
+              },
+            },
+          },
+          "401": {
+            description: "No active session",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiError" },
               },
             },
           },
@@ -62,7 +70,7 @@ export const openApiSpec = {
         tags: ["Items (Postgres)"],
         summary: "Create item in Postgres",
         description:
-          "Inserts into the shared `items` table with JSON body `{\"name\":\"...\"}`. Sets Postgres `application_name` from `X-Request-ID` when present.",
+          "Inserts into the shared `items` table with JSON body `{\"name\":\"...\"}`. Requires an active Redis session when session auth is configured (or `X-Request-Origin` from a stack relay). Sets Postgres `application_name` from `X-Request-ID` when present.",
         requestBody: {
           required: true,
           content: {
@@ -82,6 +90,14 @@ export const openApiSpec = {
           },
           "400": {
             description: "Blank name",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiError" },
+              },
+            },
+          },
+          "401": {
+            description: "No active session",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ApiError" },

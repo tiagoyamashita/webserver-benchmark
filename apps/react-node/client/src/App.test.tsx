@@ -11,7 +11,7 @@ describe("App", () => {
   it("renders stack services and pings one target", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
       const url = String(input);
-      if (url.endsWith("/java/api/items")) {
+      if (url.endsWith("/api/items")) {
         return new Response(JSON.stringify([]), {
           status: 200,
           headers: { "Content-Type": "application/json" },

@@ -359,8 +359,8 @@ export default function App() {
           >
             <h2 className="form-heading">List items</h2>
             <p className="form-hint">
-              Loads rows from the shared PostgreSQL <code>items</code> table via Express → Java{" "}
-              <code>GET /java/api/items</code>.
+              Loads rows from the shared PostgreSQL <code>items</code> table via{" "}
+              <code>GET /api/items</code> (direct Postgres, session-protected when Redis is configured).
             </p>
             <div className="toolbar">
               <button
@@ -410,8 +410,8 @@ export default function App() {
           >
             <h2 className="form-heading">Create item</h2>
             <p className="form-hint">
-              Persists a row to the shared PostgreSQL <code>items</code> table via Express → Java{" "}
-              <code>POST /java/api/items</code>.
+              Persists a row to the shared PostgreSQL <code>items</code> table via{" "}
+              <code>POST /api/items</code> (direct Postgres, session-protected when Redis is configured).
             </p>
             <form
               className="items-form"
@@ -449,9 +449,9 @@ export default function App() {
           >
             <h2 className="form-heading">OpenAPI</h2>
             <p className="form-hint">
-              Interactive REST docs (Swagger UI) for <code>/java/api/items</code> list and create (proxies to Java).
-              Health, probe, and observability routes are excluded. JSON spec:{" "}
-              <code>/api-docs/openapi.json</code>.
+              Interactive REST docs (Swagger UI) for <code>/api/items</code> (direct Postgres) and{" "}
+              <code>/java/api/items</code> (Java proxy). Health, probe, and observability routes are
+              excluded. JSON spec: <code>/api-docs/openapi.json</code>.
             </p>
             {openapiSrc ? (
               <iframe

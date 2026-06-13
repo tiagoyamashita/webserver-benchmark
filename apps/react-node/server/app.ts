@@ -16,6 +16,7 @@ import {
   listItemsFromPostgres,
 } from "./postgres-items.js";
 import { registerAuthRoutes, sessionMiddleware, type AuthRuntime } from "./auth/routes.js";
+import { requireApiSession } from "./auth/require-api-session.js";
 import {
   observabilityEnabled,
   writeLog,
@@ -60,6 +61,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
   const { isProduction = process.env.NODE_ENV === "production", fetchImpl, authRuntime = { auth: null } } =
     options;
   const app = express();
+  const protectApiSession = requireApiSession(authRuntime.auth);
   app.use(express.json());
   app.use(requestIdMiddleware);
   app.use(sessionMiddleware(authRuntime.auth));
@@ -190,7 +192,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
     res.json(result);
   });
 
-  app.get("/api/items", async (req: Request, res: Response) => {
+  app.get("/api/items", protectApiSession, async (req: Request, res: Response) => {
     logReceivedFromRequest(req, "list_items", POSTGRES_ITEMS_SOURCE, "GET", "/api/items");
     try {
       const items = await listItemsFromPostgres(req.requestId);
@@ -215,7 +217,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
     }
   });
 
-  app.post("/api/items", async (req: Request, res: Response) => {
+  app.post("/api/items", protectApiSession, async (req: Request, res: Response) => {
     const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
     logReceivedFromRequest(req, "create_item", POSTGRES_ITEMS_SOURCE, "POST", "/api/items", {
       item_name: name || undefined,

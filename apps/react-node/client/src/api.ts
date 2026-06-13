@@ -23,7 +23,7 @@ export async function probeService(id: string): Promise<ProbeResult> {
 
 export async function fetchItems(): Promise<Item[]> {
   const { headers } = apiRequest();
-  const response = await fetch("/java/api/items", {
+  const response = await fetch("/api/items", {
     method: "GET",
     credentials: "same-origin",
     cache: "no-store",
@@ -38,7 +38,7 @@ export async function fetchItems(): Promise<Item[]> {
 
 export async function createItem(name: string): Promise<Item> {
   const { headers } = apiRequest({ "Content-Type": "application/json" });
-  const response = await fetch("/java/api/items", {
+  const response = await fetch("/api/items", {
     method: "POST",
     credentials: "same-origin",
     headers,
