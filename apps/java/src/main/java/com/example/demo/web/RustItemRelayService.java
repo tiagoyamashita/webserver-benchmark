@@ -79,6 +79,7 @@ public class RustItemRelayService {
             .encode(StandardCharsets.UTF_8)
             .build()
             .toUri();
+    OutboundHttpLogger.logRequest("POST", uri, "exercises-rust", Map.of("name", trimmed));
     long start = System.nanoTime();
     try {
       ResponseEntity<String> res =

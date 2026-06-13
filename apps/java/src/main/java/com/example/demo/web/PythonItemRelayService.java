@@ -81,6 +81,7 @@ public class PythonItemRelayService {
         kv("action", "add-item-via-python"));
     String base = properties.getPythonBaseUrl().trim().replaceAll("/+$", "");
     URI uri = URI.create(base + "/api/items");
+    OutboundHttpLogger.logRequest("POST", uri, RELAY_TARGET, Map.of("name", trimmed));
     long start = System.nanoTime();
     try {
       ResponseEntity<String> res =

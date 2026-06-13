@@ -45,6 +45,7 @@ public class StackPingService {
   public Map<String, Object> emptyGet(String stack, String baseUrl) {
     String root = normalizeRoot(baseUrl);
     URI uri = URI.create(root);
+    OutboundHttpLogger.logRequest("GET", uri, stack, null);
     long start = System.nanoTime();
     try {
       ResponseEntity<Void> res =

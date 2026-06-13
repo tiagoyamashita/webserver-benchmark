@@ -32,6 +32,7 @@ public class RequestIdFilter extends OncePerRequestFilter {
     String requestId = resolveRequestId(request);
     String dashboardPage = resolveDashboardPage(request);
     RequestIdContext.set(requestId);
+    InboundRequestContext.set(request.getMethod(), request.getRequestURI());
     if (dashboardPage != null) {
       DashboardPageContext.set(dashboardPage);
     }
@@ -44,6 +45,7 @@ public class RequestIdFilter extends OncePerRequestFilter {
       filterChain.doFilter(wrapped, response);
     } finally {
       RequestIdContext.clear();
+      InboundRequestContext.clear();
       DashboardPageContext.clear();
     }
   }
