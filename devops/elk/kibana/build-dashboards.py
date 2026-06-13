@@ -1,42 +1,53 @@
 #!/usr/bin/env python3
-"""Build Kibana dashboards that reference library saved searches."""
+"""Build Kibana dashboards with inline search panels and index-pattern references."""
 
 from __future__ import annotations
 
+import copy
 import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent / "saved_objects"
+DATA_VIEW_ID = "logstash-data-view"
+DATA_VIEW_REF = "kibanaSavedObjectMeta.searchSourceJSON.index"
 VERSION = "8.15.5"
 
 
-def by_ref_search_panel(
+def load_search_flat(path: Path) -> dict:
+    """Flatten saved-search attributes, keeping indexRefName for dashboard references."""
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return copy.deepcopy(payload["attributes"])
+
+
+def inline_search_panel(
     panel_index: str,
     x: int,
     y: int,
     w: int,
     h: int,
-    search_id: str,
+    flat_state: dict,
 ) -> dict:
-    ref_name = f"panel_{panel_index}"
     return {
         "version": VERSION,
         "type": "search",
         "gridData": {"x": x, "y": y, "w": w, "h": h, "i": panel_index},
         "panelIndex": panel_index,
-        "panelRefName": ref_name,
-        "embeddableConfig": {
-            "savedObjectId": search_id,
-        },
+        "embeddableConfig": flat_state,
     }
 
 
-def panel_reference(panel_index: str, search_id: str) -> dict:
-    return {
-        "id": search_id,
-        "name": f"panel_{panel_index}",
-        "type": "search",
-    }
+def dashboard_references(panels: list[dict]) -> list[dict]:
+    refs: list[dict] = []
+    for panel in panels:
+        panel_index = panel["panelIndex"]
+        refs.append(
+            {
+                "id": DATA_VIEW_ID,
+                "name": f"{panel_index}:{DATA_VIEW_REF}",
+                "type": "index-pattern",
+            }
+        )
+    return refs
 
 
 def write_dashboard(
@@ -46,7 +57,6 @@ def write_dashboard(
     title: str,
     description: str,
     panels: list[dict],
-    panel_refs: list[dict],
     time_restore: bool,
     time_from: str | None = None,
     time_to: str | None = None,
@@ -77,7 +87,10 @@ def write_dashboard(
         attributes["timeFrom"] = time_from
         attributes["timeTo"] = time_to
 
-    payload = {"attributes": attributes, "references": panel_refs}
+    payload = {
+        "attributes": attributes,
+        "references": dashboard_references(panels),
+    }
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     print(f"wrote {path} ({dashboard_id}, {len(panels)} panels)")
 
@@ -86,64 +99,47 @@ def main() -> None:
     requests_dir = ROOT / "requests-logs"
 
     requests_specs = [
-        ("1", 0, 0, 24, 16, "requests-logs-http-search"),
-        ("2", 24, 0, 24, 16, "requests-logs-sql-search"),
-        ("3", 0, 16, 24, 16, "requests-logs-postgres-stream-search"),
-        ("4", 24, 16, 24, 16, "requests-logs-http-handlers"),
+        ("1", 0, 0, 24, 16, requests_dir / "search-http-requests.json"),
+        ("2", 24, 0, 24, 16, requests_dir / "search-sql-crud.json"),
+        ("3", 0, 16, 24, 16, requests_dir / "search-postgres-stream.json"),
+        ("4", 24, 16, 24, 16, requests_dir / "search-http-handlers.json"),
     ]
     requests_panels = [
-        by_ref_search_panel(panel_index, x, y, w, h, search_id)
-        for panel_index, x, y, w, h, search_id in requests_specs
-    ]
-    requests_refs = [
-        panel_reference(panel_index, search_id)
-        for panel_index, _, _, _, _, search_id in requests_specs
+        inline_search_panel(panel_index, x, y, w, h, load_search_flat(path))
+        for panel_index, x, y, w, h, path in requests_specs
     ]
     write_dashboard(
         requests_dir / "dashboard.json",
         dashboard_id="exercises-requests-logs-kibana",
         title="Exercises — HTTP & Postgres logs",
         description=(
-            "Correlate HTTP requests with Postgres SQL. PostgreSQL — SQL CRUD by origin "
-            "(top right): application_name is parsed into correlation.origin and "
-            "correlation.request_id. Click correlation.request_id to open All logs for "
-            "request for that id across Java, Rust, Python, React Node, and Postgres. "
-            "For the full click-through layout, use Grafana Exercises HTTP requests & "
-            "SQL logs on port 3000."
+            "Correlate HTTP requests with Postgres SQL. Uses the logstash-* data view. "
+            "Click correlation.request_id in the SQL panel to drill into one request."
         ),
         panels=requests_panels,
-        panel_refs=requests_refs,
         time_restore=True,
-        time_from="now-6h",
+        time_from="now-24h",
         time_to="now",
     )
 
     pipeline_specs = [
-        ("1", 0, 0, 24, 20, "log-pipeline-all-search"),
-        ("2", 24, 0, 24, 20, "log-pipeline-errors-search"),
+        ("1", 0, 0, 24, 20, ROOT / "search-all.json"),
+        ("2", 24, 0, 24, 20, ROOT / "search-errors.json"),
     ]
     pipeline_panels = [
-        by_ref_search_panel(panel_index, x, y, w, h, search_id)
-        for panel_index, x, y, w, h, search_id in pipeline_specs
-    ]
-    pipeline_refs = [
-        panel_reference(panel_index, search_id)
-        for panel_index, _, _, _, _, search_id in pipeline_specs
+        inline_search_panel(panel_index, x, y, w, h, load_search_flat(path))
+        for panel_index, x, y, w, h, path in pipeline_specs
     ]
     write_dashboard(
         ROOT / "dashboard.json",
         dashboard_id="exercises-log-pipeline-kibana",
         title="Exercises — Log pipeline (Kibana)",
         description=(
-            "Ingest health for Filebeat → Logstash → Elasticsearch. If Grafana alerted "
-            "or ingest flatlined: note the alert start time, inspect apps/*/logs/*.json.log "
-            "and postgres/logs/postgresql-* on disk for that window, compare with this "
-            "dashboard, then check filebeat/logstash container logs."
+            "Ingest health for Filebeat → Logstash → Elasticsearch (logstash-* data view)."
         ),
         panels=pipeline_panels,
-        panel_refs=pipeline_refs,
         time_restore=True,
-        time_from="now-6h",
+        time_from="now-24h",
         time_to="now",
     )
 

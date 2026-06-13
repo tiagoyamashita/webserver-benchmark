@@ -35,6 +35,11 @@ if ($LASTEXITCODE -ne 0) { throw "build-dashboards.py failed with exit code $LAS
 python (Join-Path $PSScriptRoot "build-ndjson.py")
 if ($LASTEXITCODE -ne 0) { throw "build-ndjson.py failed with exit code $LASTEXITCODE" }
 
+# Remove auto-created duplicate data view (same logstash-* pattern) so only logstash-data-view remains.
+Write-Host "DELETE duplicate data view (if present) ..."
+curl.exe -sS -X DELETE "$Kibana/api/data_views/data_view/57d8bc58-117d-4a14-af02-4a8e4369a633" -H "kbn-xsrf: true" 2>$null
+Write-Host ""
+
 Write-Host "POST saved_objects/_import (compatibilityMode) ..."
 curl.exe -sS -X POST "$Kibana/api/saved_objects/_import?overwrite=true&compatibilityMode=true" -H "kbn-xsrf: true" -F "file=@$Ndjson;type=application/ndjson"
 Write-Host ""

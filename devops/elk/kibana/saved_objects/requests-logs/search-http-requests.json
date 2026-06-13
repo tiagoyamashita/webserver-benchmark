@@ -18,7 +18,7 @@
     ],
     "sort": [["@timestamp", "desc"]],
     "kibanaSavedObjectMeta": {
-      "searchSourceJSON": "{\"query\":{\"query\":\"status: * and service: (exercises-java or exercises-python or exercises-rust or exercises-react-node) and not (status: 200 and (path: \\\"/health\\\" or path: \\\"/api/health\\\" or path: \\\"/metrics\\\" or path: \\\"/actuator/prometheus\\\" or path: \\\"/api/observability/health\\\"))\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
+      "searchSourceJSON": "{\"query\":{\"query\":\"_exists_: status and service: (exercises-java or exercises-python or exercises-rust or exercises-react-node) and not (status: 200 and (path: \\\"/health\\\" or path: \\\"/api/health\\\" or path: \\\"/metrics\\\" or path: \\\"/actuator/prometheus\\\" or path: \\\"/api/observability/health\\\"))\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
     }
   },
   "references": [

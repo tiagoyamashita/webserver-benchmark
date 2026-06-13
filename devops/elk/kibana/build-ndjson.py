@@ -18,6 +18,7 @@ OBJECTS: list[tuple[str, str, Path]] = [
     ("search", "requests-logs-sql-search", REQUESTS / "search-sql-crud.json"),
     ("search", "requests-logs-postgres-stream-search", REQUESTS / "search-postgres-stream.json"),
     ("search", "requests-logs-http-handlers", REQUESTS / "search-http-handlers.json"),
+    ("search", "requests-logs-by-session-request", REQUESTS / "search-by-session-or-request.json"),
     ("search", "log-pipeline-all-search", ROOT / "search-all.json"),
     ("search", "log-pipeline-errors-search", ROOT / "search-errors.json"),
     ("dashboard", "exercises-requests-logs-kibana", REQUESTS / "dashboard.json"),

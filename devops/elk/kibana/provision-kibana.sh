@@ -58,6 +58,11 @@ wait_for_kibana
 python3 "${SCRIPT_DIR}/build-dashboards.py" || python "${SCRIPT_DIR}/build-dashboards.py"
 python3 "${SCRIPT_DIR}/build-ndjson.py" || python "${SCRIPT_DIR}/build-ndjson.py"
 
+echo "DELETE duplicate data view (if present) ..."
+curl -sS -X DELETE "${KIBANA_URL}/api/data_views/data_view/57d8bc58-117d-4a14-af02-4a8e4369a633" \
+  -H "kbn-xsrf: true" || true
+echo
+
 echo "POST saved_objects/_import (compatibilityMode) ..."
 curl -sS -X POST "${KIBANA_URL}/api/saved_objects/_import?overwrite=true&compatibilityMode=true" \
   -H "kbn-xsrf: true" \

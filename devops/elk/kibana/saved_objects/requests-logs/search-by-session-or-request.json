@@ -1,0 +1,27 @@
+{
+  "attributes": {
+    "title": "By session or request ID",
+    "description": "Correlate logs by request_id or session_id. Filter in the search bar: request_id: \"<uuid>\" or session_id: \"<id>\". log.body shows the HTTP body when present, otherwise the log message.",
+    "columns": [
+      "@timestamp",
+      "service",
+      "request_id",
+      "session_id",
+      "headers",
+      "method",
+      "url_params",
+      "log.body"
+    ],
+    "sort": [["@timestamp", "asc"]],
+    "kibanaSavedObjectMeta": {
+      "searchSourceJSON": "{\"query\":{\"query\":\"_exists_: request_id or _exists_: session_id\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
+    }
+  },
+  "references": [
+    {
+      "id": "logstash-data-view",
+      "name": "kibanaSavedObjectMeta.searchSourceJSON.index",
+      "type": "index-pattern"
+    }
+  ]
+}
