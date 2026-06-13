@@ -31,6 +31,10 @@ description: >-
 
 Use SLF4J + `net.logstash.logback.argument.StructuredArguments.kv` (already on classpath).
 
+**Request id on the thread:** `RequestIdFilter` calls `RequestIdContext.set(requestId)` for every HTTP request. That binds the id to the thread **and** SLF4J `MDC` (`request_id`). `ObservabilityJsonProvider` (observability profile) adds top-level `request_id`, `log_seq`, and `session_id` on **every** log line — including stack traces — without repeating `kv("request_id", …)` in controllers. Kafka consumers call `RequestIdContext.set` the same way before handling a message.
+
+Do **not** add `kv("request_id", …)` on HTTP controller/service logs unless there is no `RequestIdContext` (rare). Keep `request_id` in Kafka message headers/JSON for cross-service correlation.
+
 Each controller declares a **source** constant — path under `src/main/java/`:
 
 ```java
@@ -110,7 +114,7 @@ log.trace("ItemController.list result", kv("source", SOURCE), kv("items", result
 
 ## Do not duplicate
 
-- `HttpRequestLoggingFilter` (`observability` profile) already logs HTTP method/path/status/ms and **`request_id`** — controller logs add **business context** and **handler source file**, not another access log per line. Do **not** repeat `request_id` in controller message text or structured fields for HTTP handlers.
+- `HttpRequestLoggingFilter` (`observability` profile) already logs HTTP method/path/status/ms — controller logs add **business context** and **handler source file**, not another access log per line. Do **not** repeat `request_id` in controller `kv(...)` for HTTP handlers; it is on the thread via `RequestIdContext` / MDC and emitted by `ObservabilityJsonProvider`.
 - HTTP access logs do **not** emit a top-level **`session_id`** — controller helpers auto-include **`session_id`** from the resolved Redis session when present (Java: `ObservabilityJsonProvider`; Python: `controller_logging`; React Node: `requestContext`; Rust: `session_log_span` middleware).
 - Kafka/async handlers (no HTTP access line) may still emit **`request_id`** as a structured field for correlation.
 

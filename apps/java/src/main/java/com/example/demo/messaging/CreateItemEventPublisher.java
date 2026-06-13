@@ -45,7 +45,6 @@ public class CreateItemEventPublisher {
         "CreateItemEventPublisher.publishCreateItem publishing",
         kv("source", SOURCE),
         kv("controller", "CreateItemEventPublisher"),
-        kv("request_id", requestId),
         kv("topic", topic),
         kv("kafka_event", CreateItemEvent.EVENT_TYPE),
         kv("name", name));
@@ -61,7 +60,6 @@ public class CreateItemEventPublisher {
         "CreateItemEventPublisher.publishCreateItem succeeded",
         kv("source", SOURCE),
         kv("controller", "CreateItemEventPublisher"),
-        kv("request_id", requestId),
         kv("topic", topic),
         kv("kafka_event", CreateItemEvent.EVENT_TYPE),
         kv("name", name));

@@ -30,12 +30,12 @@ public class CreateUserEventHandler {
 
   public void handle(String payload, String requestIdHeader) {
     if (payload == null || payload.isBlank()) {
-      log.warn(
-          "CreateUserEventHandler.handle skipped",
-          kv("source", SOURCE),
-          kv("controller", "CreateUserEventHandler"),
-          kv("request_id", RequestIdRelay.resolveKafkaRequestId(null, requestIdHeader)),
-          kv("reason", "empty-payload"));
+      withRequestId(RequestIdRelay.resolveKafkaRequestId(null, requestIdHeader), () ->
+          log.warn(
+              "CreateUserEventHandler.handle skipped",
+              kv("source", SOURCE),
+              kv("controller", "CreateUserEventHandler"),
+              kv("reason", "empty-payload")));
       return;
     }
 
@@ -43,32 +43,26 @@ public class CreateUserEventHandler {
     try {
       event = objectMapper.readValue(payload, CreateUserEvent.class);
     } catch (JsonProcessingException e) {
-      log.error(
-          "CreateUserEventHandler.handle parse failed",
-          kv("source", SOURCE),
-          kv("controller", "CreateUserEventHandler"),
-          kv("request_id", RequestIdRelay.resolveKafkaRequestId(null, requestIdHeader)),
-          kv("error", e.getMessage()));
+      withRequestId(RequestIdRelay.resolveKafkaRequestId(null, requestIdHeader), () ->
+          log.error(
+              "CreateUserEventHandler.handle parse failed",
+              kv("source", SOURCE),
+              kv("controller", "CreateUserEventHandler"),
+              kv("error", e.getMessage())));
       return;
     }
 
-    String effectiveRequestId =
-        RequestIdRelay.resolveKafkaRequestId(event.requestId(), requestIdHeader);
-    RequestIdContext.set(effectiveRequestId);
-    try {
-      handleEvent(event, effectiveRequestId);
-    } finally {
-      RequestIdContext.clear();
-    }
+    withRequestId(
+        RequestIdRelay.resolveKafkaRequestId(event.requestId(), requestIdHeader),
+        () -> handleEvent(event));
   }
 
-  private void handleEvent(CreateUserEvent event, String effectiveRequestId) {
+  private void handleEvent(CreateUserEvent event) {
     if (!CreateUserEvent.EVENT_TYPE.equals(event.event())) {
       log.warn(
           "CreateUserEventHandler.handle skipped",
           kv("source", SOURCE),
           kv("controller", "CreateUserEventHandler"),
-          kv("request_id", effectiveRequestId),
           kv("kafka_event", event.event()),
           kv("reason", "unexpected-event-type"));
       return;
@@ -81,7 +75,6 @@ public class CreateUserEventHandler {
           "CreateUserEventHandler.handle validation failed",
           kv("source", SOURCE),
           kv("controller", "CreateUserEventHandler"),
-          kv("request_id", effectiveRequestId),
           kv("name", trimmedName),
           kv("email", trimmedEmail),
           kv("reason", "blank-name-or-email"));
@@ -92,7 +85,6 @@ public class CreateUserEventHandler {
         "CreateUserEventHandler.handle received",
         kv("source", SOURCE),
         kv("controller", "CreateUserEventHandler"),
-        kv("request_id", effectiveRequestId),
         kv("kafka_event", event.event()),
         kv("name", trimmedName),
         kv("email", trimmedEmail));
@@ -103,7 +95,6 @@ public class CreateUserEventHandler {
           "CreateUserEventHandler.handle succeeded",
           kv("source", SOURCE),
           kv("controller", "CreateUserEventHandler"),
-          kv("request_id", effectiveRequestId),
           kv("id", saved.getId()),
           kv("name", saved.getName()),
           kv("email", saved.getEmail()));
@@ -112,10 +103,18 @@ public class CreateUserEventHandler {
           "CreateUserEventHandler.handle failed",
           kv("source", SOURCE),
           kv("controller", "CreateUserEventHandler"),
-          kv("request_id", effectiveRequestId),
           kv("name", trimmedName),
           kv("email", trimmedEmail),
           kv("error", e.getMessage()));
+    }
+  }
+
+  private static void withRequestId(String requestId, Runnable action) {
+    RequestIdContext.set(requestId);
+    try {
+      action.run();
+    } finally {
+      RequestIdContext.clear();
     }
   }
 }
