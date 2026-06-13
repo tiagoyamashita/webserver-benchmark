@@ -200,9 +200,7 @@ fn generate_request_id() -> String {
 }
 
 fn incoming_request_id_header(headers: &HeaderMap) -> Option<&HeaderValue> {
-    headers
-        .get(REQUEST_ID_HEADER)
-        .or_else(|| headers.get(axum::http::header::HeaderName::from_static("X-Request-ID")))
+    headers.get(REQUEST_ID_HEADER)
 }
 
 fn http_access_session_id(headers: &HeaderMap) -> Option<String> {
