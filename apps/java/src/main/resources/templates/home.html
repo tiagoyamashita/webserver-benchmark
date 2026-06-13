@@ -322,6 +322,22 @@
       <pre id="python-item-result" class="rust-item-result" aria-live="polite"></pre>
     </section>
 
+    <section class="rust-item-panel" id="react-node-item-panel" aria-labelledby="react-node-item-heading">
+      <h2 class="section" id="react-node-item-heading">Add item via React Node → PostgreSQL</h2>
+      <p class="hint" style="margin: 0 0 0.5rem;">Java sends <code>POST</code> to React Node <code>/api/items</code>; React Node inserts into the shared <code>items</code> table.</p>
+      <div class="rust-item-form" id="react-node-item-form">
+        <label class="visually-hidden" for="react-node-item-name">Item name</label>
+        <input
+            type="text"
+            id="react-node-item-name"
+            name="name"
+            placeholder="Item name"
+            autocomplete="off"/>
+        <button type="button" class="btn primary" id="react-node-item-add">Add via React Node</button>
+      </div>
+      <pre id="react-node-item-result" class="rust-item-result" aria-live="polite"></pre>
+    </section>
+
     <p class="hint">
       Run JUnit tests on the host with <code>./mvnw test</code> from the <code>java/</code> module.
       Exercise helpers: <code>GET /dashboard/test-template</code>, <code>POST /dashboard/exercise-file</code>,
@@ -580,6 +596,90 @@
               } else if (d.body) {
                 lines.push('');
                 lines.push('Python body:');
+                try {
+                  lines.push(JSON.stringify(JSON.parse(String(d.body)), null, 2));
+                } catch (e) {
+                  lines.push(String(d.body));
+                }
+              }
+              if (d.error) {
+                lines.push('');
+                lines.push('Error: ' + d.error);
+              }
+              if (r.httpOk && d.ok === true) {
+                nameInput.value = '';
+              }
+              showResult(lines.join('\n'));
+            })
+            .catch(function (err) {
+              showResult('Request failed: ' + String(err.message || err));
+            });
+        });
+
+        nameInput.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Enter') {
+            ev.preventDefault();
+            addBtn.click();
+          }
+        });
+      })();
+
+      (function () {
+        if (!window.fetch) return;
+        var addBtn = document.getElementById('react-node-item-add');
+        var nameInput = document.getElementById('react-node-item-name');
+        var resultEl = document.getElementById('react-node-item-result');
+        if (!addBtn || !nameInput || !resultEl) return;
+        var addUrl = /*[[@{/dashboard/items/add-via-react-node}]]*/ '/dashboard/items/add-via-react-node';
+        var session = window.exercisesPageSession || {};
+        var apiRequest = session.apiRequest || function (page, extra) {
+          var headers = { 'X-Dashboard-Page': page };
+          if (extra) {
+            Object.keys(extra).forEach(function (key) { headers[key] = extra[key]; });
+          }
+          return { requestId: '', headers: headers };
+        };
+
+        function showResult(text) {
+          resultEl.textContent = text;
+        }
+
+        addBtn.addEventListener('click', function () {
+          var name = (nameInput.value || '').trim();
+          if (!name) {
+            showResult('Enter an item name.');
+            return;
+          }
+          var reactNodeReq = apiRequest('home-react-node-relay', { Accept: 'application/json', 'Content-Type': 'application/json' });
+          showResult('Calling React Node…\nrequest_id=' + reactNodeReq.requestId + '\ndashboard_page=home-react-node-relay');
+          fetch(addUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: reactNodeReq.headers,
+            body: JSON.stringify({ name: name })
+          })
+            .then(function (res) {
+              return res.json().then(function (data) {
+                return { httpOk: res.ok, data: data };
+              }, function () {
+                return { httpOk: res.ok, data: { error: 'Response was not JSON' } };
+              });
+            })
+            .then(function (r) {
+              var lines = [];
+              lines.push('Java relay HTTP ' + (r.httpOk ? 'OK' : 'error'));
+              var d = r.data || {};
+              lines.push('request_id=' + (d.requestId || reactNodeReq.requestId));
+              lines.push('dashboard_page=home-react-node-relay');
+              if (d.reactNodeUrl) lines.push('React Node URL: ' + d.reactNodeUrl);
+              if (d.status != null) lines.push('React Node HTTP status: ' + d.status);
+              if (d.reactNode) {
+                lines.push('');
+                lines.push('React Node response:');
+                lines.push(JSON.stringify(d.reactNode, null, 2));
+              } else if (d.body) {
+                lines.push('');
+                lines.push('React Node body:');
                 try {
                   lines.push(JSON.stringify(JSON.parse(String(d.body)), null, 2));
                 } catch (e) {

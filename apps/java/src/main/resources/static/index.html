@@ -396,6 +396,14 @@
             <button type="button" class="btn primary" id="python-item-add">Add via Python</button>
           </div>
           <pre id="python-item-result" class="result-box"></pre>
+          <h3 class="form-heading" style="font-size: 0.95rem; margin-top: 1.25rem;">React Node</h3>
+          <p class="form-hint">Calls React Node <code>POST /api/items</code> with JSON <code>{"name": "…"}</code> (direct Postgres).</p>
+          <div class="field-row">
+            <label for="react-node-item-name">Item</label>
+            <input type="text" id="react-node-item-name" placeholder="Item name"/>
+            <button type="button" class="btn primary" id="react-node-item-add">Add via React Node</button>
+          </div>
+          <pre id="react-node-item-result" class="result-box"></pre>
         </section>
 
         <section id="view-kafka-create-user" class="view-panel" aria-hidden="true">
@@ -1070,6 +1078,40 @@
                 pythonResultEl.textContent = lines.join("\n");
               })
               .catch(function (err) { pythonResultEl.textContent = String(err.message || err); });
+          });
+        }
+
+        var reactNodeAddBtn = document.getElementById("react-node-item-add");
+        var reactNodeNameInput = document.getElementById("react-node-item-name");
+        var reactNodeResultEl = document.getElementById("react-node-item-result");
+        if (reactNodeAddBtn && reactNodeNameInput && reactNodeResultEl) {
+          reactNodeAddBtn.addEventListener("click", function () {
+            var name = (reactNodeNameInput.value || "").trim();
+            if (!name) { reactNodeResultEl.textContent = "Enter an item name."; return; }
+            var reactNodeReq = apiRequest({ Accept: "application/json", "Content-Type": "application/json" });
+            reactNodeResultEl.textContent =
+              "Calling React Node…\nrequest_id=" + reactNodeReq.requestId + "\ndashboard_page=" + currentView;
+            fetch("/dashboard/items/add-via-react-node", {
+              method: "POST",
+              credentials: "same-origin",
+              headers: reactNodeReq.headers,
+              body: JSON.stringify({ name: name })
+            })
+              .then(function (res) { return res.json().then(function (data) { return { httpOk: res.ok, status: res.status, data: data }; }); })
+              .then(function (r) {
+                var lines = ["Java relay HTTP " + r.status];
+                var d = r.data || {};
+                lines.push("request_id=" + (d.requestId || reactNodeReq.requestId));
+                lines.push("dashboard_page=" + currentView);
+                if (d.reactNodeUrl) lines.push("React Node: " + d.reactNodeUrl);
+                if (d.status != null) lines.push("React Node response HTTP " + d.status);
+                if (d.reactNode) lines.push(JSON.stringify(d.reactNode, null, 2));
+                else if (d.body) lines.push(String(d.body));
+                if (d.error) lines.push("Error: " + d.error);
+                if (r.httpOk && d.ok === true) reactNodeNameInput.value = "";
+                reactNodeResultEl.textContent = lines.join("\n");
+              })
+              .catch(function (err) { reactNodeResultEl.textContent = String(err.message || err); });
           });
         }
       })();
