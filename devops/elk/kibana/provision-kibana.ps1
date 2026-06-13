@@ -52,6 +52,10 @@ Write-Host "VERIFY saved search logs-by-tiago-discover ..."
 curl.exe -sS -f "$Kibana/api/saved_objects/search/logs-by-tiago-discover" -H "kbn-xsrf: true" | python -c "import sys,json; d=json.load(sys.stdin); print('search OK:', d['attributes']['title'], 'columns:', d['attributes']['columns'])"
 Write-Host ""
 
+Write-Host "VERIFY dashboard exercises-kafka-logs-kibana ..."
+curl.exe -sS -f "$Kibana/api/saved_objects/dashboard/exercises-kafka-logs-kibana" -H "kbn-xsrf: true" | python -c "import sys,json; d=json.load(sys.stdin); print('dashboard OK:', d['attributes']['title'])"
+Write-Host ""
+
 Write-Host "POST data_views/default ($DefaultDataViewId) ..."
 curl.exe -sS -X POST "$Kibana/api/data_views/default" -H "kbn-xsrf: true" -H "Content-Type: application/json" --data-binary "@$(Join-Path $Root 'default-data-view.json')"
 Write-Host ""
@@ -72,3 +76,4 @@ Write-Host ""
 
 Write-Host "Kibana preset ready: $Kibana/"
 Write-Host "Data view: Logs by tiago (logs-by-tiago) - all logs, last 24h"
+Write-Host "Kafka dashboard: $Kibana/app/dashboards#/view/exercises-kafka-logs-kibana"

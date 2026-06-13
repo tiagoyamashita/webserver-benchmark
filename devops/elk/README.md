@@ -82,7 +82,7 @@ Logstash normalizes Rust tracing JSON (flattens nested `fields` to top-level key
 request_id: "paste-your-uuid-here"
 ```
 
-**URL query parameters** appear on HTTP **request received** lines (`phase: "received"`), not on completed lines. Logstash stores the full map in **`url_params`** (JSON string) and common keys as flat fields **`url_param_name`**, **`url_param_email`**, etc. The data view also exposes runtime fields **`url_params.name`** and **`url_params.email`** for filtering. Example: `url_param_name: "foo"` or `phase: "received" and _exists_: url_param_name`. Form POST bodies often land in **`body`** instead of **`url_params`** (e.g. Java dashboard `publish-create-user`).
+**URL query string** (not POST body) appears on HTTP **request received** lines (`phase: "received"`) in **`url_params`** — e.g. Java dashboard `POST /dashboard/items/publish-create-item?name=…` puts `name` in the query string. Logstash stores the map as a JSON string and flattens common keys to **`url_param_name`**, **`url_param_email`**, etc. Runtime fields **`url_params.name`** / **`url_params.email`** mirror those. **POST JSON/form payload** is in **`body`** (often `{}` when the app uses query params only).
 
 For Postgres SQL lines use **`request_id`** (copied from stamped `application_name` by Logstash) or runtime field **`correlation.request_id`**: `request_id: "paste-your-uuid-here"`.
 
@@ -116,6 +116,24 @@ Open **`http://127.0.0.1:5601/`** (default route) or **`http://127.0.0.1:5601/ap
 | **HTTP — handler logs** | Controller received/succeeded/failed lines |
 
 Click **`correlation.request_id`** in the SQL table (URL link on the data view) to jump to handler logs for that request. Grafana **`exercises-requests-logs`** keeps the tighter click-through layout.
+
+### Kafka logs (Kibana)
+
+Dashboard **`Exercises — Kafka logs`**: [http://127.0.0.1:5601/app/dashboards#/view/exercises-kafka-logs-kibana](http://127.0.0.1:5601/app/dashboards#/view/exercises-kafka-logs-kibana)
+
+Re-import after JSON changes:
+
+```powershell
+.\devops\elk\kibana\provision-kibana.ps1
+```
+
+| Panel | What |
+|-------|------|
+| **Kafka — broker logs** | `service: exercises-kafka` — broker JSON from `apps/kafka/logs/` |
+| **Kafka — app publish & consume** | Java `CreateItem*`, `CreateUser*`, Python `create_item_consumer`, Rust `create_user_consumer` |
+| **Kafka — correlate by request_id** | Filter `request_id: "your-uuid"` to stack Java publish → consumer → Postgres for one dashboard action |
+
+Saved searches live under **`devops/elk/kibana/saved_objects/kafka-logs/`** and ship in **`exercises-kibana.ndjson`**.
 
 ### Log pipeline monitoring (Filebeat → Logstash)
 

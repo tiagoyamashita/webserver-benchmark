@@ -1,0 +1,30 @@
+{
+  "attributes": {
+    "title": "Kafka — app publish & consume",
+    "description": "Java/Rust publishers and Java/Python/Rust consumers for create-user and create-item. Filter by request_id to correlate with HTTP and Postgres.",
+    "columns": [
+      "@timestamp",
+      "service",
+      "controller",
+      "request_id",
+      "kafka_event",
+      "topic",
+      "name",
+      "email",
+      "item_name",
+      "message",
+      "level"
+    ],
+    "sort": [["@timestamp", "asc"]],
+    "kibanaSavedObjectMeta": {
+      "searchSourceJSON": "{\"query\":{\"query\":\"(service: (exercises-java or exercises-python or exercises-rust)) and (kafka_event: * or message: (*Kafka* or *create-user* or *create-item* or *kafka message* or *create_user_consumer* or *create_item_consumer*) or controller: (*Kafka* or create_user_consumer or create_item_consumer or CreateUserEvent* or CreateItemEvent*))\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
+    }
+  },
+  "references": [
+    {
+      "id": "logs-by-tiago",
+      "name": "kibanaSavedObjectMeta.searchSourceJSON.index",
+      "type": "index-pattern"
+    }
+  ]
+}

@@ -28,6 +28,18 @@ FIELD_FORMAT_MAP = {
     }
 }
 
+# Custom column labels in Discover / dashboards (field name in ES stays url_params).
+FIELD_ATTRS = {
+    "url_params": {"customLabel": "Query string (?params)"},
+    "body": {"customLabel": "POST body (JSON/form)"},
+    "url_param_name": {"customLabel": "Query: name"},
+    "url_param_email": {"customLabel": "Query: email"},
+    "url_params.name": {"customLabel": "Query: name (runtime)"},
+    "url_params.email": {"customLabel": "Query: email (runtime)"},
+    "log_timestamp": {"customLabel": "App log time (raw)"},
+    "log_body": {"customLabel": "Body or message (runtime)"},
+}
+
 
 def main() -> None:
     runtime = json.loads(RUNTIME.read_text(encoding="utf-8"))
@@ -41,6 +53,7 @@ def main() -> None:
             "timeFieldName": "@timestamp",
             "runtimeFieldMap": json.dumps(runtime, separators=(",", ":")),
             "fieldFormatMap": json.dumps(FIELD_FORMAT_MAP, separators=(",", ":")),
+            "fieldAttrs": json.dumps(FIELD_ATTRS, separators=(",", ":")),
         }
     }
     OUT.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")

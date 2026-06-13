@@ -134,6 +134,36 @@ def main() -> None:
         time_to="now",
     )
 
+    kafka_dir = ROOT / "kafka-logs"
+    kafka_specs = [
+        ("1", 0, 0, 48, 11, "kafka-logs-broker-search"),
+        ("2", 0, 11, 48, 12, "kafka-logs-app-events-search"),
+        ("3", 0, 23, 48, 11, "kafka-logs-correlate-request-search"),
+    ]
+    kafka_panels = [
+        by_ref_search_panel(panel_index, x, y, w, h, search_id)
+        for panel_index, x, y, w, h, search_id in kafka_specs
+    ]
+    kafka_refs = [
+        search_panel_reference(panel_index, search_id)
+        for panel_index, _, _, _, _, search_id in kafka_specs
+    ]
+    write_dashboard(
+        kafka_dir / "dashboard.json",
+        dashboard_id="exercises-kafka-logs-kibana",
+        title="Exercises — Kafka logs",
+        description=(
+            "Broker logs (exercises-kafka) plus Java/Python/Rust publish and consume lines. "
+            "Use the bottom panel and filter request_id to stack-trace one dashboard Kafka action."
+        ),
+        panels=kafka_panels,
+        panel_refs=kafka_refs,
+        time_restore=True,
+        time_from="now-24h",
+        time_to="now",
+        hide_panel_titles=False,
+    )
+
 
 if __name__ == "__main__":
     main()

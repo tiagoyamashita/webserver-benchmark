@@ -1,0 +1,30 @@
+{
+  "attributes": {
+    "title": "Kafka — correlate by request_id",
+    "description": "Paste a request_id in the query bar, e.g. request_id: \\\"your-uuid\\\" — shows Java publish, Python/Rust consume, and related Postgres lines for one dashboard action.",
+    "columns": [
+      "@timestamp",
+      "service",
+      "controller",
+      "request_id",
+      "kafka_event",
+      "topic",
+      "method",
+      "path",
+      "application_name",
+      "message",
+      "level"
+    ],
+    "sort": [["@timestamp", "asc"]],
+    "kibanaSavedObjectMeta": {
+      "searchSourceJSON": "{\"query\":{\"query\":\"_exists_: request_id and (kafka_event: * or service: exercises-kafka or controller: (*Kafka* or create_item_consumer or create_user_consumer) or message: (*create-user* or *create-item* or *Kafka*))\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
+    }
+  },
+  "references": [
+    {
+      "id": "logs-by-tiago",
+      "name": "kibanaSavedObjectMeta.searchSourceJSON.index",
+      "type": "index-pattern"
+    }
+  ]
+}

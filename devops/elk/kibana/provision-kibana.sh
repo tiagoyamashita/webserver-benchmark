@@ -82,8 +82,15 @@ curl -sS -f "${KIBANA_URL}/api/saved_objects/search/logs-by-tiago-discover" \
   || python -c "import sys,json; d=json.load(sys.stdin); print('search OK:', d['attributes']['title'], 'columns:', d['attributes']['columns'])"
 echo
 
+echo "VERIFY dashboard exercises-kafka-logs-kibana ..."
+curl -sS -f "${KIBANA_URL}/api/saved_objects/dashboard/exercises-kafka-logs-kibana" \
+  -H "kbn-xsrf: true" | python3 -c "import sys,json; d=json.load(sys.stdin); print('dashboard OK:', d['attributes']['title'])" \
+  || python -c "import sys,json; d=json.load(sys.stdin); print('dashboard OK:', d['attributes']['title'])"
+echo
+
 set_default_data_view
 set_default_route
 
 echo "Kibana preset ready: ${KIBANA_URL}/"
 echo "Data view: Logs by tiago (${DEFAULT_DATA_VIEW_ID}) - all logs, last 24h"
+echo "Kafka dashboard: ${KIBANA_URL}/app/dashboards#/view/exercises-kafka-logs-kibana"

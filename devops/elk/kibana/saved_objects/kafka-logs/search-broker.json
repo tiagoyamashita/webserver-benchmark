@@ -1,0 +1,26 @@
+{
+  "attributes": {
+    "title": "Kafka — broker logs",
+    "description": "Apache Kafka broker JSON logs (service exercises-kafka). Topic create/consumer group join, controller events, etc.",
+    "columns": [
+      "@timestamp",
+      "service",
+      "level",
+      "logger",
+      "thread",
+      "kafka_event",
+      "message"
+    ],
+    "sort": [["@timestamp", "desc"]],
+    "kibanaSavedObjectMeta": {
+      "searchSourceJSON": "{\"query\":{\"query\":\"service: exercises-kafka\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
+    }
+  },
+  "references": [
+    {
+      "id": "logs-by-tiago",
+      "name": "kibanaSavedObjectMeta.searchSourceJSON.index",
+      "type": "index-pattern"
+    }
+  ]
+}

@@ -4,13 +4,24 @@
     "description": "All logs in logstash-* with default correlation columns.",
     "columns": [
       "@timestamp",
+      "log_timestamp",
       "service",
+      "level",
+      "controller",
+      "dashboard_page",
       "session_id_resolved",
       "request_id",
       "method",
+      "path",
+      "phase",
+      "status",
+      "kafka_event",
+      "ps",
       "headers",
       "body",
-      "message"
+      "log_body",
+      "message",
+      "stack_trace"
     ],
     "sort": [["@timestamp", "asc"]],
     "kibanaSavedObjectMeta": {

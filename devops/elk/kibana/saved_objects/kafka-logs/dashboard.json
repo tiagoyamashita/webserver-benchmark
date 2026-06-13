@@ -1,0 +1,31 @@
+{
+  "attributes": {
+    "title": "Exercises \u2014 Kafka logs",
+    "description": "Broker logs (exercises-kafka) plus Java/Python/Rust publish and consume lines. Use the bottom panel and filter request_id to stack-trace one dashboard Kafka action.",
+    "panelsJSON": "[{\"version\":\"8.15.5\",\"type\":\"search\",\"gridData\":{\"x\":0,\"y\":0,\"w\":48,\"h\":11,\"i\":\"1\"},\"panelIndex\":\"1\",\"panelRefName\":\"panel_1\",\"embeddableConfig\":{\"savedObjectId\":\"kafka-logs-broker-search\",\"enhancements\":{}}},{\"version\":\"8.15.5\",\"type\":\"search\",\"gridData\":{\"x\":0,\"y\":11,\"w\":48,\"h\":12,\"i\":\"2\"},\"panelIndex\":\"2\",\"panelRefName\":\"panel_2\",\"embeddableConfig\":{\"savedObjectId\":\"kafka-logs-app-events-search\",\"enhancements\":{}}},{\"version\":\"8.15.5\",\"type\":\"search\",\"gridData\":{\"x\":0,\"y\":23,\"w\":48,\"h\":11,\"i\":\"3\"},\"panelIndex\":\"3\",\"panelRefName\":\"panel_3\",\"embeddableConfig\":{\"savedObjectId\":\"kafka-logs-correlate-request-search\",\"enhancements\":{}}}]",
+    "optionsJSON": "{\"useMargins\":true,\"syncColors\":false,\"syncCursor\":true,\"syncTooltips\":false,\"hidePanelTitles\":false}",
+    "timeRestore": true,
+    "kibanaSavedObjectMeta": {
+      "searchSourceJSON": "{\"query\":{\"query\":\"\",\"language\":\"kuery\"},\"filter\":[]}"
+    },
+    "timeFrom": "now-24h",
+    "timeTo": "now"
+  },
+  "references": [
+    {
+      "id": "kafka-logs-broker-search",
+      "name": "1:panel_1",
+      "type": "search"
+    },
+    {
+      "id": "kafka-logs-app-events-search",
+      "name": "2:panel_2",
+      "type": "search"
+    },
+    {
+      "id": "kafka-logs-correlate-request-search",
+      "name": "3:panel_3",
+      "type": "search"
+    }
+  ]
+}
