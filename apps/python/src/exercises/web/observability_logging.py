@@ -30,7 +30,7 @@ class _JsonLineFormatter(logging.Formatter):
             "service": self._service,
         }
         for key, value in record.__dict__.items():
-            if key not in self._STANDARD_ATTRS:
+            if key not in self._STANDARD_ATTRS and key != "service":
                 payload[key] = value
         if record.exc_info:
             payload["error"] = self.formatException(record.exc_info)

@@ -137,7 +137,7 @@ def _ping_postgres(*, request_id: str | None = None) -> dict[str, Any]:
             "postgres_ping",
             SOURCE,
             "postgres not configured",
-            service="postgres",
+            target_service="postgres",
             reason="missing-db-host",
         )
         return {
@@ -160,7 +160,7 @@ def _ping_postgres(*, request_id: str | None = None) -> dict[str, Any]:
             "postgres_ping",
             SOURCE,
             "postgres ping failed",
-            service="postgres",
+            target_service="postgres",
             url=url,
             error=str(e),
         )
@@ -182,7 +182,7 @@ def _ping_redis() -> dict[str, Any]:
             "redis_ping",
             SOURCE,
             "redis not configured",
-            service="redis",
+            target_service="redis",
             reason="missing-redis-host",
         )
         return {
@@ -208,7 +208,7 @@ def _ping_redis() -> dict[str, Any]:
             "redis_ping",
             SOURCE,
             "redis ping failed",
-            service="redis",
+            target_service="redis",
             url=url,
             error=str(e),
         )
@@ -239,7 +239,7 @@ def _empty_get(stack: str, base_url: str, *, request_id: str | None = None) -> d
             "stack_http_ping",
             SOURCE,
             "stack http ping failed",
-            service=stack,
+            target_service=stack,
             url=url,
             status=e.code,
             error=error,
@@ -261,7 +261,7 @@ def _empty_get(stack: str, base_url: str, *, request_id: str | None = None) -> d
             "stack_http_ping",
             SOURCE,
             "stack http ping unreachable",
-            service=stack,
+            target_service=stack,
             url=url,
             error=error,
         )

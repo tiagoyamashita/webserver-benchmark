@@ -37,7 +37,7 @@ def _postgres_target() -> dict[str, str]:
     port = os.environ.get("DB_PORT", "5432").strip() or "5432"
     dbname = os.environ.get("DB_NAME", "demo").strip() or "demo"
     return {
-        "service": "postgres",
+        "target_service": "postgres",
         "host": host,
         "port": port,
         "dbname": dbname,
