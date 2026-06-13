@@ -5,9 +5,14 @@
     "columns": [
       "@timestamp",
       "service",
-      "request_id",
+      "phase",
       "method",
       "path",
+      "request_id",
+      "headers",
+      "url_params",
+      "url_param_name",
+      "body",
       "status",
       "message"
     ],

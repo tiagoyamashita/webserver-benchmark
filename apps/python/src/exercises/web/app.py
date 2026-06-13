@@ -10,7 +10,13 @@ from flask import Flask, Response, g, jsonify, redirect, render_template, reques
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, generate_latest
 
 from exercises.web.auth_api import register_auth_routes
-from exercises.web.controller_logging import log_error, log_received, log_succeeded, log_warn
+from exercises.web.controller_logging import (
+    http_access_session_fields,
+    log_error,
+    log_received,
+    log_succeeded,
+    log_warn,
+)
 from exercises.web.items_api import register_items_routes
 from exercises.web.openapi_routes import register_openapi_routes
 from exercises.web.observability_logging import observability_enabled
@@ -110,6 +116,7 @@ def create_app() -> Flask:
                     "path": request.path,
                     "request_id": g.request_id,
                     "phase": "received",
+                    **http_access_session_fields(),
                     "headers": request_headers(request),
                     "url_params": request_url_params(request),
                     "body": request_body(request),
@@ -137,6 +144,7 @@ def create_app() -> Flask:
                     "ms": ms,
                     "request_id": request_id,
                     "phase": "completed",
+                    **http_access_session_fields(),
                 },
             )
         if request.endpoint in ("stack_landing", "tests_dashboard"):

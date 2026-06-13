@@ -2,7 +2,7 @@
 
 use axum::body::{to_bytes, Body, Bytes};
 use axum::extract::Request;
-use axum::http::HeaderValue;
+use axum::http::{HeaderMap, HeaderValue};
 use axum::middleware::Next;
 use axum::response::Response;
 use serde_json::{Map, Value};
@@ -174,6 +174,12 @@ fn generate_request_id() -> String {
     format!("{nanos:x}-{seq:x}")
 }
 
+fn http_access_session_id(headers: &HeaderMap) -> Option<String> {
+    let cookie_name =
+        std::env::var("EXERCISES_SESSION_COOKIE").unwrap_or_else(|_| "exercises_session".to_string());
+    crate::auth::cookies::http_access_session_id(headers, &cookie_name)
+}
+
 pub async fn assign_request_id(req: Request, next: Next) -> Response {
     let (parts, body) = req.into_parts();
     let body_bytes = to_bytes(body, MAX_BODY_LOG_BYTES)
@@ -204,22 +210,38 @@ pub async fn assign_request_id(req: Request, next: Next) -> Response {
         .unwrap_or(0);
     let method = req.method().to_string();
     let path = req.uri().path().to_string();
+    let session_id = http_access_session_id(req.headers());
     let headers_json =
         serde_json::to_string(&headers).unwrap_or_else(|_| "{}".to_string());
     let url_params_json =
         serde_json::to_string(&url_params).unwrap_or_else(|_| "{}".to_string());
     let body_json = serde_json::to_string(&body_map).unwrap_or_else(|_| "{}".to_string());
-    tracing::info!(
-        method = %method,
-        path = %path,
-        request_id = %id,
-        log_seq = log_seq,
-        phase = "received",
-        headers = %headers_json,
-        url_params = %url_params_json,
-        body = %body_json,
-        "{method} {path} request received request_id={id}"
-    );
+    if let Some(ref session_id) = session_id {
+        tracing::info!(
+            method = %method,
+            path = %path,
+            request_id = %id,
+            session_id = %session_id,
+            log_seq = log_seq,
+            phase = "received",
+            headers = %headers_json,
+            url_params = %url_params_json,
+            body = %body_json,
+            "{method} {path} request received request_id={id}"
+        );
+    } else {
+        tracing::info!(
+            method = %method,
+            path = %path,
+            request_id = %id,
+            log_seq = log_seq,
+            phase = "received",
+            headers = %headers_json,
+            url_params = %url_params_json,
+            body = %body_json,
+            "{method} {path} request received request_id={id}"
+        );
+    }
     let mut res = next.run(req).await;
     if let Ok(value) = HeaderValue::from_str(&id) {
         res.headers_mut().insert("x-request-id", value);

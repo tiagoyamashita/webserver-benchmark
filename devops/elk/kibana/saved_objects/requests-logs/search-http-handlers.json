@@ -8,11 +8,15 @@
       "controller",
       "method",
       "path",
+      "request_id",
+      "headers",
+      "url_params",
+      "url_param_name",
+      "body",
       "ps",
       "application_name",
       "message",
-      "level",
-      "request_id"
+      "level"
     ],
     "sort": [["@timestamp", "asc"]],
     "kibanaSavedObjectMeta": {

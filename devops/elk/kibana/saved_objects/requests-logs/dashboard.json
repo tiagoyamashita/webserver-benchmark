@@ -1,20 +1,36 @@
 {
   "attributes": {
-    "title": "Exercises — HTTP & Postgres logs",
-    "description": "HTTP requests, Postgres SQL CRUD, and handler correlation (mirrors Grafana exercises-requests-logs)",
-    "panelsJSON": "[{\"version\":\"8.15.5\",\"type\":\"markdown\",\"gridData\":{\"x\":0,\"y\":0,\"w\":48,\"h\":7,\"i\":\"0\"},\"panelIndex\":\"0\",\"embeddableConfig\":{\"attributes\":{\"title\":\"HTTP \\u2194 SQL\",\"markdown\":\"### Correlate HTTP requests with Postgres SQL\\n\\n1. **PostgreSQL \\u2014 SQL CRUD by origin** (top right): `application_name` is parsed into **correlation.origin** and **correlation.request_id**.\\n2. **Click correlation.request_id** (link) to open **All logs for request** filtered to that id across **Java, Rust, Python, React Node, and Postgres**.\\n3. For the full click-through layout, use Grafana **Exercises HTTP requests & SQL logs** on port **3000**.\\n\\n**Trace:** apps log `request_id` on HTTP lines; DB pools stamp `exercises-<app>;req=<id>` on Postgres `application_name`. Java **Rust item relay** forwards the same `X-Request-ID` to Rust.\"}},\"title\":\"How to correlate\"},{\"version\":\"8.15.5\",\"type\":\"search\",\"gridData\":{\"x\":0,\"y\":7,\"w\":24,\"h\":16,\"i\":\"1\"},\"panelIndex\":\"1\",\"embeddableConfig\":{},\"panelRefName\":\"panel_1\"},{\"version\":\"8.15.5\",\"type\":\"search\",\"gridData\":{\"x\":24,\"y\":7,\"w\":24,\"h\":16,\"i\":\"2\"},\"panelIndex\":\"2\",\"embeddableConfig\":{},\"panelRefName\":\"panel_2\"},{\"version\":\"8.15.5\",\"type\":\"search\",\"gridData\":{\"x\":0,\"y\":23,\"w\":24,\"h\":16,\"i\":\"3\"},\"panelIndex\":\"3\",\"embeddableConfig\":{},\"panelRefName\":\"panel_3\"},{\"version\":\"8.15.5\",\"type\":\"search\",\"gridData\":{\"x\":24,\"y\":23,\"w\":24,\"h\":16,\"i\":\"4\"},\"panelIndex\":\"4\",\"embeddableConfig\":{},\"panelRefName\":\"panel_4\"}]",
+    "title": "Exercises \u2014 HTTP & Postgres logs",
+    "description": "Correlate HTTP requests with Postgres SQL. PostgreSQL \u2014 SQL CRUD by origin (top right): application_name is parsed into correlation.origin and correlation.request_id. Click correlation.request_id to open All logs for request for that id across Java, Rust, Python, React Node, and Postgres. For the full click-through layout, use Grafana Exercises HTTP requests & SQL logs on port 3000.",
+    "panelsJSON": "[{\"version\":\"8.15.5\",\"type\":\"search\",\"gridData\":{\"x\":0,\"y\":0,\"w\":24,\"h\":16,\"i\":\"1\"},\"panelIndex\":\"1\",\"panelRefName\":\"panel_1\",\"embeddableConfig\":{\"savedObjectId\":\"requests-logs-http-search\"}},{\"version\":\"8.15.5\",\"type\":\"search\",\"gridData\":{\"x\":24,\"y\":0,\"w\":24,\"h\":16,\"i\":\"2\"},\"panelIndex\":\"2\",\"panelRefName\":\"panel_2\",\"embeddableConfig\":{\"savedObjectId\":\"requests-logs-sql-search\"}},{\"version\":\"8.15.5\",\"type\":\"search\",\"gridData\":{\"x\":0,\"y\":16,\"w\":24,\"h\":16,\"i\":\"3\"},\"panelIndex\":\"3\",\"panelRefName\":\"panel_3\",\"embeddableConfig\":{\"savedObjectId\":\"requests-logs-postgres-stream-search\"}},{\"version\":\"8.15.5\",\"type\":\"search\",\"gridData\":{\"x\":24,\"y\":16,\"w\":24,\"h\":16,\"i\":\"4\"},\"panelIndex\":\"4\",\"panelRefName\":\"panel_4\",\"embeddableConfig\":{\"savedObjectId\":\"requests-logs-http-handlers\"}}]",
     "optionsJSON": "{\"useMargins\":true,\"syncColors\":false,\"syncCursor\":true,\"syncTooltips\":false,\"hidePanelTitles\":false}",
     "timeRestore": true,
-    "timeTo": "now",
-    "timeFrom": "now-6h",
     "kibanaSavedObjectMeta": {
       "searchSourceJSON": "{\"query\":{\"query\":\"\",\"language\":\"kuery\"},\"filter\":[]}"
-    }
+    },
+    "timeFrom": "now-6h",
+    "timeTo": "now"
   },
   "references": [
-    { "id": "requests-logs-http-search", "name": "panel_1", "type": "search" },
-    { "id": "requests-logs-sql-search", "name": "panel_2", "type": "search" },
-    { "id": "requests-logs-postgres-stream-search", "name": "panel_3", "type": "search" },
-    { "id": "requests-logs-http-handlers", "name": "panel_4", "type": "search" }
+    {
+      "id": "requests-logs-http-search",
+      "name": "panel_1",
+      "type": "search"
+    },
+    {
+      "id": "requests-logs-sql-search",
+      "name": "panel_2",
+      "type": "search"
+    },
+    {
+      "id": "requests-logs-postgres-stream-search",
+      "name": "panel_3",
+      "type": "search"
+    },
+    {
+      "id": "requests-logs-http-handlers",
+      "name": "panel_4",
+      "type": "search"
+    }
   ]
 }

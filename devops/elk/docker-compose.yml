@@ -44,6 +44,19 @@ services:
     networks:
       - elk
 
+  kibana-setup:
+    image: docker.io/curlimages/curl:8.11.1
+    depends_on:
+      - kibana
+    volumes:
+      - ./kibana:/kibana:ro
+    environment:
+      KIBANA_URL: http://kibana:5601
+    entrypoint: ["/bin/sh", "/kibana/provision-kibana.sh"]
+    networks:
+      - elk
+    restart: "no"
+
 volumes:
   es-data:
 

@@ -21,7 +21,10 @@ Modern deployments often add **Beats** (for example **Filebeat**) in front of Lo
 | Path | Purpose |
 |------|---------|
 | `docker-compose.yml` | Single-node Elasticsearch + Logstash + **Kibana** |
-| `kibana/kibana.yml` | **Kibana** server + Elasticsearch host (explicit config file) |
+| `kibana/kibana.yml` | **Kibana** server + Elasticsearch host; **`server.defaultRoute`** opens the exercises dashboard |
+| `kibana/provision-kibana.sh` | Imports data view, dashboards, and default route (run by **`kibana-setup`** on Compose up) |
+| `kibana/build-dashboards.py` | Builds dashboards that link panels to library saved searches |
+| `kibana/build-ndjson.py` | Bundles data view, searches, and dashboards for `_import` |
 | `logstash/pipeline/logstash.conf` | Pipeline: Beats → Elasticsearch |
 | `filebeat/filebeat-compose.yml` | Compose Filebeat: tails app JSON logs; **timestamp processors** set `@timestamp` from each app's log field (`timestamp` or `@timestamp`) instead of harvest time |
 | `filebeat/filebeat.yml.example` | Sample Filebeat config: **what** to watch + where to send |
@@ -47,7 +50,7 @@ docker compose up -d
 Then:
 
 - **Elasticsearch:** `http://localhost:9200/` (JSON API; expect a small cluster-health payload).
-- **Kibana:** `http://localhost:5601/` — security is **disabled** in this Compose file **for trusted local use only**.
+- **Kibana:** `http://localhost:5601/` — security is **disabled** in this Compose file **for trusted local use only**. The **`kibana-setup`** service imports the **`logstash-*`** data view, saved searches, and dashboards, then sets the default landing page to **Exercises — HTTP & Postgres logs** (`/app/dashboards#/view/exercises-requests-logs-kibana`). Open `http://localhost:5601/` after `compose up` — no manual data-view wizard required.
 
 ### Using Kibana after logs arrive
 
@@ -58,9 +61,8 @@ Then:
    curl -s http://127.0.0.1:8082/api/observability/sample-log
    ```
 2. Confirm indices exist: `curl -s http://127.0.0.1:9200/_cat/indices?v` — look for **`logstash-YYYY.MM.dd`**.
-3. Open **Kibana** at `http://127.0.0.1:5601/` → **Discover**.
-4. Create a **data view** (Stack Management → Data views, or the prompt in Discover) with index pattern **`logstash-*`** — that matches indices created by **`logstash/pipeline/logstash.conf`**.
-5. Set **Timestamp field** to **`@timestamp`** when prompted.
+3. Open **Kibana** at `http://127.0.0.1:5601/` — you should land on **Exercises — HTTP & Postgres logs** (last 6 hours). If the dashboard is empty, wait for **`kibana-setup`** to finish (`podman compose logs kibana-setup`) or run `.\devops\elk\kibana\provision-kibana.ps1` manually.
+4. **Discover** uses the pre-provisioned **`logstash-*`** data view (**Logstash pipeline**); timestamp field **`@timestamp`**.
 
 Until Filebeat (or another Beat) sends events through Logstash, indices may not exist yet; Elasticsearch will create **`logstash-YYYY.MM.dd`** on first ingest.
 
@@ -80,17 +82,19 @@ Logstash normalizes Rust tracing JSON (flattens nested `fields` to top-level key
 request_id: "paste-your-uuid-here"
 ```
 
+**URL query parameters** appear on HTTP **request received** lines (`phase: "received"`), not on completed lines. Logstash stores the full map in **`url_params`** (JSON string) and common keys as flat fields **`url_param_name`**, **`url_param_email`**, etc. The data view also exposes runtime fields **`url_params.name`** and **`url_params.email`** for filtering. Example: `url_param_name: "foo"` or `phase: "received" and _exists_: url_param_name`. Form POST bodies often land in **`body`** instead of **`url_params`** (e.g. Java dashboard `publish-create-user`).
+
 For Postgres SQL lines use the imported data view runtime field: `correlation.request_id: "paste-your-uuid-here"`.
 
 ### HTTP ↔ Postgres correlation (Kibana)
 
-After logs are flowing, provision the correlation dashboard (data view runtime fields + saved searches):
+After logs are flowing, the stack provisions correlation objects automatically via **`kibana-setup`**. To re-run import manually:
 
 ```powershell
-.\devops\elk\kibana\import-requests-logs.ps1
+.\devops\elk\kibana\provision-kibana.ps1
 ```
 
-Open **`http://127.0.0.1:5601/app/dashboards#/view/exercises-requests-logs-kibana`**.
+Open **`http://127.0.0.1:5601/`** (default route) or **`http://127.0.0.1:5601/app/dashboards#/view/exercises-requests-logs-kibana`**.
 
 | Panel | What |
 |-------|------|
@@ -108,7 +112,7 @@ Click **`correlation.request_id`** in the SQL table (URL link on the data view) 
 | **Filebeat** | HTTP stats on `:5066` (Compose internal) | `filebeat/filebeat-compose.yml` (`http.enabled`) |
 | **Prometheus** | `beat-exporter` + `logstash-exporter` scrape jobs | `prometheus/prometheus.yml` |
 | **Grafana** | “Log pipeline” row on apps dashboard + **`exercises-log-pipeline.json`** | Alert rules in `grafana/provisioning/alerting/log-pipeline.yaml` |
-| **Kibana** | Dashboard + saved searches | Run once: `kibana/import-log-pipeline.ps1` (or `.sh`) → **Exercises — Log pipeline (Kibana)**; `kibana/import-requests-logs.ps1` → **Exercises — HTTP & Postgres logs** |
+| **Kibana** | Dashboard + saved searches | Auto on Compose up via **`kibana-setup`** (`provision-kibana.sh`); manual: `kibana/provision-kibana.ps1` → **Exercises — HTTP & Postgres logs** (default) and **Exercises — Log pipeline (Kibana)** |
 
 When Grafana alerts fire, unshipped lines remain on disk under **`apps/*/logs/`** until the pipeline recovers. Use the alert time window to grep those files and compare with Kibana **`logstash-*`**.
 

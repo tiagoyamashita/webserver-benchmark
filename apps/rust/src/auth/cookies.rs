@@ -28,6 +28,10 @@ pub fn append_clear_session_cookie(headers: &mut HeaderMap, config: &SessionConf
     }
 }
 
+pub fn http_access_session_id(headers: &HeaderMap, cookie_name: &str) -> Option<String> {
+    session_id_candidates(headers, cookie_name).into_iter().next()
+}
+
 pub fn session_id_candidates(headers: &HeaderMap, cookie_name: &str) -> Vec<String> {
     let mut candidates = Vec::new();
     if let Some(value) = headers.get(header::AUTHORIZATION).and_then(|v| v.to_str().ok()) {

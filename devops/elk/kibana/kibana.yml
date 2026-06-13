@@ -10,3 +10,6 @@ server.publicBaseUrl: "http://localhost:5601"
 
 elasticsearch.hosts:
   - "http://elasticsearch:9200"
+
+# Open the exercises HTTP & Postgres dashboard on http://localhost:5601/ (requires kibana-setup import).
+server.defaultRoute: "/app/dashboards#/view/exercises-requests-logs-kibana"

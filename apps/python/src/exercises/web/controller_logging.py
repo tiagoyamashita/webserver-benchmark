@@ -100,6 +100,12 @@ def log_trace(
     )
 
 
+def http_access_session_fields() -> dict[str, str]:
+    """Top-level session_id for http.request access logs (not duplicated on controllers)."""
+    session_id = _current_session_id()
+    return {"session_id": session_id} if session_id is not None else {}
+
+
 def _current_session_id() -> str | None:
     try:
         from flask import g

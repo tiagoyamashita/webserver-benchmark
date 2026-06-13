@@ -56,6 +56,18 @@ services:
     volumes:
       - ./devops/elk/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
 
+  kibana-setup:
+    image: docker.io/curlimages/curl:8.11.1
+    networks: [exercises]
+    depends_on:
+      - kibana
+    volumes:
+      - ./devops/elk/kibana:/kibana:ro
+    environment:
+      KIBANA_URL: http://kibana:5601
+    entrypoint: ["/bin/sh", "/kibana/provision-kibana.sh"]
+    restart: "no"
+
   filebeat:
     image: docker.elastic.co/beats/filebeat:8.15.5
     user: root

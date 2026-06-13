@@ -1,0 +1,5 @@
+{
+  "attributes": {
+    "defaultRoute": "/app/dashboards#/view/exercises-requests-logs-kibana"
+  }
+}

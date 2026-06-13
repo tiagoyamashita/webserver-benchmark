@@ -101,29 +101,52 @@ async fn record_http_request_metrics(req: Request, next: Next) -> Response {
         .copied()
         .unwrap_or(crate::request_id::RequestIdSource::Generated);
     let log_seq_counter = req.extensions().get::<crate::request_id::RequestLogSeq>().cloned();
+    let cookie_name =
+        std::env::var("EXERCISES_SESSION_COOKIE").unwrap_or_else(|_| "exercises_session".to_string());
+    let session_id = req
+        .extensions()
+        .get::<crate::auth::CurrentSession>()
+        .map(|session| session.0.session_id.clone())
+        .or_else(|| crate::auth::cookies::http_access_session_id(req.headers(), &cookie_name));
     let res = next.run(req).await;
     let status = res.status().as_u16();
     let ms = start.elapsed().as_millis();
     HTTP_REQUESTS
         .with_label_values(&[method.as_str(), endpoint])
         .inc();
+    let log_seq = log_seq_counter.as_ref().map(crate::request_id::RequestLogSeq::next).unwrap_or(0);
     let id_source = match request_id_source {
         crate::request_id::RequestIdSource::ReceivedHeader => "header",
         crate::request_id::RequestIdSource::Generated => "generated",
     };
-    let log_seq = log_seq_counter.as_ref().map(crate::request_id::RequestLogSeq::next).unwrap_or(0);
-    tracing::info!(
-        method = %method,
-        path = %path,
-        status = status,
-        ms = %ms,
-        request_id = %request_id,
-        request_id_source = id_source,
-        request_origin = %request_origin,
-        log_seq = log_seq,
-        phase = "completed",
-        "{method} {path} {status} request_id={request_id}"
-    );
+    if let Some(ref session_id) = session_id {
+        tracing::info!(
+            method = %method,
+            path = %path,
+            status = status,
+            ms = %ms,
+            request_id = %request_id,
+            session_id = %session_id,
+            request_id_source = id_source,
+            request_origin = %request_origin,
+            log_seq = log_seq,
+            phase = "completed",
+            "{method} {path} {status} request_id={request_id}"
+        );
+    } else {
+        tracing::info!(
+            method = %method,
+            path = %path,
+            status = status,
+            ms = %ms,
+            request_id = %request_id,
+            request_id_source = id_source,
+            request_origin = %request_origin,
+            log_seq = log_seq,
+            phase = "completed",
+            "{method} {path} {status} request_id={request_id}"
+        );
+    }
     res
 }
 

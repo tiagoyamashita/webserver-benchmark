@@ -25,6 +25,11 @@ import { requestBody, requestHeaders, requestUrlParams } from "./request-snapsho
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SOURCE = "server/app.ts";
 
+function httpAccessSessionFields(req: Request): { session_id?: string } {
+  const sessionId = req.sharedSession?.sessionId;
+  return sessionId ? { session_id: sessionId } : {};
+}
+
 export type CreateAppOptions = {
   isProduction?: boolean;
   fetchImpl?: typeof fetch;
@@ -68,6 +73,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
         path: req.originalUrl,
         request_id: req.requestId,
         phase: "received",
+        ...httpAccessSessionFields(req),
         headers: requestHeaders(req),
         url_params: requestUrlParams(req),
         body: requestBody(req),
@@ -80,6 +86,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
           ms: Date.now() - start,
           request_id: req.requestId,
           phase: "completed",
+          ...httpAccessSessionFields(req),
         });
       });
       next();
