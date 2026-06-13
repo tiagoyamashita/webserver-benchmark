@@ -1,9 +1,9 @@
 {
   "attributes": {
     "title": "Exercises \u2014 HTTP & Postgres logs",
-    "description": "Correlate HTTP requests with Postgres SQL. Uses the logstash-* data view. Click correlation.request_id in the SQL panel to drill into one request.",
-    "panelsJSON": "[{\"version\":\"8.15.5\",\"type\":\"search\",\"gridData\":{\"x\":0,\"y\":0,\"w\":24,\"h\":16,\"i\":\"1\"},\"panelIndex\":\"1\",\"embeddableConfig\":{\"title\":\"HTTP \\u2014 recent requests\",\"description\":\"App HTTP access logs (health/metrics noise excluded). Matches Grafana Recent HTTP requests.\",\"columns\":[\"@timestamp\",\"service\",\"phase\",\"method\",\"path\",\"request_id\",\"headers\",\"url_params\",\"url_param_name\",\"body\",\"status\",\"message\"],\"sort\":[[\"@timestamp\",\"desc\"]],\"kibanaSavedObjectMeta\":{\"searchSourceJSON\":\"{\\\"query\\\":{\\\"query\\\":\\\"_exists_: status and service: (exercises-java or exercises-python or exercises-rust or exercises-react-node) and not (status: 200 and (path: \\\\\\\"/health\\\\\\\" or path: \\\\\\\"/api/health\\\\\\\" or path: \\\\\\\"/metrics\\\\\\\" or path: \\\\\\\"/actuator/prometheus\\\\\\\" or path: \\\\\\\"/api/observability/health\\\\\\\"))\\\",\\\"language\\\":\\\"kuery\\\"},\\\"filter\\\":[],\\\"indexRefName\\\":\\\"kibanaSavedObjectMeta.searchSourceJSON.index\\\"}\"}}},{\"version\":\"8.15.5\",\"type\":\"search\",\"gridData\":{\"x\":24,\"y\":0,\"w\":24,\"h\":16,\"i\":\"2\"},\"panelIndex\":\"2\",\"embeddableConfig\":{\"title\":\"PostgreSQL \\u2014 SQL CRUD by origin\",\"description\":\"Stamped Postgres statements (application_name exercises-*;req=...). Click correlation.request_id to open HTTP handler logs.\",\"columns\":[\"@timestamp\",\"correlation.origin\",\"correlation.request_id\",\"sql.op\",\"ps\",\"message\"],\"sort\":[[\"@timestamp\",\"desc\"]],\"kibanaSavedObjectMeta\":{\"searchSourceJSON\":\"{\\\"query\\\":{\\\"query\\\":\\\"service: exercises-postgres and application_name: *exercises* and (ps: (SELECT or INSERT or UPDATE or DELETE) or message: *statement*) and not message: *SELECT 1* and not message: duration*\\\",\\\"language\\\":\\\"kuery\\\"},\\\"filter\\\":[],\\\"indexRefName\\\":\\\"kibanaSavedObjectMeta.searchSourceJSON.index\\\"}\"}}},{\"version\":\"8.15.5\",\"type\":\"search\",\"gridData\":{\"x\":0,\"y\":16,\"w\":24,\"h\":16,\"i\":\"3\"},\"panelIndex\":\"3\",\"embeddableConfig\":{\"title\":\"PostgreSQL \\u2014 log stream\",\"description\":\"Postgres JSON logs with startup noise and duration-only lines filtered out.\",\"columns\":[\"@timestamp\",\"application_name\",\"ps\",\"message\",\"error_severity\"],\"sort\":[[\"@timestamp\",\"desc\"]],\"kibanaSavedObjectMeta\":{\"searchSourceJSON\":\"{\\\"query\\\":{\\\"query\\\":\\\"service: exercises-postgres and not message: duration* and not message: (*Skipping* or *redirecting* or *Future* or *ending*log*output* or *stderr* or *received*fast*shutdown* or *aborting*active*transactions* or *database*system*shut*down* or *shutting*down* or *starting*PostgreSQL*)\\\",\\\"language\\\":\\\"kuery\\\"},\\\"filter\\\":[],\\\"indexRefName\\\":\\\"kibanaSavedObjectMeta.searchSourceJSON.index\\\"}\"}}},{\"version\":\"8.15.5\",\"type\":\"search\",\"gridData\":{\"x\":24,\"y\":16,\"w\":24,\"h\":16,\"i\":\"4\"},\"panelIndex\":\"4\",\"embeddableConfig\":{\"title\":\"All logs for request (correlate)\",\"description\":\"Java relay, Rust API, HTTP access, and Postgres SQL for one request_id (click correlation.request_id in SQL CRUD).\",\"columns\":[\"@timestamp\",\"service\",\"controller\",\"method\",\"path\",\"request_id\",\"headers\",\"url_params\",\"url_param_name\",\"body\",\"ps\",\"application_name\",\"message\",\"level\"],\"sort\":[[\"@timestamp\",\"asc\"]],\"kibanaSavedObjectMeta\":{\"searchSourceJSON\":\"{\\\"query\\\":{\\\"query\\\":\\\"(service: (exercises-java or exercises-rust or exercises-python or exercises-react-node or exercises-postgres)) and (_exists_: request_id or _exists_: application_name) and not (service: exercises-postgres and message: duration*)\\\",\\\"language\\\":\\\"kuery\\\"},\\\"filter\\\":[],\\\"indexRefName\\\":\\\"kibanaSavedObjectMeta.searchSourceJSON.index\\\"}\"}}}]",
-    "optionsJSON": "{\"useMargins\":true,\"syncColors\":false,\"syncCursor\":true,\"syncTooltips\":false,\"hidePanelTitles\":false}",
+    "description": "All logs in the logstash-* data view (last 24h by default). session_id_resolved fills session from headers when needed; body and message show HTTP payload vs plain log text.",
+    "panelsJSON": "[{\"version\":\"8.15.5\",\"type\":\"search\",\"gridData\":{\"x\":0,\"y\":0,\"w\":48,\"h\":28,\"i\":\"1\"},\"panelIndex\":\"1\",\"panelRefName\":\"panel_1\",\"embeddableConfig\":{\"savedObjectId\":\"requests-logs-http-postgres-dashboard\",\"enhancements\":{}}}]",
+    "optionsJSON": "{\"useMargins\":true,\"syncColors\":false,\"syncCursor\":true,\"syncTooltips\":false,\"hidePanelTitles\":true}",
     "timeRestore": true,
     "kibanaSavedObjectMeta": {
       "searchSourceJSON": "{\"query\":{\"query\":\"\",\"language\":\"kuery\"},\"filter\":[]}"
@@ -13,24 +13,9 @@
   },
   "references": [
     {
-      "id": "logstash-data-view",
-      "name": "1:kibanaSavedObjectMeta.searchSourceJSON.index",
-      "type": "index-pattern"
-    },
-    {
-      "id": "logstash-data-view",
-      "name": "2:kibanaSavedObjectMeta.searchSourceJSON.index",
-      "type": "index-pattern"
-    },
-    {
-      "id": "logstash-data-view",
-      "name": "3:kibanaSavedObjectMeta.searchSourceJSON.index",
-      "type": "index-pattern"
-    },
-    {
-      "id": "logstash-data-view",
-      "name": "4:kibanaSavedObjectMeta.searchSourceJSON.index",
-      "type": "index-pattern"
+      "id": "requests-logs-http-postgres-dashboard",
+      "name": "1:panel_1",
+      "type": "search"
     }
   ]
 }

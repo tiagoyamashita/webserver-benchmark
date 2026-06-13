@@ -27,20 +27,14 @@ fn log_controller_received(
     path: &str,
     http: &RequestHttpSnapshot,
 ) {
-    let headers =
-        serde_json::to_string(&http.headers).unwrap_or_else(|_| "{}".to_string());
-    let url_params =
-        serde_json::to_string(&http.url_params).unwrap_or_else(|_| "{}".to_string());
-    let body = serde_json::to_string(&http.body).unwrap_or_else(|_| "{}".to_string());
-    tracing::info!(
-        source = SOURCE,
-        controller = controller,
-        method = method,
-        path = path,
-        headers = %headers,
-        url_params = %url_params,
-        body = %body,
-        "{controller} request received"
+    crate::obs_log::log_controller_received(
+        SOURCE,
+        controller,
+        method,
+        path,
+        &http.headers,
+        &http.url_params,
+        &http.body,
     );
 }
 

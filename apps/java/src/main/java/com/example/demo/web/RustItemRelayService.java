@@ -3,6 +3,7 @@ package com.example.demo.web;
 import static net.logstash.logback.argument.StructuredArguments.kv;
 
 import com.example.demo.observability.DashboardPageContext;
+import com.example.demo.observability.OutboundHttpLogger;
 import com.example.demo.observability.RequestIdContext;
 import com.example.demo.observability.RequestIdRelay;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -18,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 @Service
@@ -67,6 +69,7 @@ public class RustItemRelayService {
         kv("dashboard_page", DashboardPageContext.get()),
         kv("relay_target", "exercises-rust"),
         kv("relay_origin", RequestIdRelay.SERVICE),
+        kv("relay_request_id", RequestIdRelay.resolveOutboundRequestId()),
         kv("name", trimmed),
         kv("ui_event", "dashboard.ui"),
         kv("action", "add-item-via-rust"));
@@ -77,11 +80,20 @@ public class RustItemRelayService {
             .encode(StandardCharsets.UTF_8)
             .build()
             .toUri();
+    long start = System.nanoTime();
     try {
-      var request = restClient.post().uri(uri);
-      RequestIdRelay.applyOutbound(request);
-      ResponseEntity<String> res = request.retrieve().toEntity(String.class);
+      ResponseEntity<String> res =
+          RequestIdRelay.applyOutbound(restClient.post().uri(uri)).retrieve().toEntity(String.class);
+      long ms = (System.nanoTime() - start) / 1_000_000L;
       String rawBody = res.getBody() != null ? res.getBody() : "";
+      OutboundHttpLogger.logResponse(
+          "POST",
+          uri,
+          res.getStatusCode().value(),
+          ms,
+          "exercises-rust",
+          res.getHeaders(),
+          rawBody);
       Map<String, Object> out = new LinkedHashMap<>();
       boolean ok = res.getStatusCode().is2xxSuccessful();
       out.put("ok", ok);
@@ -114,8 +126,41 @@ public class RustItemRelayService {
             kv("action", "add-item-via-rust"));
       }
       return out;
+    } catch (RestClientResponseException e) {
+      long ms = (System.nanoTime() - start) / 1_000_000L;
+      String error = e.getStatusText() != null ? e.getStatusText() : e.getMessage();
+      OutboundHttpLogger.logResponse(
+          "POST",
+          uri,
+          e.getStatusCode().value(),
+          ms,
+          "exercises-rust",
+          e.getResponseHeaders(),
+          e.getResponseBodyAsString());
+      log.warn(
+          "RustItemRelayService.addItemViaRust failed",
+          kv("source", SOURCE),
+          kv("controller", "RustItemRelayService"),
+          kv("name", trimmed),
+          kv("rustUrl", uri.toString()),
+          kv("error", error),
+          kv("ui_event", "dashboard.ui"),
+          kv("action", "add-item-via-rust"));
+      return Map.of(
+          "ok",
+          false,
+          "requestId",
+          requestId != null ? requestId : "",
+          "rustUrl",
+          uri.toString(),
+          "status",
+          e.getStatusCode().value(),
+          "error",
+          error);
     } catch (RestClientException e) {
+      long ms = (System.nanoTime() - start) / 1_000_000L;
       String error = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+      OutboundHttpLogger.logFailure("POST", uri, ms, "exercises-rust", error);
       log.warn(
           "RustItemRelayService.addItemViaRust failed",
           kv("source", SOURCE),

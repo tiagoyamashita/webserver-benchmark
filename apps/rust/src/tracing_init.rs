@@ -6,13 +6,12 @@
 use std::fs::{self, OpenOptions};
 use std::io;
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 
 use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 fn observability_enabled() -> bool {
-    std::env::var("EXERCISES_OBSERVABILITY")
-        .map(|v| matches!(v.to_ascii_lowercase().as_str(), "1" | "true" | "yes"))
-        .unwrap_or(false)
+    crate::obs_log::observability_enabled()
 }
 
 fn log_dir() -> PathBuf {
@@ -31,8 +30,13 @@ pub fn init() {
             .append(true)
             .open(dir.join("demo-app.json.log"))
             .unwrap_or_else(|e| panic!("open observability log file: {e}"));
+        let shared = Arc::new(Mutex::new(file));
+        crate::obs_log::init_shared_log_file(shared.clone());
         // flatten_event: emit status/request_id/controller at JSON root (not under "fields").
-        let file_layer = fmt::layer().json().flatten_event(true).with_writer(file);
+        let file_layer = fmt::layer()
+            .json()
+            .flatten_event(true)
+            .with_writer(crate::obs_log::SharedLogWriter(shared));
         let stderr_layer = fmt::layer().with_writer(io::stderr);
         tracing_subscriber::registry()
             .with(filter)

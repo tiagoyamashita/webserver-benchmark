@@ -61,7 +61,7 @@ pub fn postgres_application_name(service: &str, request_id: &str) -> String {
 pub fn resolve_outbound_request_id(current: Option<&str>) -> String {
     if let Some(text) = current {
         let trimmed = text.trim();
-        if is_safe_token(trimmed) {
+        if is_acceptable_request_id(trimmed) {
             return trimmed.to_string();
         }
     }
@@ -72,9 +72,14 @@ pub fn resolve_request_id(header: Option<&HeaderValue>) -> (RequestId, RequestId
     if let Some(value) = header {
         if let Ok(text) = value.to_str() {
             let trimmed = text.trim();
-            if is_safe_token(trimmed) {
+            if is_acceptable_request_id(trimmed) {
                 return (RequestId(trimmed.to_string()), RequestIdSource::ReceivedHeader);
             }
+            tracing::debug!(
+                target: "http.request",
+                rejected_request_id = %trimmed,
+                "ignored inbound X-Request-ID (invalid format)"
+            );
         }
     }
     (
@@ -102,21 +107,41 @@ fn is_safe_token(value: &str) -> bool {
             .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
 }
 
+/// Match Java/Python `^[a-zA-Z0-9._-]{8,64}$` plus standard UUIDs from browser `crypto.randomUUID()`.
+fn is_acceptable_request_id(value: &str) -> bool {
+    is_uuid(value) || is_safe_token(value)
+}
+
+fn is_uuid(value: &str) -> bool {
+    value.len() == 36
+        && value.as_bytes().get(8) == Some(&b'-')
+        && value.as_bytes().get(13) == Some(&b'-')
+        && value.as_bytes().get(18) == Some(&b'-')
+        && value.as_bytes().get(23) == Some(&b'-')
+        && value
+            .chars()
+            .all(|c| c.is_ascii_hexdigit() || c == '-')
+}
+
 fn collect_headers(req: &Request) -> Map<String, Value> {
     const ALLOW: &[&str] = &[
         "x-request-id",
         "x-request-origin",
         "x-dashboard-page",
         "x-session-id",
+        "cookie",
+        "authorization",
         "content-type",
         "accept",
         "user-agent",
         "host",
     ];
     let mut out = Map::new();
-    for key in ALLOW {
-        if let Some(value) = req.headers().get(*key).and_then(|v| v.to_str().ok()) {
-            out.insert((*key).to_string(), Value::String(value.to_string()));
+    for (name, value) in req.headers().iter() {
+        if ALLOW.contains(&name.as_str()) {
+            if let Ok(text) = value.to_str() {
+                out.insert(name.as_str().to_string(), Value::String(text.to_string()));
+            }
         }
     }
     out
@@ -174,6 +199,12 @@ fn generate_request_id() -> String {
     format!("{nanos:x}-{seq:x}")
 }
 
+fn incoming_request_id_header(headers: &HeaderMap) -> Option<&HeaderValue> {
+    headers
+        .get(REQUEST_ID_HEADER)
+        .or_else(|| headers.get(axum::http::header::HeaderName::from_static("X-Request-ID")))
+}
+
 fn http_access_session_id(headers: &HeaderMap) -> Option<String> {
     let cookie_name =
         std::env::var("EXERCISES_SESSION_COOKIE").unwrap_or_else(|_| "exercises_session".to_string());
@@ -187,7 +218,8 @@ pub async fn assign_request_id(req: Request, next: Next) -> Response {
         .unwrap_or_default();
     let mut req = Request::from_parts(parts, Body::from(body_bytes.clone()));
 
-    let (request_id, source) = resolve_request_id(req.headers().get("x-request-id"));
+    let (request_id, source) =
+        resolve_request_id(incoming_request_id_header(req.headers()));
     let origin = resolve_request_origin(req.headers().get(ORIGIN_HEADER));
     let id = request_id.0.clone();
     let headers = collect_headers(&req);
@@ -211,37 +243,16 @@ pub async fn assign_request_id(req: Request, next: Next) -> Response {
     let method = req.method().to_string();
     let path = req.uri().path().to_string();
     let session_id = http_access_session_id(req.headers());
-    let headers_json =
-        serde_json::to_string(&headers).unwrap_or_else(|_| "{}".to_string());
-    let url_params_json =
-        serde_json::to_string(&url_params).unwrap_or_else(|_| "{}".to_string());
-    let body_json = serde_json::to_string(&body_map).unwrap_or_else(|_| "{}".to_string());
-    if let Some(ref session_id) = session_id {
-        tracing::info!(
-            method = %method,
-            path = %path,
-            request_id = %id,
-            session_id = %session_id,
-            log_seq = log_seq,
-            phase = "received",
-            headers = %headers_json,
-            url_params = %url_params_json,
-            body = %body_json,
-            "{method} {path} request received request_id={id}"
-        );
-    } else {
-        tracing::info!(
-            method = %method,
-            path = %path,
-            request_id = %id,
-            log_seq = log_seq,
-            phase = "received",
-            headers = %headers_json,
-            url_params = %url_params_json,
-            body = %body_json,
-            "{method} {path} request received request_id={id}"
-        );
-    }
+    crate::obs_log::log_http_request_received(
+        &method,
+        &path,
+        &id,
+        session_id.as_deref(),
+        log_seq,
+        &headers,
+        &url_params,
+        &body_map,
+    );
     let mut res = next.run(req).await;
     if let Ok(value) = HeaderValue::from_str(&id) {
         res.headers_mut().insert("x-request-id", value);

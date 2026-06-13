@@ -26,8 +26,9 @@ public final class RequestIdRelay {
     return UUID.randomUUID().toString();
   }
 
-  public static void applyOutbound(RestClient.RequestHeadersSpec<?> request) {
-    request.header(REQUEST_ID_HEADER, resolveOutboundRequestId());
-    request.header(ORIGIN_HEADER, SERVICE);
+  public static <S extends RestClient.RequestHeadersSpec<S>> S applyOutbound(S request) {
+    return request
+        .header(REQUEST_ID_HEADER, resolveOutboundRequestId())
+        .header(ORIGIN_HEADER, SERVICE);
   }
 }

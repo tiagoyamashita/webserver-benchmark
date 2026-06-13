@@ -1,19 +1,21 @@
 {
   "attributes": {
-    "title": "By session or request ID",
-    "description": "Correlate logs by request_id or session_id. Filter: request_id: \"<uuid>\" or session_id_resolved: \"<id>\".",
+    "title": "HTTP & Postgres — all logs",
+    "description": "All logs in logstash-* (use dashboard time picker). Filter: request_id or session_id_resolved.",
     "columns": [
       "@timestamp",
       "service",
+      "session_id",
       "session_id_resolved",
       "request_id",
       "method",
       "headers",
-      "log_body"
+      "body",
+      "message"
     ],
     "sort": [["@timestamp", "asc"]],
     "kibanaSavedObjectMeta": {
-      "searchSourceJSON": "{\"query\":{\"query\":\"_exists_: request_id or _exists_: session_id\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
+      "searchSourceJSON": "{\"query\":{\"query\":\"\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
     }
   },
   "references": [

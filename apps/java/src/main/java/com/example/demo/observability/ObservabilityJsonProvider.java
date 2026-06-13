@@ -11,8 +11,6 @@ import net.logstash.logback.composite.JsonWritingUtils;
 /** Adds per-request {@code log_seq}, {@code session_id}, and correlation fields to JSON log lines. */
 public class ObservabilityJsonProvider extends AbstractJsonProvider<ILoggingEvent> {
 
-  private static final String HTTP_REQUEST_LOGGER = "http.request";
-
   @Override
   public void writeTo(JsonGenerator generator, ILoggingEvent event) throws IOException {
     String requestId = RequestIdContext.get();
@@ -23,9 +21,6 @@ public class ObservabilityJsonProvider extends AbstractJsonProvider<ILoggingEven
         JsonWritingUtils.writeStringField(generator, "dashboard_page", page);
       }
     }
-    if (HTTP_REQUEST_LOGGER.equals(event.getLoggerName())) {
-      return;
-    }
     SharedSession session = SessionContext.get();
     if (session != null) {
       String sessionId = session.sessionId();
@@ -35,4 +30,4 @@ public class ObservabilityJsonProvider extends AbstractJsonProvider<ILoggingEven
     }
   }
 }
-
+

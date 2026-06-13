@@ -1,0 +1,27 @@
+{
+  "attributes": {
+    "title": "Logs by tiago",
+    "description": "All logs in logstash-* with default correlation columns.",
+    "columns": [
+      "@timestamp",
+      "service",
+      "session_id_resolved",
+      "request_id",
+      "method",
+      "headers",
+      "body",
+      "message"
+    ],
+    "sort": [["@timestamp", "asc"]],
+    "kibanaSavedObjectMeta": {
+      "searchSourceJSON": "{\"query\":{\"query\":\"\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
+    }
+  },
+  "references": [
+    {
+      "id": "logs-by-tiago",
+      "name": "kibanaSavedObjectMeta.searchSourceJSON.index",
+      "type": "index-pattern"
+    }
+  ]
+}

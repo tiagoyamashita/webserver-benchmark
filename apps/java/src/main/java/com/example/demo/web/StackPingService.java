@@ -11,6 +11,7 @@ import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import com.example.demo.observability.OutboundHttpLogger;
 import com.example.demo.observability.RequestIdRelay;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,10 +44,14 @@ public class StackPingService {
 
   public Map<String, Object> emptyGet(String stack, String baseUrl) {
     String root = normalizeRoot(baseUrl);
+    URI uri = URI.create(root);
+    long start = System.nanoTime();
     try {
-      var request = restClient.get().uri(URI.create(root));
-      RequestIdRelay.applyOutbound(request);
-      ResponseEntity<Void> res = request.retrieve().toBodilessEntity();
+      ResponseEntity<Void> res =
+          RequestIdRelay.applyOutbound(restClient.get().uri(uri)).retrieve().toBodilessEntity();
+      long ms = (System.nanoTime() - start) / 1_000_000L;
+      OutboundHttpLogger.logResponse(
+          "GET", uri, res.getStatusCode().value(), ms, stack, res.getHeaders(), "");
       Map<String, Object> result =
           Map.of(
               "stack", stack,
@@ -56,6 +61,15 @@ public class StackPingService {
       logStackPingResult(result);
       return result;
     } catch (RestClientResponseException e) {
+      long ms = (System.nanoTime() - start) / 1_000_000L;
+      OutboundHttpLogger.logResponse(
+          "GET",
+          uri,
+          e.getStatusCode().value(),
+          ms,
+          stack,
+          e.getResponseHeaders(),
+          e.getResponseBodyAsString());
       Map<String, Object> result =
           Map.of(
               "stack", stack,
@@ -66,9 +80,11 @@ public class StackPingService {
       logStackPingResult(result);
       return result;
     } catch (ResourceAccessException e) {
+      long ms = (System.nanoTime() - start) / 1_000_000L;
       String hint =
           "Cannot connect (is the container running on the Compose network?). ";
       String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+      OutboundHttpLogger.logFailure("GET", uri, ms, stack, hint + msg);
       Map<String, Object> result =
           Map.of(
               "stack", stack,
@@ -78,6 +94,9 @@ public class StackPingService {
       logStackPingResult(result);
       return result;
     } catch (RestClientException e) {
+      long ms = (System.nanoTime() - start) / 1_000_000L;
+      String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+      OutboundHttpLogger.logFailure("GET", uri, ms, stack, msg);
       Map<String, Object> result =
           Map.of(
               "stack", stack,

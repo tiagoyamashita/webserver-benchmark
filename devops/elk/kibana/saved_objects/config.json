@@ -1,5 +1,5 @@
 {
   "attributes": {
-    "defaultRoute": "/app/dashboards#/view/exercises-requests-logs-kibana"
+    "defaultRoute": "/app/discover#/view/logs-by-tiago-discover?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-24h,to:now))"
   }
 }

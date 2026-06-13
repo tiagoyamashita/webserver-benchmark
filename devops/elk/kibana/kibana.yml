@@ -11,5 +11,5 @@ server.publicBaseUrl: "http://localhost:5601"
 elasticsearch.hosts:
   - "http://elasticsearch:9200"
 
-# Open the exercises HTTP & Postgres dashboard on http://localhost:5601/ (requires kibana-setup import).
-server.defaultRoute: "/app/dashboards#/view/exercises-requests-logs-kibana"
+# Opens Discover saved search "Logs by tiago" (columns + all logs, last 24h).
+server.defaultRoute: "/app/discover#/view/logs-by-tiago-discover?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-24h,to:now))"

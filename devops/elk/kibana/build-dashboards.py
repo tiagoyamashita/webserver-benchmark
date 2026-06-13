@@ -1,53 +1,44 @@
 #!/usr/bin/env python3
-"""Build Kibana dashboards with inline search panels and index-pattern references."""
+"""Build Kibana dashboards that reference library saved searches (by-ref panels)."""
 
 from __future__ import annotations
 
-import copy
 import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent / "saved_objects"
-DATA_VIEW_ID = "logstash-data-view"
-DATA_VIEW_REF = "kibanaSavedObjectMeta.searchSourceJSON.index"
 VERSION = "8.15.5"
 
 
-def load_search_flat(path: Path) -> dict:
-    """Flatten saved-search attributes, keeping indexRefName for dashboard references."""
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    return copy.deepcopy(payload["attributes"])
-
-
-def inline_search_panel(
+def by_ref_search_panel(
     panel_index: str,
     x: int,
     y: int,
     w: int,
     h: int,
-    flat_state: dict,
+    search_id: str,
 ) -> dict:
+    ref_name = f"panel_{panel_index}"
     return {
         "version": VERSION,
         "type": "search",
         "gridData": {"x": x, "y": y, "w": w, "h": h, "i": panel_index},
         "panelIndex": panel_index,
-        "embeddableConfig": flat_state,
+        "panelRefName": ref_name,
+        "embeddableConfig": {
+            "savedObjectId": search_id,
+            "enhancements": {},
+        },
     }
 
 
-def dashboard_references(panels: list[dict]) -> list[dict]:
-    refs: list[dict] = []
-    for panel in panels:
-        panel_index = panel["panelIndex"]
-        refs.append(
-            {
-                "id": DATA_VIEW_ID,
-                "name": f"{panel_index}:{DATA_VIEW_REF}",
-                "type": "index-pattern",
-            }
-        )
-    return refs
+def search_panel_reference(panel_index: str, search_id: str) -> dict:
+    ref_name = f"panel_{panel_index}"
+    return {
+        "id": search_id,
+        "name": f"{panel_index}:{ref_name}",
+        "type": "search",
+    }
 
 
 def write_dashboard(
@@ -57,9 +48,11 @@ def write_dashboard(
     title: str,
     description: str,
     panels: list[dict],
+    panel_refs: list[dict],
     time_restore: bool,
     time_from: str | None = None,
     time_to: str | None = None,
+    hide_panel_titles: bool = False,
 ) -> None:
     attributes = {
         "title": title,
@@ -71,7 +64,7 @@ def write_dashboard(
                 "syncColors": False,
                 "syncCursor": True,
                 "syncTooltips": False,
-                "hidePanelTitles": False,
+                "hidePanelTitles": hide_panel_titles,
             },
             separators=(",", ":"),
         ),
@@ -87,10 +80,7 @@ def write_dashboard(
         attributes["timeFrom"] = time_from
         attributes["timeTo"] = time_to
 
-    payload = {
-        "attributes": attributes,
-        "references": dashboard_references(panels),
-    }
+    payload = {"attributes": attributes, "references": panel_refs}
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     print(f"wrote {path} ({dashboard_id}, {len(panels)} panels)")
 
@@ -98,37 +88,37 @@ def write_dashboard(
 def main() -> None:
     requests_dir = ROOT / "requests-logs"
 
-    requests_specs = [
-        ("1", 0, 0, 24, 16, requests_dir / "search-http-requests.json"),
-        ("2", 24, 0, 24, 16, requests_dir / "search-sql-crud.json"),
-        ("3", 0, 16, 24, 16, requests_dir / "search-postgres-stream.json"),
-        ("4", 24, 16, 24, 16, requests_dir / "search-http-handlers.json"),
-    ]
-    requests_panels = [
-        inline_search_panel(panel_index, x, y, w, h, load_search_flat(path))
-        for panel_index, x, y, w, h, path in requests_specs
-    ]
+    http_search_id = "requests-logs-http-postgres-dashboard"
+    requests_panels = [by_ref_search_panel("1", 0, 0, 48, 28, http_search_id)]
+    requests_refs = [search_panel_reference("1", http_search_id)]
     write_dashboard(
         requests_dir / "dashboard.json",
         dashboard_id="exercises-requests-logs-kibana",
         title="Exercises — HTTP & Postgres logs",
         description=(
-            "Correlate HTTP requests with Postgres SQL. Uses the logstash-* data view. "
-            "Click correlation.request_id in the SQL panel to drill into one request."
+            "All logs in the logstash-* data view (last 24h by default). "
+            "session_id_resolved fills session from headers when needed; "
+            "body and message show HTTP payload vs plain log text."
         ),
         panels=requests_panels,
+        panel_refs=requests_refs,
         time_restore=True,
         time_from="now-24h",
         time_to="now",
+        hide_panel_titles=True,
     )
 
     pipeline_specs = [
-        ("1", 0, 0, 24, 20, ROOT / "search-all.json"),
-        ("2", 24, 0, 24, 20, ROOT / "search-errors.json"),
+        ("1", 0, 0, 24, 20, "log-pipeline-all-search"),
+        ("2", 24, 0, 24, 20, "log-pipeline-errors-search"),
     ]
     pipeline_panels = [
-        inline_search_panel(panel_index, x, y, w, h, load_search_flat(path))
-        for panel_index, x, y, w, h, path in pipeline_specs
+        by_ref_search_panel(panel_index, x, y, w, h, search_id)
+        for panel_index, x, y, w, h, search_id in pipeline_specs
+    ]
+    pipeline_refs = [
+        search_panel_reference(panel_index, search_id)
+        for panel_index, _, _, _, _, search_id in pipeline_specs
     ]
     write_dashboard(
         ROOT / "dashboard.json",
@@ -138,6 +128,7 @@ def main() -> None:
             "Ingest health for Filebeat → Logstash → Elasticsearch (logstash-* data view)."
         ),
         panels=pipeline_panels,
+        panel_refs=pipeline_refs,
         time_restore=True,
         time_from="now-24h",
         time_to="now",
