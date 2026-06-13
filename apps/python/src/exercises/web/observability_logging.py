@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 from logging.handlers import WatchedFileHandler
 from pathlib import Path
 
+from exercises.web.correlation import CorrelationFilter
+
 
 class _JsonLineFormatter(logging.Formatter):
     def __init__(self, service: str) -> None:
@@ -60,6 +62,7 @@ def configure_observability_logging() -> None:
         return
 
     handler = WatchedFileHandler(log_file, encoding="utf-8")
+    handler.addFilter(CorrelationFilter())
     handler.setFormatter(_JsonLineFormatter(service="exercises-python"))
     handler.setLevel(logging.INFO)
     root.addHandler(handler)

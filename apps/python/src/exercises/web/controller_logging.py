@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from exercises.web.correlation import CorrelationFilter, current_correlation, merge_correlation
 from exercises.web.request_snapshot import request_body, request_headers, request_url_params
 
 _RECORD_STANDARD = frozenset(logging.makeLogRecord({}).__dict__.keys()) | frozenset(
@@ -101,30 +102,13 @@ def log_trace(
 
 
 def http_access_session_fields() -> dict[str, str]:
-    """Top-level session_id for http.request access logs (not duplicated on controllers)."""
-    session_id = _current_session_id()
-    return {"session_id": session_id} if session_id is not None else {}
-
-
-def _current_session_id() -> str | None:
-    try:
-        from flask import g
-
-        session = getattr(g, "shared_session", None)
-        if session is not None:
-            session_id = getattr(session, "session_id", None)
-            return session_id if isinstance(session_id, str) and session_id else None
-    except RuntimeError:
-        return None
-    return None
+    """Top-level correlation for http.request access logs."""
+    return current_correlation()
 
 
 def _extra(source: str, handler: str, **fields: Any) -> dict[str, Any]:
     extra: dict[str, Any] = {"source": source, "controller": handler}
-    if "session_id" not in fields:
-        session_id = _current_session_id()
-        if session_id is not None:
-            extra["session_id"] = session_id
+    extra = merge_correlation(extra)
     for key, value in fields.items():
         if key in _RECORD_STANDARD:
             raise ValueError(f"reserved log record field: {key}")
