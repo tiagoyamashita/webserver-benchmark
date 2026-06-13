@@ -1,4 +1,4 @@
-/** OpenAPI spec + Swagger UI routes — `/api/items` only (mirrors Java/Rust scope). */
+/** OpenAPI spec + Swagger UI routes — `/api/items` (Postgres) and `/java/api/items` (Java proxy). */
 
 import type { Express } from "express";
 import swaggerUi from "swagger-ui-express";
@@ -9,19 +9,108 @@ export const openApiSpec = {
     title: "Exercises React Node API",
     version: "1.0",
     description:
-      "REST API under `/api/items` (Express proxies to Java). Health, probe, and observability routes are excluded.",
+      "Direct Postgres items at `/api/items` and Java proxy at `/java/api/items`. Health, probe, and observability routes are excluded.",
   },
   tags: [
     {
-      name: "Items",
+      name: "Items (Postgres)",
+      description: "Shared PostgreSQL `items` table (same schema as Java Flyway migrations)",
+    },
+    {
+      name: "Items (Java proxy)",
       description: "Shared PostgreSQL `items` table via Java backend (Flyway schema)",
     },
   ],
   paths: {
     "/api/items": {
       get: {
-        tags: ["Items"],
-        summary: "List items",
+        tags: ["Items (Postgres)"],
+        summary: "List items from Postgres",
+        description:
+          "Reads from the shared `items` table. Sets Postgres `application_name` from `X-Request-ID` when present.",
+        responses: {
+          "200": {
+            description: "All items",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "array",
+                  items: { $ref: "#/components/schemas/Item" },
+                },
+              },
+            },
+          },
+          "503": {
+            description: "Database not configured",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiError" },
+              },
+            },
+          },
+          "500": {
+            description: "Database error",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiError" },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ["Items (Postgres)"],
+        summary: "Create item in Postgres",
+        description:
+          "Inserts into the shared `items` table with JSON body `{\"name\":\"...\"}`. Sets Postgres `application_name` from `X-Request-ID` when present.",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/CreateItemRequest" },
+            },
+          },
+        },
+        responses: {
+          "201": {
+            description: "Created",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Item" },
+              },
+            },
+          },
+          "400": {
+            description: "Blank name",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiError" },
+              },
+            },
+          },
+          "503": {
+            description: "Database not configured",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiError" },
+              },
+            },
+          },
+          "500": {
+            description: "Database error",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiError" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/java/api/items": {
+      get: {
+        tags: ["Items (Java proxy)"],
+        summary: "List items via Java",
         description: "Proxies to Java `GET /api/items`. Forwards `X-Request-ID` when present.",
         responses: {
           "200": {
@@ -46,8 +135,8 @@ export const openApiSpec = {
         },
       },
       post: {
-        tags: ["Items"],
-        summary: "Create item",
+        tags: ["Items (Java proxy)"],
+        summary: "Create item via Java",
         description: "Proxies to Java `POST /api/items` with JSON body. Forwards `X-Request-ID` when present.",
         requestBody: {
           required: true,

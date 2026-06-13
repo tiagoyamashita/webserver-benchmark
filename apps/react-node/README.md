@@ -27,7 +27,9 @@ Open **http://127.0.0.1:5174/**.
 
 Set **`PROBE_*_URL`** env vars (see `.env.example`). Root **`docker-compose.yml`** sets these to Compose service names for the **`react-node`** container.
 
-**Postgres items:** the UI loads shared demo rows via Express → Java **`GET /api/items`** (Flyway seed in `java/src/main/resources/db/migration/V2__seed_items.sql`). Override with **`ITEMS_BASE_URL`** if needed.
+**Postgres items:** **`GET /api/items`** and **`POST /api/items`** persist directly to the shared `items` table (same env as probes: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`).
+
+**Java items proxy:** the UI can also load demo rows via Express → Java **`GET /java/api/items`** (Flyway seed in `java/src/main/resources/db/migration/V2__seed_items.sql`). Override upstream Java with **`ITEMS_BASE_URL`** if needed.
 
 ## Stack integration
 

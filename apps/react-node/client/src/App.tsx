@@ -360,7 +360,7 @@ export default function App() {
             <h2 className="form-heading">List items</h2>
             <p className="form-hint">
               Loads rows from the shared PostgreSQL <code>items</code> table via Express → Java{" "}
-              <code>GET /api/items</code>.
+              <code>GET /java/api/items</code>.
             </p>
             <div className="toolbar">
               <button
@@ -411,7 +411,7 @@ export default function App() {
             <h2 className="form-heading">Create item</h2>
             <p className="form-hint">
               Persists a row to the shared PostgreSQL <code>items</code> table via Express → Java{" "}
-              <code>POST /api/items</code>.
+              <code>POST /java/api/items</code>.
             </p>
             <form
               className="items-form"
@@ -449,7 +449,7 @@ export default function App() {
           >
             <h2 className="form-heading">OpenAPI</h2>
             <p className="form-hint">
-              Interactive REST docs (Swagger UI) for <code>/api/items</code> list and create (proxies to Java).
+              Interactive REST docs (Swagger UI) for <code>/java/api/items</code> list and create (proxies to Java).
               Health, probe, and observability routes are excluded. JSON spec:{" "}
               <code>/api-docs/openapi.json</code>.
             </p>

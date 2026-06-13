@@ -10,6 +10,11 @@ import {
   logWarn,
 } from "./controller-logging.js";
 import { createItem, fetchItems } from "./items.js";
+import {
+  DatabaseNotConfiguredError,
+  insertItemIntoPostgres,
+  listItemsFromPostgres,
+} from "./postgres-items.js";
 import { registerAuthRoutes, sessionMiddleware, type AuthRuntime } from "./auth/routes.js";
 import {
   observabilityEnabled,
@@ -24,6 +29,7 @@ import { requestBody, requestHeaders, requestUrlParams } from "./request-snapsho
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SOURCE = "server/app.ts";
+const POSTGRES_ITEMS_SOURCE = "server/postgres-items.ts";
 
 function httpAccessSessionFields(req: Request): { session_id?: string } {
   const sessionId = req.sharedSession?.sessionId;
@@ -58,7 +64,15 @@ export function createApp(options: CreateAppOptions = {}): Express {
   app.use(requestIdMiddleware);
   app.use(sessionMiddleware(authRuntime.auth));
   app.use((req: Request, res: Response, next: NextFunction) => {
-    requestContext.run({ sessionId: req.sharedSession?.sessionId }, () => next());
+    requestContext.run(
+      {
+        sessionId: req.sharedSession?.sessionId,
+        requestId: req.requestId,
+        inboundMethod: req.method,
+        inboundPath: req.path,
+      },
+      () => next(),
+    );
   });
   app.use(metricsMiddleware);
 
@@ -68,7 +82,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
   if (observabilityEnabled()) {
     app.use((req: Request, res: Response, next: NextFunction) => {
       const start = Date.now();
-      writeLog("INFO", `${req.method} ${req.originalUrl} request received`, {
+      const receivedFields = {
         method: req.method,
         path: req.originalUrl,
         request_id: req.requestId,
@@ -77,9 +91,23 @@ export function createApp(options: CreateAppOptions = {}): Express {
         headers: requestHeaders(req),
         url_params: requestUrlParams(req),
         body: requestBody(req),
-      });
+      };
+      writeLog(
+        "INFO",
+        `${req.method} ${req.originalUrl} request received request_id=${req.requestId}`,
+        receivedFields,
+        "http.request",
+      );
+      console.info(
+        JSON.stringify({
+          level: "INFO",
+          logger: "http.request",
+          message: `${req.method} ${req.originalUrl} request received request_id=${req.requestId}`,
+          ...receivedFields,
+        }),
+      );
       res.on("finish", () => {
-        writeLog("INFO", `${req.method} ${req.originalUrl} ${res.statusCode}`, {
+        const completedFields = {
           method: req.method,
           path: req.originalUrl,
           status: res.statusCode,
@@ -87,7 +115,21 @@ export function createApp(options: CreateAppOptions = {}): Express {
           request_id: req.requestId,
           phase: "completed",
           ...httpAccessSessionFields(req),
-        });
+        };
+        writeLog(
+          "INFO",
+          `${req.method} ${req.originalUrl} ${res.statusCode} request_id=${req.requestId}`,
+          completedFields,
+          "http.request",
+        );
+        console.info(
+          JSON.stringify({
+            level: "INFO",
+            logger: "http.request",
+            message: `${req.method} ${req.originalUrl} ${res.statusCode} request_id=${req.requestId}`,
+            ...completedFields,
+          }),
+        );
       });
       next();
     });
@@ -149,7 +191,72 @@ export function createApp(options: CreateAppOptions = {}): Express {
   });
 
   app.get("/api/items", async (req: Request, res: Response) => {
-    logReceivedFromRequest(req, "listItems", SOURCE, "GET", "/api/items");
+    logReceivedFromRequest(req, "list_items", POSTGRES_ITEMS_SOURCE, "GET", "/api/items");
+    try {
+      const items = await listItemsFromPostgres(req.requestId);
+      logSucceeded("list_items", POSTGRES_ITEMS_SOURCE, { count: items.length });
+      logTrace("list_items", POSTGRES_ITEMS_SOURCE, "list_items result", { items });
+      res.json(items);
+    } catch (error) {
+      if (error instanceof DatabaseNotConfiguredError) {
+        logWarn("list_items", POSTGRES_ITEMS_SOURCE, "list_items database not configured", {
+          target_service: "postgres",
+          error: error.message,
+        });
+        res.status(503).json({ error: error.message });
+        return;
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      logError("list_items", POSTGRES_ITEMS_SOURCE, "list_items failed", {
+        target_service: "postgres",
+        error: message,
+      });
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/items", async (req: Request, res: Response) => {
+    const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
+    logReceivedFromRequest(req, "create_item", POSTGRES_ITEMS_SOURCE, "POST", "/api/items", {
+      item_name: name || undefined,
+    });
+    if (!name) {
+      logWarn("create_item", POSTGRES_ITEMS_SOURCE, "create_item validation failed", {
+        item_name: req.body?.name,
+        reason: "blank-name",
+      });
+      res.status(400).json({ error: "name must not be blank" });
+      return;
+    }
+    try {
+      const item = await insertItemIntoPostgres(name, req.requestId);
+      logSucceeded("create_item", POSTGRES_ITEMS_SOURCE, {
+        item_id: item.id,
+        item_name: item.name,
+      });
+      res.status(201).json(item);
+    } catch (error) {
+      if (error instanceof DatabaseNotConfiguredError) {
+        logWarn("create_item", POSTGRES_ITEMS_SOURCE, "create_item database not configured", {
+          target_service: "postgres",
+          item_name: name,
+          error: error.message,
+        });
+        res.status(503).json({ error: error.message });
+        return;
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      logError("create_item", POSTGRES_ITEMS_SOURCE, "create_item failed", {
+        target_service: "postgres",
+        item_name: name,
+        error: message,
+      });
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/java/api/items", async (req: Request, res: Response) => {
+    logReceivedFromRequest(req, "listItems", SOURCE, "GET", "/java/api/items");
     try {
       const items = await fetchItems(fetchImpl, req.requestId);
       logSucceeded("listItems", SOURCE, { count: items.length });
@@ -164,9 +271,9 @@ export function createApp(options: CreateAppOptions = {}): Express {
     }
   });
 
-  app.post("/api/items", async (req: Request, res: Response) => {
+  app.post("/java/api/items", async (req: Request, res: Response) => {
     const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
-    logReceivedFromRequest(req, "createItem", SOURCE, "POST", "/api/items", { name });
+    logReceivedFromRequest(req, "createItem", SOURCE, "POST", "/java/api/items", { name });
     if (!name) {
       logWarn("createItem", SOURCE, "createItem validation failed", {
         name: req.body?.name,
