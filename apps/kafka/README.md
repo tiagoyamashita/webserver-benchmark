@@ -101,7 +101,31 @@ Event JSON (includes the dashboard/API `requestId` for log correlation):
 
 The same id is also sent as Kafka header `X-Request-ID`. Java and Rust consumers restore it into their request context so handler logs and Postgres `application_name` match the original HTTP request instead of generating a new id.
 
-**Topic creation:** Java and Rust both ensure `create-user` on startup when it is missing (fail-fast if Kafka is down or config mismatches). No manual `kafka-topics.sh` step is required when Kafka is healthy before the apps start.
+### `create-item` (Java producer → Python consumer)
+
+| | |
+|--|--|
+| Topic | `create-item` |
+| Producer | Java `CreateItemEventPublisher` (dashboard **Kafka create item (Python)** or `POST /dashboard/items/publish-create-item`) |
+| Consumer group (Python only) | `exercises-create-item-python` |
+| Effect | Python inserts into Postgres `items` |
+
+Event JSON:
+
+```json
+{"event":"create-item","name":"Widget from Kafka","requestId":"…"}
+```
+
+The same id is also sent as Kafka header `X-Request-ID`. The Python consumer restores it for handler logs and Postgres `application_name`.
+
+**Topic creation:** Java `KafkaTopicConfig` ensures `create-item` on startup (same fail-fast admin as `create-user`).
+
+| App | Config |
+|-----|--------|
+| Java | `app.kafka.create-item-*` |
+| Python | `KAFKA_CREATE_ITEM_TOPIC`, `KAFKA_CREATE_ITEM_CONSUMER_GROUP` |
+
+**Topic creation (create-user):** Java and Rust both ensure `create-user` on startup when it is missing (fail-fast if Kafka is down or config mismatches). No manual `kafka-topics.sh` step is required when Kafka is healthy before the apps start.
 
 | App | Config |
 |-----|--------|
@@ -134,7 +158,7 @@ Set in Compose or `.env.apps` (see `.env.apps.example` at repo root):
 KAFKA_BOOTSTRAP_SERVERS=kafka:9092
 ```
 
-**Wired today:** Java publishes `create-user` events; Rust consumes and creates users in Postgres. Add more producers/consumers in each app as needed.
+**Wired today:** Java publishes `create-user` (Java/Rust consumers → Postgres `users`) and `create-item` (Python-only consumer → Postgres `items`). Rust can also publish `create-user`. Add more producers/consumers in each app as needed.
 
 ## Observability (Grafana + Elasticsearch)
 

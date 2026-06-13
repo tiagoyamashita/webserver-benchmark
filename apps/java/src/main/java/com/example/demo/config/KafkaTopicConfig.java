@@ -19,4 +19,12 @@ public class KafkaTopicConfig {
         .replicas(kafkaAppProperties.getCreateUserReplicas())
         .build();
   }
+
+  @Bean
+  public NewTopic createItemTopic(KafkaAppProperties kafkaAppProperties) {
+    return TopicBuilder.name(kafkaAppProperties.getCreateItemTopic())
+        .partitions(kafkaAppProperties.getCreateItemPartitions())
+        .replicas(kafkaAppProperties.getCreateItemReplicas())
+        .build();
+  }
 }

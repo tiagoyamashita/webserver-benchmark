@@ -232,6 +232,7 @@
         <button type="button" class="sidebar-btn sub" id="nav-rust-relay" data-view="view-rust-relay">Item relay</button>
         <button type="button" class="sidebar-btn sub" id="nav-stack-relays" data-view="view-stack-relays">Stack relays</button>
         <button type="button" class="sidebar-btn sub" id="nav-kafka-create-user" data-view="view-kafka-create-user">Kafka create user</button>
+        <button type="button" class="sidebar-btn sub" id="nav-kafka-create-item-python" data-view="view-kafka-create-item-python">Kafka create item (Python)</button>
         <p class="sidebar-section">API</p>
         <button type="button" class="sidebar-btn sub" id="nav-openapi" data-view="view-openapi">OpenAPI</button>
         <button type="button" class="sidebar-btn sub" id="nav-kafka-ui" data-view="view-kafka-ui">Kafka UI</button>
@@ -443,6 +444,23 @@
             <button type="button" class="btn" id="kafka-user-publish">Publish create-user event</button>
           </div>
           <pre id="kafka-user-result" class="result-box" aria-live="polite"></pre>
+        </section>
+
+        <section id="view-kafka-create-item-python" class="view-panel" aria-hidden="true">
+          <h2 class="form-heading">Kafka create item (Python)</h2>
+          <p class="form-hint">
+            Publishes a <code>create-item</code> event to Kafka. Only the Python consumer
+            (<code>exercises-create-item-python</code>) processes each message and inserts into
+            PostgreSQL <code>items</code>. The dashboard <code>request_id</code> is stored in the
+            message JSON and <code>X-Request-ID</code> header for log correlation. Use
+            <strong>List items</strong> after a few seconds to confirm.
+          </p>
+          <div class="field-row">
+            <label for="kafka-item-name">Name</label>
+            <input type="text" id="kafka-item-name" placeholder="Item name" autocomplete="off"/>
+            <button type="button" class="btn primary" id="kafka-item-python-publish">Publish via Kafka (Python)</button>
+          </div>
+          <pre id="kafka-item-result" class="result-box" aria-live="polite"></pre>
         </section>
 
         <section id="view-openapi" class="view-panel" aria-hidden="true">
@@ -1029,6 +1047,53 @@
               })
               .catch(function (err) {
                 kafkaUserResult.textContent = String(err.message || err);
+              });
+          });
+        }
+
+        var kafkaItemPublishBtn = document.getElementById("kafka-item-python-publish");
+        var kafkaItemName = document.getElementById("kafka-item-name");
+        var kafkaItemResult = document.getElementById("kafka-item-result");
+        if (kafkaItemPublishBtn && kafkaItemName && kafkaItemResult) {
+          kafkaItemPublishBtn.addEventListener("click", function () {
+            var name = (kafkaItemName.value || "").trim();
+            if (!name) {
+              kafkaItemResult.textContent = "Name is required.";
+              return;
+            }
+            var kafkaReq = apiRequest({ Accept: "application/json" });
+            kafkaItemResult.textContent =
+              "Publishing create-item event for Python…\nrequest_id=" +
+              kafkaReq.requestId +
+              "\ndashboard_page=" +
+              currentView;
+            var itemUrl =
+              "/dashboard/items/publish-create-item?name=" + encodeURIComponent(name);
+            fetch(itemUrl, { method: "POST", credentials: "same-origin", headers: kafkaReq.headers })
+              .then(function (res) {
+                return res.json().then(function (data) {
+                  return { httpOk: res.ok, status: res.status, data: data };
+                });
+              })
+              .then(function (r) {
+                var lines = ["Java publish HTTP " + r.status];
+                var d = r.data || {};
+                lines.push("request_id=" + (d.requestId || kafkaReq.requestId));
+                lines.push("dashboard_page=" + currentView);
+                if (d.event) lines.push("event=" + d.event);
+                if (d.topic) lines.push("topic=" + d.topic);
+                if (d.consumer) lines.push("consumer=" + d.consumer);
+                if (d.error) lines.push("Error: " + d.error);
+                if (r.httpOk && d.ok === true) {
+                  lines.push(
+                    "Python consumer group exercises-create-item-python will insert the item."
+                  );
+                  kafkaItemName.value = "";
+                }
+                kafkaItemResult.textContent = lines.join("\n");
+              })
+              .catch(function (err) {
+                kafkaItemResult.textContent = String(err.message || err);
               });
           });
         }

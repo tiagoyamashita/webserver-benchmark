@@ -121,6 +121,23 @@ def connection(request_id: str | None = None) -> Iterator["psycopg.Connection"]:
         conn.close()
 
 
+def insert_item(name: str, request_id: str | None = None) -> tuple[int, str, object]:
+    """Insert a row into shared Postgres ``items`` (used by REST and Kafka consumer)."""
+    trimmed_name = name.strip()
+    with connection(request_id=request_id) as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO items (name, created_at) VALUES (%s, NOW()) "
+                "RETURNING id, name, created_at",
+                (trimmed_name,),
+            )
+            row = cur.fetchone()
+        conn.commit()
+    if row is None:
+        raise RuntimeError("insert_item returned no row")
+    return int(row[0]), str(row[1]), row[2]
+
+
 def find_user_by_email(conn: "psycopg.Connection", email: str) -> tuple[int, str, str] | None:
     with conn.cursor() as cur:
         cur.execute(

@@ -19,6 +19,7 @@ from exercises.web.controller_logging import (
 )
 from exercises.web.http_access_logging import should_log_http_access
 from exercises.web.items_api import register_items_routes
+from exercises.web.kafka_create_item import start_create_item_consumer
 from exercises.web.relay_api import register_relay_routes
 from exercises.web.openapi_routes import register_openapi_routes
 from exercises.web.observability_logging import observability_enabled
@@ -119,6 +120,7 @@ def create_app() -> Flask:
             extra={"source": _APP_SOURCE},
         )
     register_session_middleware(app, auth_state)
+    start_create_item_consumer()
 
     @app.before_request
     def _assign_request_id() -> None:

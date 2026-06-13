@@ -9,6 +9,7 @@ dependencies = [
   "prometheus-client>=0.21",
   "psycopg[binary]>=3.2",
   "redis>=5.0",
+  "kafka-python>=2.0",
 ]
 
 [project.optional-dependencies]

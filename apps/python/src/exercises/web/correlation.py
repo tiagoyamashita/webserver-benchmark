@@ -2,25 +2,46 @@
 
 from __future__ import annotations
 
+import contextvars
 import logging
+from contextlib import contextmanager
+from collections.abc import Iterator
 from typing import Any
+
+_kafka_request_id: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "kafka_request_id", default=None
+)
+
+
+@contextmanager
+def kafka_request_id_scope(request_id: str | None) -> Iterator[None]:
+    """Bind a Kafka message request id for background consumer logs."""
+    token = _kafka_request_id.set(request_id)
+    try:
+        yield
+    finally:
+        _kafka_request_id.reset(token)
 
 
 def current_correlation() -> dict[str, str]:
-    """Return request_id and session_id from the active Flask request, when present."""
+    """Return request_id and session_id from Flask or Kafka consumer context."""
+    fields: dict[str, str] = {}
+    kafka_id = _kafka_request_id.get()
+    if isinstance(kafka_id, str) and kafka_id.strip():
+        fields["request_id"] = kafka_id.strip()
+
     try:
         from flask import g, has_request_context
 
         if not has_request_context():
-            return {}
+            return fields
     except RuntimeError:
-        return {}
+        return fields
 
-    fields: dict[str, str] = {}
     try:
         request_id = getattr(g, "request_id", None)
         if isinstance(request_id, str) and request_id.strip():
-            fields["request_id"] = request_id.strip()
+            fields.setdefault("request_id", request_id.strip())
 
         session = getattr(g, "shared_session", None)
         if session is not None:

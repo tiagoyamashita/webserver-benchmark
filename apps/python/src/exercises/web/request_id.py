@@ -33,6 +33,22 @@ def resolve_request_id(request: Request) -> str:
     return str(uuid.uuid4())
 
 
+def resolve_kafka_request_id(
+    message_request_id: str | None = None,
+    header_request_id: str | None = None,
+) -> str:
+    """Restore correlation id from Kafka JSON body or header; generate when both missing."""
+    if message_request_id is not None:
+        trimmed = message_request_id.strip()
+        if trimmed and is_acceptable_request_id(trimmed):
+            return trimmed
+    if header_request_id is not None:
+        trimmed = header_request_id.strip()
+        if trimmed and is_acceptable_request_id(trimmed):
+            return trimmed
+    return str(uuid.uuid4())
+
+
 def resolve_outbound_request_id(current: str | None = None) -> str:
     """Reuse a valid inbound/current id; generate when missing (outbound HTTP)."""
     if current is not None:

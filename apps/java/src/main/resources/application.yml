@@ -77,6 +77,9 @@ app:
     create-user-consumer-group: exercises-create-user
     create-user-partitions: 1
     create-user-replicas: 1
+    create-item-topic: create-item
+    create-item-partitions: 1
+    create-item-replicas: 1
   project:
     # Optional: absolute path to the directory that contains pom.xml (otherwise auto-detected).
     module-dir: ""

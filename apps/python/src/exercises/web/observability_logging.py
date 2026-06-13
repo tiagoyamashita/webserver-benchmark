@@ -71,3 +71,5 @@ def configure_observability_logging() -> None:
 
     # Flask dev server access lines (GET /metrics 200) duplicate http.request JSON logs.
     logging.getLogger("werkzeug").setLevel(logging.WARNING)
+    # kafka-python client logs poll/subscribe noise at INFO.
+    logging.getLogger("kafka").setLevel(logging.WARNING)

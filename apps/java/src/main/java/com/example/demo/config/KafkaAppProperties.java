@@ -9,6 +9,9 @@ public class KafkaAppProperties {
   private String createUserConsumerGroup = "exercises-create-user";
   private int createUserPartitions = 1;
   private short createUserReplicas = 1;
+  private String createItemTopic = "create-item";
+  private int createItemPartitions = 1;
+  private short createItemReplicas = 1;
 
   public String getCreateUserTopic() {
     return createUserTopic;
@@ -40,5 +43,29 @@ public class KafkaAppProperties {
 
   public void setCreateUserReplicas(short createUserReplicas) {
     this.createUserReplicas = createUserReplicas;
+  }
+
+  public String getCreateItemTopic() {
+    return createItemTopic;
+  }
+
+  public void setCreateItemTopic(String createItemTopic) {
+    this.createItemTopic = createItemTopic;
+  }
+
+  public int getCreateItemPartitions() {
+    return createItemPartitions;
+  }
+
+  public void setCreateItemPartitions(int createItemPartitions) {
+    this.createItemPartitions = createItemPartitions;
+  }
+
+  public short getCreateItemReplicas() {
+    return createItemReplicas;
+  }
+
+  public void setCreateItemReplicas(short createItemReplicas) {
+    this.createItemReplicas = createItemReplicas;
   }
 }

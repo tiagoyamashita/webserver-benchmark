@@ -101,6 +101,32 @@ def log_trace(
     )
 
 
+def log_kafka_received(
+    logger: logging.Logger,
+    handler: str,
+    source: str,
+    topic: str,
+    *,
+    request_id: str | None = None,
+    **params: Any,
+) -> None:
+    """Kafka/async handler entry (no HTTP access log); may include request_id for correlation."""
+    fields = dict(params)
+    if request_id:
+        fields.setdefault("request_id", request_id)
+    logger.info(
+        f"{handler} kafka message received",
+        extra=_extra(
+            source,
+            handler,
+            method="KAFKA",
+            path=f"kafka/{topic}",
+            topic=topic,
+            **fields,
+        ),
+    )
+
+
 def http_access_session_fields() -> dict[str, str]:
     """Top-level correlation for http.request access logs."""
     return current_correlation()

@@ -116,7 +116,7 @@ log.trace("ItemController.list result", kv("source", SOURCE), kv("items", result
 
 ## Python (Flask)
 
-Helper: `exercises.web.controller_logging` — `log_received`, `log_succeeded`, `log_warn`, `log_error`, `log_trace`.
+`log_received`, `log_succeeded`, `log_warn`, `log_error`, `log_trace`, `log_kafka_received` (Kafka/async — no HTTP access log; include `request_id` when needed).
 
 ```python
 SOURCE = "src/exercises/web/items_api.py"
