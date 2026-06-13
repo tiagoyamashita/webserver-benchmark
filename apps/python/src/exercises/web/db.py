@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Iterator
 
+from exercises.web.controller_logging import log_error, log_warn
+
 if TYPE_CHECKING:
     import psycopg
+
+SOURCE = "src/exercises/web/db.py"
+_LOG = logging.getLogger(__name__)
 
 
 class DatabaseNotConfiguredError(RuntimeError):
@@ -25,21 +31,66 @@ def database_url_from_env() -> str | None:
     return f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
 
 
+def _postgres_target() -> dict[str, str]:
+    host = os.environ.get("DB_HOST", "").strip()
+    port = os.environ.get("DB_PORT", "5432").strip() or "5432"
+    dbname = os.environ.get("DB_NAME", "demo").strip() or "demo"
+    return {
+        "service": "postgres",
+        "host": host,
+        "port": port,
+        "dbname": dbname,
+    }
+
+
 @contextmanager
 def connection(request_id: str | None = None) -> Iterator["psycopg.Connection"]:
+    target = _postgres_target()
     url = database_url_from_env()
     if not url:
+        log_warn(
+            _LOG,
+            "postgres_connect",
+            SOURCE,
+            "postgres not configured",
+            request_id=request_id,
+            reason="missing-db-host",
+            **target,
+        )
         raise DatabaseNotConfiguredError(
             "Postgres not configured (set DB_HOST, DB_PORT, DB_NAME, DB_USERNAME, DB_PASSWORD)"
         )
     try:
         import psycopg
     except ModuleNotFoundError as exc:
+        log_error(
+            _LOG,
+            "postgres_connect",
+            SOURCE,
+            "postgres client not installed",
+            exc=exc,
+            request_id=request_id,
+            **target,
+        )
         raise DatabaseNotConfiguredError(
             "psycopg is not installed; rebuild the python image "
             "(podman compose build python)"
         ) from exc
-    with psycopg.connect(url) as conn:
+    try:
+        conn = psycopg.connect(url)
+    except Exception as exc:
+        log_error(
+            _LOG,
+            "postgres_connect",
+            SOURCE,
+            "postgres connection failed",
+            exc=exc,
+            request_id=request_id,
+            error=str(exc),
+            **target,
+        )
+        raise
+    try:
         from exercises.web.request_id import postgres_application_name
 
         app_name = (
@@ -47,13 +98,15 @@ def connection(request_id: str | None = None) -> Iterator["psycopg.Connection"]:
             if request_id
             else "exercises-python"
         )
-        # SET does not accept $1 placeholders; set_config does (same as Rust sqlx).
-        with conn.cursor() as cur:
-            cur.execute(
-                "SELECT set_config('application_name', %s, false)",
-                (app_name,),
-            )
-        yield conn
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT set_config('application_name', %s, false)",
+                    (app_name,),
+                )
+            yield conn
+    except Exception:
+        raise
 
 
 def find_user_by_email(conn: "psycopg.Connection", email: str) -> tuple[int, str, str] | None:

@@ -9,31 +9,31 @@ import com.example.demo.observability.RequestIdRelay;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
-import org.springframework.web.util.UriComponentsBuilder;
 
 @Service
-public class RustItemRelayService {
+public class PythonItemRelayService {
 
   private static final String SOURCE =
-      "src/main/java/com/example/demo/web/RustItemRelayService.java";
-  private static final Logger log = LoggerFactory.getLogger(RustItemRelayService.class);
+      "src/main/java/com/example/demo/web/PythonItemRelayService.java";
+  private static final Logger log = LoggerFactory.getLogger(PythonItemRelayService.class);
+  private static final String RELAY_TARGET = "exercises-python";
 
   private final RestClient restClient;
   private final StackPingProperties properties;
   private final ObjectMapper objectMapper;
 
-  public RustItemRelayService(
+  public PythonItemRelayService(
       @Qualifier("stackPingRestClient") RestClient stackPingRestClient,
       StackPingProperties properties,
       ObjectMapper objectMapper) {
@@ -43,90 +43,94 @@ public class RustItemRelayService {
   }
 
   /**
-   * Calls Rust {@code POST /api/items?name=…}; Rust inserts into Postgres {@code items} (Flyway schema).
+   * Calls Python {@code POST /api/items} with JSON {@code {"name": "…"}}; Python inserts into
+   * Postgres {@code items} (Flyway schema).
    */
-  public Map<String, Object> addItemViaRust(String name) {
+  public Map<String, Object> addItemViaPython(String name) {
     String trimmed = name == null ? "" : name.trim();
     String requestId = RequestIdContext.get();
     if (trimmed.isEmpty()) {
       log.warn(
-          "RustItemRelayService.addItemViaRust validation failed",
+          "PythonItemRelayService.addItemViaPython validation failed",
           kv("source", SOURCE),
-          kv("controller", "RustItemRelayService"),
+          kv("controller", "PythonItemRelayService"),
           kv("method", "POST"),
-          kv("path", "/dashboard/items/add-via-rust"),
+          kv("path", "/dashboard/items/add-via-python"),
           kv("ui_event", "dashboard.ui"),
-          kv("action", "add-item-via-rust"),
+          kv("action", "add-item-via-python"),
           kv("reason", "blank-name"));
-      return Map.of("ok", false, "error", "name must not be blank", "requestId", requestId != null ? requestId : "");
+      return Map.of(
+          "ok",
+          false,
+          "error",
+          "name must not be blank",
+          "requestId",
+          requestId != null ? requestId : "");
     }
     log.info(
-        "RustItemRelayService.addItemViaRust calling Rust",
+        "PythonItemRelayService.addItemViaPython calling Python",
         kv("source", SOURCE),
-        kv("controller", "RustItemRelayService"),
+        kv("controller", "PythonItemRelayService"),
         kv("method", "POST"),
-        kv("path", "/dashboard/items/add-via-rust"),
+        kv("path", "/dashboard/items/add-via-python"),
         kv("dashboard_page", DashboardPageContext.get()),
-        kv("relay_target", "exercises-rust"),
+        kv("relay_target", RELAY_TARGET),
         kv("relay_origin", RequestIdRelay.SERVICE),
         kv("relay_request_id", RequestIdRelay.resolveOutboundRequestId()),
         kv("name", trimmed),
         kv("ui_event", "dashboard.ui"),
-        kv("action", "add-item-via-rust"));
-    String base = properties.getRustBaseUrl().trim().replaceAll("/+$", "");
-    URI uri =
-        UriComponentsBuilder.fromUriString(base + "/api/items")
-            .queryParam("name", trimmed)
-            .encode(StandardCharsets.UTF_8)
-            .build()
-            .toUri();
+        kv("action", "add-item-via-python"));
+    String base = properties.getPythonBaseUrl().trim().replaceAll("/+$", "");
+    URI uri = URI.create(base + "/api/items");
     long start = System.nanoTime();
     try {
       ResponseEntity<String> res =
-          RequestIdRelay.applyOutbound(restClient.post().uri(uri)).retrieve().toEntity(String.class);
+          RequestIdRelay
+              .applyOutbound(
+                  restClient
+                      .post()
+                      .uri(uri)
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .body(Map.of("name", trimmed)))
+              .retrieve()
+              .toEntity(String.class);
       long ms = (System.nanoTime() - start) / 1_000_000L;
       String rawBody = res.getBody() != null ? res.getBody() : "";
       OutboundHttpLogger.logResponse(
-          "POST",
-          uri,
-          res.getStatusCode().value(),
-          ms,
-          "exercises-rust",
-          res.getHeaders(),
-          rawBody);
+          "POST", uri, res.getStatusCode().value(), ms, RELAY_TARGET, res.getHeaders(), rawBody);
       Map<String, Object> out = new LinkedHashMap<>();
       boolean ok = res.getStatusCode().is2xxSuccessful();
       out.put("ok", ok);
       out.put("requestId", requestId);
-      out.put("rustUrl", uri.toString());
+      out.put("pythonUrl", uri.toString());
       out.put("status", res.getStatusCode().value());
       out.put("body", rawBody);
-      parseRustJsonBody(rawBody).ifPresent(rust -> out.put("rust", rust));
+      parseJsonBody(rawBody).ifPresent(python -> out.put("python", python));
       if (ok) {
         log.info(
-            "RustItemRelayService.addItemViaRust succeeded",
+            "PythonItemRelayService.addItemViaPython succeeded",
             kv("source", SOURCE),
-            kv("controller", "RustItemRelayService"),
-            kv("relay_target", "exercises-rust"),
+            kv("controller", "PythonItemRelayService"),
+            kv("relay_target", RELAY_TARGET),
             kv("relay_origin", RequestIdRelay.SERVICE),
             kv("name", trimmed),
-            kv("rustStatus", res.getStatusCode().value()),
-            kv("rustUrl", uri.toString()),
+            kv("pythonStatus", res.getStatusCode().value()),
+            kv("pythonUrl", uri.toString()),
             kv("ui_event", "dashboard.ui"),
-            kv("action", "add-item-via-rust"));
+            kv("action", "add-item-via-python"));
       } else {
         String responseError = OutboundHttpLogger.resolveResponseError(res.getStatusCode().value(), rawBody);
         log.warn(
-            "RustItemRelayService.addItemViaRust failed",
+            "PythonItemRelayService.addItemViaPython failed",
             kv("source", SOURCE),
-            kv("controller", "RustItemRelayService"),
+            kv("controller", "PythonItemRelayService"),
             kv("name", trimmed),
-            kv("rustStatus", res.getStatusCode().value()),
-            kv("rustUrl", uri.toString()),
+            kv("pythonStatus", res.getStatusCode().value()),
+            kv("pythonUrl", uri.toString()),
             kv("error", responseError),
-            kv("rustBody", rawBody),
+            kv("pythonBody", rawBody),
             kv("ui_event", "dashboard.ui"),
-            kv("action", "add-item-via-rust"));
+            kv("action", "add-item-via-python"));
       }
       return out;
     } catch (RestClientResponseException e) {
@@ -138,26 +142,26 @@ public class RustItemRelayService {
           uri,
           e.getStatusCode().value(),
           ms,
-          "exercises-rust",
+          RELAY_TARGET,
           e.getResponseHeaders(),
           rawBody);
       log.warn(
-          "RustItemRelayService.addItemViaRust failed",
+          "PythonItemRelayService.addItemViaPython failed",
           kv("source", SOURCE),
-          kv("controller", "RustItemRelayService"),
+          kv("controller", "PythonItemRelayService"),
           kv("name", trimmed),
-          kv("rustStatus", e.getStatusCode().value()),
-          kv("rustUrl", uri.toString()),
+          kv("pythonStatus", e.getStatusCode().value()),
+          kv("pythonUrl", uri.toString()),
           kv("error", error),
-          kv("rustBody", rawBody),
+          kv("pythonBody", rawBody),
           kv("ui_event", "dashboard.ui"),
-          kv("action", "add-item-via-rust"));
+          kv("action", "add-item-via-python"));
       return Map.of(
           "ok",
           false,
           "requestId",
           requestId != null ? requestId : "",
-          "rustUrl",
+          "pythonUrl",
           uri.toString(),
           "status",
           e.getStatusCode().value(),
@@ -166,29 +170,29 @@ public class RustItemRelayService {
     } catch (RestClientException e) {
       long ms = (System.nanoTime() - start) / 1_000_000L;
       String error = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-      OutboundHttpLogger.logFailure("POST", uri, ms, "exercises-rust", error);
+      OutboundHttpLogger.logFailure("POST", uri, ms, RELAY_TARGET, error);
       log.warn(
-          "RustItemRelayService.addItemViaRust failed",
+          "PythonItemRelayService.addItemViaPython failed",
           kv("source", SOURCE),
-          kv("controller", "RustItemRelayService"),
+          kv("controller", "PythonItemRelayService"),
           kv("name", trimmed),
-          kv("rustUrl", uri.toString()),
+          kv("pythonUrl", uri.toString()),
           kv("error", error),
           kv("ui_event", "dashboard.ui"),
-          kv("action", "add-item-via-rust"));
+          kv("action", "add-item-via-python"));
       return Map.of(
           "ok",
           false,
           "requestId",
           requestId != null ? requestId : "",
-          "rustUrl",
+          "pythonUrl",
           uri.toString(),
           "error",
           error);
     }
   }
 
-  private java.util.Optional<Map<String, Object>> parseRustJsonBody(String rawBody) {
+  private java.util.Optional<Map<String, Object>> parseJsonBody(String rawBody) {
     if (rawBody == null || rawBody.isBlank()) {
       return java.util.Optional.empty();
     }

@@ -8,13 +8,14 @@ import java.io.IOException;
 import net.logstash.logback.composite.AbstractJsonProvider;
 import net.logstash.logback.composite.JsonWritingUtils;
 
-/** Adds per-request {@code log_seq}, {@code session_id}, and correlation fields to JSON log lines. */
+/** Adds per-request {@code request_id}, {@code log_seq}, {@code session_id}, and correlation fields to JSON log lines. */
 public class ObservabilityJsonProvider extends AbstractJsonProvider<ILoggingEvent> {
 
   @Override
   public void writeTo(JsonGenerator generator, ILoggingEvent event) throws IOException {
     String requestId = RequestIdContext.get();
     if (requestId != null) {
+      JsonWritingUtils.writeStringField(generator, "request_id", requestId);
       JsonWritingUtils.writeNumberField(generator, "log_seq", RequestIdContext.nextLogSeq());
       String page = DashboardPageContext.get();
       if (page != null) {

@@ -32,7 +32,7 @@ public class DashboardMetaController {
             "path", "/",
             "version", 8,
             "features",
-                "sidebar,connectivity-ping,ping-all,session-auth,user-create,user-list,item-list,item-create,rust-item-relay,openapi");
+                "sidebar,connectivity-ping,ping-all,session-auth,user-create,user-list,item-list,item-create,rust-item-relay,python-item-relay,openapi");
     log.info(
         "DashboardMetaController.meta succeeded",
         kv("source", SOURCE),

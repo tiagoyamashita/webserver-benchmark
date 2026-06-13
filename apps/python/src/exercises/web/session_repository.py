@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 from typing import TYPE_CHECKING
 
+from exercises.web.controller_logging import log_error, log_warn
 from exercises.web.session_models import SessionConfig, SharedSession
 
 if TYPE_CHECKING:
     import redis
+
+SOURCE = "src/exercises/web/session_repository.py"
+_LOG = logging.getLogger(__name__)
 
 
 class RedisNotConfiguredError(RuntimeError):
@@ -27,18 +32,53 @@ def redis_url_from_env() -> str | None:
     return f"redis://{host}:{port}"
 
 
+def _redis_target() -> dict[str, str]:
+    host = os.environ.get("REDIS_HOST", "").strip()
+    port = os.environ.get("REDIS_PORT", "6379").strip() or "6379"
+    return {"service": "redis", "host": host, "port": port}
+
+
 def connect_redis() -> redis.Redis | None:
     url = redis_url_from_env()
+    target = _redis_target()
     if not url:
+        log_warn(
+            _LOG,
+            "redis_connect",
+            SOURCE,
+            "redis not configured",
+            reason="missing-redis-host",
+            **target,
+        )
         return None
     try:
         import redis
     except ModuleNotFoundError as exc:
+        log_error(
+            _LOG,
+            "redis_connect",
+            SOURCE,
+            "redis client not installed",
+            exc=exc,
+            **target,
+        )
         raise RedisNotConfiguredError(
             "redis package is not installed; rebuild the python image"
         ) from exc
-    client = redis.from_url(url, decode_responses=True)
-    client.ping()
+    try:
+        client = redis.from_url(url, decode_responses=True)
+        client.ping()
+    except Exception as exc:
+        log_error(
+            _LOG,
+            "redis_connect",
+            SOURCE,
+            "redis connection failed",
+            exc=exc,
+            error=str(exc),
+            **target,
+        )
+        raise
     return client
 
 

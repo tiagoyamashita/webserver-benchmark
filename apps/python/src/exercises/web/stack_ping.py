@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import urllib.error
 import urllib.request
@@ -9,7 +10,11 @@ from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlparse
 
+from exercises.web.controller_logging import log_warn
 from exercises.web.request_id import outbound_request_headers
+
+SOURCE = "src/exercises/web/stack_ping.py"
+_LOG = logging.getLogger(__name__)
 
 
 def _read_env(key: str, default: str) -> str:
@@ -127,6 +132,14 @@ def _ping_postgres() -> dict[str, Any]:
     port = _read_env("DB_PORT", "5432")
     url = f"postgres://{host}:{port}" if host else ""
     if not host:
+        log_warn(
+            _LOG,
+            "postgres_ping",
+            SOURCE,
+            "postgres not configured",
+            service="postgres",
+            reason="missing-db-host",
+        )
         return {
             "stack": "postgres",
             "url": "",
@@ -142,6 +155,15 @@ def _ping_postgres() -> dict[str, Any]:
                 cur.fetchone()
         return {"stack": "postgres", "url": url, "ok": True}
     except Exception as e:
+        log_warn(
+            _LOG,
+            "postgres_ping",
+            SOURCE,
+            "postgres ping failed",
+            service="postgres",
+            url=url,
+            error=str(e),
+        )
         return {
             "stack": "postgres",
             "url": url,
@@ -155,6 +177,14 @@ def _ping_redis() -> dict[str, Any]:
     port = _read_env("REDIS_PORT", "6379")
     url = _read_env("REDIS_URL", f"redis://{host}:{port}" if host else "")
     if not host and not url:
+        log_warn(
+            _LOG,
+            "redis_ping",
+            SOURCE,
+            "redis not configured",
+            service="redis",
+            reason="missing-redis-host",
+        )
         return {
             "stack": "redis",
             "url": "",
@@ -173,6 +203,15 @@ def _ping_redis() -> dict[str, Any]:
             "status": 200 if pong is True else None,
         }
     except Exception as e:
+        log_warn(
+            _LOG,
+            "redis_ping",
+            SOURCE,
+            "redis ping failed",
+            service="redis",
+            url=url,
+            error=str(e),
+        )
         return {
             "stack": "redis",
             "url": url,
@@ -194,20 +233,41 @@ def _empty_get(stack: str, base_url: str, *, request_id: str | None = None) -> d
                 "status": status,
             }
     except urllib.error.HTTPError as e:
+        error = e.reason or str(e)
+        log_warn(
+            _LOG,
+            "stack_http_ping",
+            SOURCE,
+            "stack http ping failed",
+            service=stack,
+            url=url,
+            status=e.code,
+            error=error,
+        )
         return {
             "stack": stack,
             "url": url,
             "ok": False,
             "status": e.code,
-            "error": e.reason or str(e),
+            "error": error,
         }
     except urllib.error.URLError as e:
+        error = (
+            "Cannot connect (is the container running on the Compose network?). "
+            f"{e.reason}"
+        )
+        log_warn(
+            _LOG,
+            "stack_http_ping",
+            SOURCE,
+            "stack http ping unreachable",
+            service=stack,
+            url=url,
+            error=error,
+        )
         return {
             "stack": stack,
             "url": url,
             "ok": False,
-            "error": (
-                "Cannot connect (is the container running on the Compose network?). "
-                f"{e.reason}"
-            ),
+            "error": error,
         }

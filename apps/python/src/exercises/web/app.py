@@ -45,6 +45,21 @@ _APP_SOURCE = "src/exercises/web/app.py"
 _APP_LOG = logging.getLogger(__name__)
 
 
+def _response_error(response: Response) -> str:
+    payload = response.get_json(silent=True)
+    if isinstance(payload, dict):
+        err = payload.get("error")
+        if isinstance(err, str) and err.strip():
+            return err.strip()
+        message = payload.get("message")
+        if isinstance(message, str) and message.strip():
+            return message.strip()
+    text = response.get_data(as_text=True)
+    if text and text.strip():
+        return text.strip()
+    return f"HTTP {response.status_code}"
+
+
 def resolve_project_root() -> Path:
     override = os.environ.get("EXERCISES_PROJECT_ROOT", "").strip()
     if override:
@@ -132,21 +147,32 @@ def create_app() -> Flask:
         if observability_enabled():
             start = getattr(g, "_req_start", None)
             ms = int((time.perf_counter() - start) * 1000) if start is not None else 0
-            _HTTP_REQUEST_LOG.info(
-                "%s %s %s",
-                request.method,
-                request.path,
-                response.status_code,
-                extra={
-                    "method": request.method,
-                    "path": request.path,
-                    "status": response.status_code,
-                    "ms": ms,
-                    "request_id": request_id,
-                    "phase": "completed",
-                    **http_access_session_fields(),
-                },
-            )
+            completed_fields = {
+                "method": request.method,
+                "path": request.path,
+                "status": response.status_code,
+                "ms": ms,
+                "request_id": request_id,
+                "phase": "completed",
+                **http_access_session_fields(),
+            }
+            if request.method == "POST" and response.status_code >= 300:
+                completed_fields["error"] = _response_error(response)
+                _HTTP_REQUEST_LOG.warning(
+                    "%s %s %s",
+                    request.method,
+                    request.path,
+                    response.status_code,
+                    extra=completed_fields,
+                )
+            else:
+                _HTTP_REQUEST_LOG.info(
+                    "%s %s %s",
+                    request.method,
+                    request.path,
+                    response.status_code,
+                    extra=completed_fields,
+                )
         if request.endpoint in ("stack_landing", "tests_dashboard"):
             response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
             response.headers["Pragma"] = "no-cache"

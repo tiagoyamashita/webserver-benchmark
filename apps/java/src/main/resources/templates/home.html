@@ -306,6 +306,22 @@
       <pre id="rust-item-result" class="rust-item-result" aria-live="polite"></pre>
     </section>
 
+    <section class="rust-item-panel" id="python-item-panel" aria-labelledby="python-item-heading">
+      <h2 class="section" id="python-item-heading">Add item via Python → PostgreSQL</h2>
+      <p class="hint" style="margin: 0 0 0.5rem;">Java sends <code>POST</code> to Python; Python inserts into the shared <code>items</code> table.</p>
+      <div class="rust-item-form" id="python-item-form">
+        <label class="visually-hidden" for="python-item-name">Item name</label>
+        <input
+            type="text"
+            id="python-item-name"
+            name="name"
+            placeholder="Item name"
+            autocomplete="off"/>
+        <button type="button" class="btn primary" id="python-item-add">Add via Python</button>
+      </div>
+      <pre id="python-item-result" class="rust-item-result" aria-live="polite"></pre>
+    </section>
+
     <p class="hint">
       Run JUnit tests on the host with <code>./mvnw test</code> from the <code>java/</code> module.
       Exercise helpers: <code>GET /dashboard/test-template</code>, <code>POST /dashboard/exercise-file</code>,
@@ -480,6 +496,90 @@
               } else if (d.body) {
                 lines.push('');
                 lines.push('Rust body:');
+                try {
+                  lines.push(JSON.stringify(JSON.parse(String(d.body)), null, 2));
+                } catch (e) {
+                  lines.push(String(d.body));
+                }
+              }
+              if (d.error) {
+                lines.push('');
+                lines.push('Error: ' + d.error);
+              }
+              if (r.httpOk && d.ok === true) {
+                nameInput.value = '';
+              }
+              showResult(lines.join('\n'));
+            })
+            .catch(function (err) {
+              showResult('Request failed: ' + String(err.message || err));
+            });
+        });
+
+        nameInput.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Enter') {
+            ev.preventDefault();
+            addBtn.click();
+          }
+        });
+      })();
+
+      (function () {
+        if (!window.fetch) return;
+        var addBtn = document.getElementById('python-item-add');
+        var nameInput = document.getElementById('python-item-name');
+        var resultEl = document.getElementById('python-item-result');
+        if (!addBtn || !nameInput || !resultEl) return;
+        var addUrl = /*[[@{/dashboard/items/add-via-python}]]*/ '/dashboard/items/add-via-python';
+        var session = window.exercisesPageSession || {};
+        var apiRequest = session.apiRequest || function (page, extra) {
+          var headers = { 'X-Dashboard-Page': page };
+          if (extra) {
+            Object.keys(extra).forEach(function (key) { headers[key] = extra[key]; });
+          }
+          return { requestId: '', headers: headers };
+        };
+
+        function showResult(text) {
+          resultEl.textContent = text;
+        }
+
+        addBtn.addEventListener('click', function () {
+          var name = (nameInput.value || '').trim();
+          if (!name) {
+            showResult('Enter an item name.');
+            return;
+          }
+          var pythonReq = apiRequest('home-python-relay', { Accept: 'application/json' });
+          showResult('Calling Python…\nrequest_id=' + pythonReq.requestId + '\ndashboard_page=home-python-relay');
+          var url = addUrl + '?name=' + encodeURIComponent(name);
+          fetch(url, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: pythonReq.headers
+          })
+            .then(function (res) {
+              return res.json().then(function (data) {
+                return { httpOk: res.ok, data: data };
+              }, function () {
+                return { httpOk: res.ok, data: { error: 'Response was not JSON' } };
+              });
+            })
+            .then(function (r) {
+              var lines = [];
+              lines.push('Java relay HTTP ' + (r.httpOk ? 'OK' : 'error'));
+              var d = r.data || {};
+              lines.push('request_id=' + (d.requestId || pythonReq.requestId));
+              lines.push('dashboard_page=home-python-relay');
+              if (d.pythonUrl) lines.push('Python URL: ' + d.pythonUrl);
+              if (d.status != null) lines.push('Python HTTP status: ' + d.status);
+              if (d.python) {
+                lines.push('');
+                lines.push('Python response:');
+                lines.push(JSON.stringify(d.python, null, 2));
+              } else if (d.body) {
+                lines.push('');
+                lines.push('Python body:');
                 try {
                   lines.push(JSON.stringify(JSON.parse(String(d.body)), null, 2));
                 } catch (e) {

@@ -54,11 +54,20 @@ def register_items_routes(app: Flask) -> None:
                 "list_items",
                 SOURCE,
                 "list_items database not configured",
+                service="postgres",
                 error=str(exc),
             )
             return jsonify(error=str(exc)), 503
         except Exception as exc:
-            log_error(_LOG, "list_items", SOURCE, "list_items failed", exc=exc)
+            log_error(
+                _LOG,
+                "list_items",
+                SOURCE,
+                "list_items failed",
+                exc=exc,
+                service="postgres",
+                error=str(exc),
+            )
             return jsonify(error="Internal server error"), 500
 
     @app.post("/api/items")
@@ -95,12 +104,22 @@ def register_items_routes(app: Flask) -> None:
                 "create_item",
                 SOURCE,
                 "create_item database not configured",
+                service="postgres",
                 name=name,
                 error=str(exc),
             )
             return jsonify(error=str(exc)), 503
         except Exception as exc:
-            log_error(_LOG, "create_item", SOURCE, "create_item failed", exc=exc, name=name)
+            log_error(
+                _LOG,
+                "create_item",
+                SOURCE,
+                "create_item failed",
+                exc=exc,
+                service="postgres",
+                name=name,
+                error=str(exc),
+            )
             return jsonify(error="Internal server error"), 500
 
     @app.get("/api/items/<int:item_id>")
@@ -139,12 +158,22 @@ def register_items_routes(app: Flask) -> None:
                 "get_item",
                 SOURCE,
                 "get_item database not configured",
+                service="postgres",
                 item_id=item_id,
                 error=str(exc),
             )
             return jsonify(error=str(exc)), 503
         except Exception as exc:
-            log_error(_LOG, "get_item", SOURCE, "get_item failed", exc=exc, item_id=item_id)
+            log_error(
+                _LOG,
+                "get_item",
+                SOURCE,
+                "get_item failed",
+                exc=exc,
+                service="postgres",
+                item_id=item_id,
+                error=str(exc),
+            )
             return jsonify(error="Internal server error"), 500
 
     @app.put("/api/items/<int:item_id>")
@@ -202,6 +231,7 @@ def register_items_routes(app: Flask) -> None:
                 "update_item",
                 SOURCE,
                 "update_item database not configured",
+                service="postgres",
                 item_id=item_id,
                 name=name,
                 error=str(exc),
@@ -214,8 +244,10 @@ def register_items_routes(app: Flask) -> None:
                 SOURCE,
                 "update_item failed",
                 exc=exc,
+                service="postgres",
                 item_id=item_id,
                 name=name,
+                error=str(exc),
             )
             return jsonify(error="Internal server error"), 500
 
@@ -252,10 +284,20 @@ def register_items_routes(app: Flask) -> None:
                 "delete_item",
                 SOURCE,
                 "delete_item database not configured",
+                service="postgres",
                 item_id=item_id,
                 error=str(exc),
             )
             return jsonify(error=str(exc)), 503
         except Exception as exc:
-            log_error(_LOG, "delete_item", SOURCE, "delete_item failed", exc=exc, item_id=item_id)
+            log_error(
+                _LOG,
+                "delete_item",
+                SOURCE,
+                "delete_item failed",
+                exc=exc,
+                service="postgres",
+                item_id=item_id,
+                error=str(exc),
+            )
             return jsonify(error="Internal server error"), 500

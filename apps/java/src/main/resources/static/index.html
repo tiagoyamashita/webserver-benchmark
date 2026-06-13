@@ -59,6 +59,8 @@
         padding: 0.75rem 0.6rem;
         border-right: 1px solid var(--border);
         background: var(--nav-bg);
+        overflow-y: auto;
+        max-height: calc(100vh - 8rem);
       }
       .sidebar-title {
         margin: 0 0 0.6rem;
@@ -227,7 +229,7 @@
         <button type="button" class="sidebar-btn sub" id="nav-list-users" data-view="view-list-users">List users</button>
         <button type="button" class="sidebar-btn sub" id="nav-list-items" data-view="view-list-items">List items</button>
         <button type="button" class="sidebar-btn sub" id="nav-create-item" data-view="view-create-item">Create item</button>
-        <button type="button" class="sidebar-btn sub" id="nav-rust-relay" data-view="view-rust-relay">Rust item relay</button>
+        <button type="button" class="sidebar-btn sub" id="nav-rust-relay" data-view="view-rust-relay">Item relay</button>
         <button type="button" class="sidebar-btn sub" id="nav-kafka-create-user" data-view="view-kafka-create-user">Kafka create user</button>
         <p class="sidebar-section">API</p>
         <button type="button" class="sidebar-btn sub" id="nav-openapi" data-view="view-openapi">OpenAPI</button>
@@ -373,14 +375,27 @@
         </section>
 
         <section id="view-rust-relay" class="view-panel" aria-hidden="true">
-          <h2 class="form-heading">Rust item relay</h2>
-          <p class="form-hint">Calls Rust <code>POST /api/items</code> so the item is inserted into PostgreSQL from the Rust service.</p>
+          <h2 class="form-heading">Item relay</h2>
+          <p class="form-hint">
+            Insert into the shared PostgreSQL <code>items</code> table via another stack service.
+            Java forwards <code>X-Request-ID</code> and <code>X-Request-Origin: exercises-java</code> on each relay.
+          </p>
+          <h3 class="form-heading" style="font-size: 0.95rem; margin-top: 1rem;">Rust</h3>
+          <p class="form-hint">Calls Rust <code>POST /api/items</code>.</p>
           <div class="field-row">
             <label for="rust-item-name">Item</label>
             <input type="text" id="rust-item-name" placeholder="Item name"/>
             <button type="button" class="btn" id="rust-item-add">Add via Rust</button>
           </div>
           <pre id="rust-item-result" class="result-box"></pre>
+          <h3 class="form-heading" style="font-size: 0.95rem; margin-top: 1.25rem;">Python</h3>
+          <p class="form-hint">Calls Python <code>POST /api/items</code> with JSON <code>{"name": "…"}</code>.</p>
+          <div class="field-row">
+            <label for="python-item-name">Item</label>
+            <input type="text" id="python-item-name" placeholder="Item name"/>
+            <button type="button" class="btn primary" id="python-item-add">Add via Python</button>
+          </div>
+          <pre id="python-item-result" class="result-box"></pre>
         </section>
 
         <section id="view-kafka-create-user" class="view-panel" aria-hidden="true">
@@ -1020,6 +1035,39 @@
                 resultEl.textContent = lines.join("\n");
               })
               .catch(function (err) { resultEl.textContent = String(err.message || err); });
+          });
+        }
+
+        var pythonAddBtn = document.getElementById("python-item-add");
+        var pythonNameInput = document.getElementById("python-item-name");
+        var pythonResultEl = document.getElementById("python-item-result");
+        if (pythonAddBtn && pythonNameInput && pythonResultEl) {
+          pythonAddBtn.addEventListener("click", function () {
+            var name = (pythonNameInput.value || "").trim();
+            if (!name) { pythonResultEl.textContent = "Enter an item name."; return; }
+            var pythonReq = apiRequest({ Accept: "application/json" });
+            pythonResultEl.textContent =
+              "Calling Python…\nrequest_id=" + pythonReq.requestId + "\ndashboard_page=" + currentView;
+            fetch("/dashboard/items/add-via-python?name=" + encodeURIComponent(name), {
+              method: "POST",
+              credentials: "same-origin",
+              headers: pythonReq.headers
+            })
+              .then(function (res) { return res.json().then(function (data) { return { httpOk: res.ok, status: res.status, data: data }; }); })
+              .then(function (r) {
+                var lines = ["Java relay HTTP " + r.status];
+                var d = r.data || {};
+                lines.push("request_id=" + (d.requestId || pythonReq.requestId));
+                lines.push("dashboard_page=" + currentView);
+                if (d.pythonUrl) lines.push("Python: " + d.pythonUrl);
+                if (d.status != null) lines.push("Python response HTTP " + d.status);
+                if (d.python) lines.push(JSON.stringify(d.python, null, 2));
+                else if (d.body) lines.push(String(d.body));
+                if (d.error) lines.push("Error: " + d.error);
+                if (r.httpOk && d.ok === true) pythonNameInput.value = "";
+                pythonResultEl.textContent = lines.join("\n");
+              })
+              .catch(function (err) { pythonResultEl.textContent = String(err.message || err); });
           });
         }
       })();
