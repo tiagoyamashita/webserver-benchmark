@@ -120,10 +120,6 @@ public final class OutboundHttpLogger {
     fields.add(kv("phase", status != null ? "outbound_response" : "outbound_failed"));
     fields.add(kv("relay_target", relayTarget));
     fields.add(kv("relay_origin", RequestIdRelay.SERVICE));
-    String relayRequestId = RequestIdRelay.resolveOutboundRequestId();
-    if (!relayRequestId.equals(requestId)) {
-      fields.add(kv("relay_request_id", relayRequestId));
-    }
     if (responseHeaders != null) {
       fields.add(kv("headers", responseHeaders(responseHeaders)));
     }

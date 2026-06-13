@@ -76,7 +76,6 @@ public class PythonItemRelayService {
         kv("dashboard_page", DashboardPageContext.get()),
         kv("relay_target", RELAY_TARGET),
         kv("relay_origin", RequestIdRelay.SERVICE),
-        kv("relay_request_id", RequestIdRelay.resolveOutboundRequestId()),
         kv("name", trimmed),
         kv("ui_event", "dashboard.ui"),
         kv("action", "add-item-via-python"));
