@@ -36,7 +36,7 @@ services:
       - -c
       - log_disconnections=on
       - -c
-      - log_statement=mod
+      - log_statement=all
       - -c
       - log_duration=off
     volumes:

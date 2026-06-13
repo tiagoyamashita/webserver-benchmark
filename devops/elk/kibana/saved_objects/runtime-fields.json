@@ -2,13 +2,19 @@
   "correlation.origin": {
     "type": "keyword",
     "script": {
-      "source": "def appName = ''; if (doc.containsKey('application_name.keyword') && doc['application_name.keyword'].size() > 0) { appName = doc['application_name.keyword'].value; } if (appName.length() > 0) { def m = /^(exercises-[^;]+);req=(.+)$/.matcher(appName); if (m.find()) { emit(m.group(1)); } }"
+      "source": "def appName = ''; if (doc.containsKey('application_name.keyword') && doc['application_name.keyword'].size() > 0) { appName = doc['application_name.keyword'].value; } if (appName.length() > 0) { def m = /^(exercises-[^;]+);req=([^;]+)(?:;(?:sid|s)=(.+))?$/.matcher(appName); if (m.find()) { emit(m.group(1)); } }"
     }
   },
   "correlation.request_id": {
     "type": "keyword",
     "script": {
-      "source": "def appName = ''; if (doc.containsKey('application_name.keyword') && doc['application_name.keyword'].size() > 0) { appName = doc['application_name.keyword'].value; } if (appName.length() > 0) { def m = /^(exercises-[^;]+);req=(.+)$/.matcher(appName); if (m.find()) { emit(m.group(2)); } }"
+      "source": "def appName = ''; if (doc.containsKey('application_name.keyword') && doc['application_name.keyword'].size() > 0) { appName = doc['application_name.keyword'].value; } if (appName.length() > 0) { def m = /^(exercises-[^;]+);req=([^;]+)(?:;(?:sid|s)=(.+))?$/.matcher(appName); if (m.find()) { emit(m.group(2)); } }"
+    }
+  },
+  "correlation.session_id": {
+    "type": "keyword",
+    "script": {
+      "source": "def appName = ''; if (doc.containsKey('application_name.keyword') && doc['application_name.keyword'].size() > 0) { appName = doc['application_name.keyword'].value; } if (appName.length() > 0) { def m = /^(exercises-[^;]+);req=([^;]+)(?:;(?:sid|s)=(.+))?$/.matcher(appName); if (m.find() && m.group(3) != null) { emit(m.group(3)); } }"
     }
   },
   "sql.op": {

@@ -12,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import com.example.demo.observability.OutboundHttpLogger;
+import com.example.demo.observability.PostgresCorrelation;
 import com.example.demo.observability.RequestIdRelay;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -166,26 +167,28 @@ public class StackPingService {
     String user = envOrDefault("DB_USERNAME", "postgres");
     String password = envOrDefault("DB_PASSWORD", "postgres");
     String url = "jdbc:postgresql://" + host + ":" + port + "/" + db;
-    try (Connection conn = DriverManager.getConnection(url, user, password);
-        PreparedStatement ps = conn.prepareStatement("SELECT 1");
-        ResultSet rs = ps.executeQuery()) {
-      if (rs.next()) {
+    try (Connection conn = DriverManager.getConnection(url, user, password)) {
+      PostgresCorrelation.stampConnection(conn);
+      try (PreparedStatement ps = conn.prepareStatement("SELECT 1");
+          ResultSet rs = ps.executeQuery()) {
+        if (rs.next()) {
+          Map<String, Object> result =
+              Map.of(
+                  "stack", "postgres",
+                  "url", url,
+                  "ok", true);
+          logStackPingResult(result);
+          return result;
+        }
         Map<String, Object> result =
             Map.of(
                 "stack", "postgres",
                 "url", url,
-                "ok", true);
+                "ok", false,
+                "error", "SELECT 1 returned no row");
         logStackPingResult(result);
         return result;
       }
-      Map<String, Object> result =
-          Map.of(
-              "stack", "postgres",
-              "url", url,
-              "ok", false,
-              "error", "SELECT 1 returned no row");
-      logStackPingResult(result);
-      return result;
     } catch (SQLException e) {
       String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
       Map<String, Object> result =

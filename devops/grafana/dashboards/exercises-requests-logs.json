@@ -456,7 +456,7 @@
               "type": "raw_data"
             }
           ],
-          "query": "((service:\"exercises-java\" OR service:\"exercises-rust\" OR service:\"exercises-python\" OR service:\"exercises-react-node\") AND (_exists_:path OR _exists_:fields.path OR _exists_:controller OR _exists_:request_id OR _exists_:fields.request_id OR _exists_:status OR _exists_:fields.status) AND NOT (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\" OR fields.path:\"/health\" OR fields.path:\"/api/health\" OR fields.path:\"/metrics\" OR fields.path:\"/actuator/prometheus\" OR fields.path:\"/api/observability/health\" OR controller:health OR fields.controller:health OR ((path:\"/\" OR fields.path:\"/\") AND (method:GET OR fields.method:GET)))) OR (service:\"exercises-postgres\" AND (message:*execute* OR message:statement*) AND NOT message:duration* AND NOT message:*set_config* AND NOT message:*SELECT 1* AND NOT message:*connection* AND NOT message:*disconnection*)",
+          "query": "((service:\"exercises-java\" OR service:\"exercises-rust\" OR service:\"exercises-python\" OR service:\"exercises-react-node\") AND (_exists_:path OR _exists_:fields.path OR _exists_:controller OR _exists_:request_id OR _exists_:fields.request_id OR _exists_:status OR _exists_:fields.status) AND NOT (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\" OR fields.path:\"/health\" OR fields.path:\"/api/health\" OR fields.path:\"/metrics\" OR fields.path:\"/actuator/prometheus\" OR fields.path:\"/api/observability/health\" OR controller:health OR fields.controller:health OR ((path:\"/\" OR fields.path:\"/\") AND (method:GET OR fields.method:GET)))) OR (service:\"exercises-postgres\" AND message:*execute* AND NOT message:statement* AND NOT message:duration* AND NOT message:*set_config* AND NOT message:*SELECT 1* AND NOT message:*connection* AND NOT message:*disconnection*)",
           "refId": "A",
           "timeField": "@timestamp"
         }
@@ -1654,7 +1654,7 @@
               "type": "raw_data"
             }
           ],
-          "query": "((service:\"exercises-java\" OR service:\"exercises-rust\" OR service:\"exercises-python\" OR service:\"exercises-react-node\") AND phase:received) OR (service:\"exercises-postgres\" AND _exists_:detail)",
+          "query": "((service:\"exercises-java\" OR service:\"exercises-rust\" OR service:\"exercises-python\" OR service:\"exercises-react-node\") AND phase:received) OR (service:\"exercises-postgres\" AND message:*execute* AND NOT message:statement* AND NOT message:*SELECT 1* AND NOT message:*connection* AND NOT message:*disconnection*)",
           "refId": "A",
           "timeField": "@timestamp"
         }
@@ -2316,7 +2316,7 @@
               "type": "raw_data"
             }
           ],
-          "query": "((service:\"exercises-java\" OR service:\"exercises-rust\" OR service:\"exercises-python\" OR service:\"exercises-react-node\") AND (_exists_:path OR _exists_:fields.path OR _exists_:controller OR _exists_:request_id OR _exists_:fields.request_id OR _exists_:status OR _exists_:fields.status) AND NOT (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\" OR fields.path:\"/health\" OR fields.path:\"/api/health\" OR fields.path:\"/metrics\" OR fields.path:\"/api/observability/health\" OR controller:health OR fields.controller:health OR ((path:\"/\" OR fields.path:\"/\") AND (method:GET OR fields.method:GET)))) OR (service:\"exercises-postgres\" AND (message:*execute* OR message:statement*) AND NOT message:duration* AND NOT message:*set_config* AND NOT message:*SELECT 1* AND NOT message:*connection* AND NOT message:*disconnection*)",
+          "query": "((service:\"exercises-java\" OR service:\"exercises-rust\" OR service:\"exercises-python\" OR service:\"exercises-react-node\") AND (_exists_:path OR _exists_:fields.path OR _exists_:controller OR _exists_:request_id OR _exists_:fields.request_id OR _exists_:status OR _exists_:fields.status) AND NOT (path:\"/health\" OR path:\"/api/health\" OR path:\"/metrics\" OR path:\"/actuator/prometheus\" OR path:\"/api/observability/health\" OR fields.path:\"/health\" OR fields.path:\"/api/health\" OR fields.path:\"/metrics\" OR fields.path:\"/api/observability/health\" OR controller:health OR fields.controller:health OR ((path:\"/\" OR fields.path:\"/\") AND (method:GET OR fields.method:GET)))) OR (service:\"exercises-postgres\" AND message:*execute* AND NOT message:statement* AND NOT message:duration* AND NOT message:*set_config* AND NOT message:*SELECT 1* AND NOT message:*connection* AND NOT message:*disconnection*)",
           "refId": "A",
           "timeField": "@timestamp"
         }

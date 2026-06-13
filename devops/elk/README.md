@@ -84,7 +84,19 @@ request_id: "paste-your-uuid-here"
 
 **URL query parameters** appear on HTTP **request received** lines (`phase: "received"`), not on completed lines. Logstash stores the full map in **`url_params`** (JSON string) and common keys as flat fields **`url_param_name`**, **`url_param_email`**, etc. The data view also exposes runtime fields **`url_params.name`** and **`url_params.email`** for filtering. Example: `url_param_name: "foo"` or `phase: "received" and _exists_: url_param_name`. Form POST bodies often land in **`body`** instead of **`url_params`** (e.g. Java dashboard `publish-create-user`).
 
-For Postgres SQL lines use the imported data view runtime field: `correlation.request_id: "paste-your-uuid-here"`.
+For Postgres SQL lines use **`request_id`** (copied from stamped `application_name` by Logstash) or runtime field **`correlation.request_id`**: `request_id: "paste-your-uuid-here"`.
+
+### Postgres logs missing in Kibana / Grafana?
+
+Postgres logs often **are** in Elasticsearch while saved searches hide them. Verify layer by layer:
+
+1. **Postgres file** (inside container): `podman compose -f docker-compose.apps.yml exec postgres tail -3 /var/log/postgresql/postgresql-$(date -u +%Y-%m-%d).json` — expect `"message":"execute … select …"`.
+2. **Elasticsearch** (browser or curl): `service.keyword:exercises-postgres AND message:*execute*` on index `logstash-*`, time **Last 15 minutes**.
+3. **Kibana Discover** (simplest query): `service: exercises-postgres and message: *execute* and not message: *SELECT 1*`
+4. **Re-import** saved objects after query changes: `.\devops\elk\kibana\provision-kibana.ps1`
+5. **Grafana** `exercises-requests-logs`: refresh dashboard or restart Grafana after JSON edits under `devops/grafana/dashboards/`.
+
+Common traps: time range too narrow; **`log_statement=mod`** (SELECT not logged — need **`all`** in Compose + postgres recreate); saved search requiring `application_name: *exercises*` while viewing unstamped JDBC lines; panel that only matched `_exists_:detail` (INSERT params only, not SELECT).
 
 ### HTTP ↔ Postgres correlation (Kibana)
 

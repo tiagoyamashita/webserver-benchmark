@@ -2,14 +2,11 @@ package com.example.demo.observability;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.Statement;
 import javax.sql.DataSource;
 import org.springframework.jdbc.datasource.DelegatingDataSource;
 
-/** Stamps Postgres {@code application_name} with the active HTTP request id. */
+/** Stamps Postgres {@code application_name} with the active HTTP request and session ids. */
 public class RequestIdDataSource extends DelegatingDataSource {
-
-  private static final String SERVICE = "exercises-java";
 
   public RequestIdDataSource(DataSource target) {
     super(target);
@@ -26,22 +23,7 @@ public class RequestIdDataSource extends DelegatingDataSource {
   }
 
   private static Connection stamp(Connection connection) throws SQLException {
-    String requestId = RequestIdContext.get();
-    // Always reset application_name so pooled connections never keep a previous request's ;req=…
-    String appName =
-        requestId != null ? postgresApplicationName(SERVICE, requestId) : SERVICE;
-    try (Statement statement = connection.createStatement()) {
-      statement.executeUpdate("SET application_name TO '" + escape(appName) + "'");
-    }
+    PostgresCorrelation.stampConnection(connection);
     return connection;
-  }
-
-  static String postgresApplicationName(String service, String requestId) {
-    String value = service + ";req=" + requestId;
-    return value.length() <= 63 ? value : value.substring(0, 63);
-  }
-
-  private static String escape(String value) {
-    return value.replace("'", "''");
   }
 }

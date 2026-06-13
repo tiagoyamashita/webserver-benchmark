@@ -12,7 +12,7 @@
     ],
     "sort": [["@timestamp", "desc"]],
     "kibanaSavedObjectMeta": {
-      "searchSourceJSON": "{\"query\":{\"query\":\"service: exercises-postgres and application_name: *exercises* and (ps: (SELECT or INSERT or UPDATE or DELETE) or message: *statement*) and not message: *SELECT 1* and not message: duration*\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
+      "searchSourceJSON": "{\"query\":{\"query\":\"service: exercises-postgres and message: *execute* and not message: statement* and not message: duration* and not message: *SELECT 1* and not message: *connection* and not message: *disconnection*\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
     }
   },
   "references": [

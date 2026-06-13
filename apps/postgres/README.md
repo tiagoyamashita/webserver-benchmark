@@ -67,7 +67,7 @@ When Postgres runs via the **root** `docker-compose.yml`, it writes **JSON Lines
 | File pattern | `postgresql-*` (under host `apps/postgres/logs/`) |
 | Kibana filter | `service: "exercises-postgres"` |
 
-Logged by default: connections, disconnections, and data-modifying statements (`log_statement=mod`). `log_duration=off` avoids separate `duration: … ms` lines for idle waits and extended-query protocol steps (PARSE/BIND) where no SQL statement is logged.
+Logged by default: connections, disconnections, and **all executed SQL** (`log_statement=all`) as **`execute …`** jsonlog lines — including **SELECT** (list items, stack ping). Simple-query **`statement:`** noise (JDBC `SET`, `BEGIN`, empty pings) is dropped by **Logstash** before Elasticsearch; Kibana/Grafana saved searches also exclude `message: statement*`. Probe **`SELECT 1`** is excluded in the SQL CRUD view (`not message: *SELECT 1*`). `log_duration=off` avoids separate `duration: … ms` lines for idle/PARSE/BIND noise.
 
 ### Shared `items` table
 
