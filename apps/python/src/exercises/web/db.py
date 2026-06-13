@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING, Iterator
 
 from exercises.web.controller_logging import log_error, log_warn
+from exercises.web.request_id import postgres_application_name, resolve_postgres_request_id
 
 if TYPE_CHECKING:
     import psycopg
@@ -45,6 +46,7 @@ def _postgres_target() -> dict[str, str]:
 
 @contextmanager
 def connection(request_id: str | None = None) -> Iterator["psycopg.Connection"]:
+    resolved_request_id = resolve_postgres_request_id(request_id)
     target = _postgres_target()
     url = database_url_from_env()
     if not url:
@@ -53,7 +55,7 @@ def connection(request_id: str | None = None) -> Iterator["psycopg.Connection"]:
             "postgres_connect",
             SOURCE,
             "postgres not configured",
-            request_id=request_id,
+            request_id=resolved_request_id,
             reason="missing-db-host",
             **target,
         )
@@ -69,15 +71,21 @@ def connection(request_id: str | None = None) -> Iterator["psycopg.Connection"]:
             SOURCE,
             "postgres client not installed",
             exc=exc,
-            request_id=request_id,
+            request_id=resolved_request_id,
             **target,
         )
         raise DatabaseNotConfiguredError(
             "psycopg is not installed; rebuild the python image "
             "(podman compose build python)"
         ) from exc
+
+    app_name = (
+        postgres_application_name("exercises-python", resolved_request_id)
+        if resolved_request_id
+        else "exercises-python"
+    )
     try:
-        conn = psycopg.connect(url)
+        conn = psycopg.connect(url, application_name=app_name)
     except Exception as exc:
         log_error(
             _LOG,
@@ -85,28 +93,32 @@ def connection(request_id: str | None = None) -> Iterator["psycopg.Connection"]:
             SOURCE,
             "postgres connection failed",
             exc=exc,
-            request_id=request_id,
+            request_id=resolved_request_id,
+            application_name=app_name,
             error=str(exc),
             **target,
         )
         raise
     try:
-        from exercises.web.request_id import postgres_application_name
-
-        app_name = (
-            postgres_application_name("exercises-python", request_id)
-            if request_id
-            else "exercises-python"
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT set_config('application_name', %s, false)",
+                (app_name,),
+            )
+        _LOG.info(
+            "postgres connection ready application_name=%s",
+            app_name,
+            extra={
+                "source": SOURCE,
+                "controller": "postgres_connect",
+                "request_id": resolved_request_id,
+                "application_name": app_name,
+                **target,
+            },
         )
-        with conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT set_config('application_name', %s, false)",
-                    (app_name,),
-                )
-            yield conn
-    except Exception:
-        raise
+        yield conn
+    finally:
+        conn.close()
 
 
 def find_user_by_email(conn: "psycopg.Connection", email: str) -> tuple[int, str, str] | None:

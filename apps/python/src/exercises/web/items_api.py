@@ -74,14 +74,14 @@ def register_items_routes(app: Flask) -> None:
     def create_item():
         payload = request.get_json(silent=True)
         name = _read_name(payload)
-        log_received(_LOG, "create_item", SOURCE, "POST", "/api/items", name=name)
+        log_received(_LOG, "create_item", SOURCE, "POST", "/api/items", item_name=name)
         if not name:
             log_warn(
                 _LOG,
                 "create_item",
                 SOURCE,
                 "create_item validation failed",
-                name=name,
+                item_name=name,
                 reason="blank-name",
             )
             return jsonify(error="name must not be blank"), 400
@@ -96,7 +96,7 @@ def register_items_routes(app: Flask) -> None:
                     row = cur.fetchone()
                 conn.commit()
             body = _row_to_json(row)
-            log_succeeded(_LOG, "create_item", SOURCE, id=body["id"], name=body["name"])
+            log_succeeded(_LOG, "create_item", SOURCE, item_id=body["id"], item_name=body["name"])
             return jsonify(body), 201
         except DatabaseNotConfiguredError as exc:
             log_warn(
@@ -105,7 +105,7 @@ def register_items_routes(app: Flask) -> None:
                 SOURCE,
                 "create_item database not configured",
                 service="postgres",
-                name=name,
+                item_name=name,
                 error=str(exc),
             )
             return jsonify(error=str(exc)), 503
@@ -117,7 +117,7 @@ def register_items_routes(app: Flask) -> None:
                 "create_item failed",
                 exc=exc,
                 service="postgres",
-                name=name,
+                item_name=name,
                 error=str(exc),
             )
             return jsonify(error="Internal server error"), 500
@@ -150,7 +150,7 @@ def register_items_routes(app: Flask) -> None:
                 )
                 return jsonify(error="not found"), 404
             body = _row_to_json(row)
-            log_succeeded(_LOG, "get_item", SOURCE, item_id=item_id, name=body["name"])
+            log_succeeded(_LOG, "get_item", SOURCE, item_id=item_id, item_name=body["name"])
             return jsonify(body)
         except DatabaseNotConfiguredError as exc:
             log_warn(
@@ -189,7 +189,7 @@ def register_items_routes(app: Flask) -> None:
             method,
             "/api/items/{item_id}",
             item_id=item_id,
-            name=name,
+            item_name=name,
         )
         if not name:
             log_warn(
@@ -198,7 +198,7 @@ def register_items_routes(app: Flask) -> None:
                 SOURCE,
                 "update_item validation failed",
                 item_id=item_id,
-                name=name,
+                item_name=name,
                 reason="blank-name",
             )
             return jsonify(error="name must not be blank"), 400
@@ -219,11 +219,11 @@ def register_items_routes(app: Flask) -> None:
                     SOURCE,
                     "update_item not found",
                     item_id=item_id,
-                    name=name,
+                    item_name=name,
                 )
                 return jsonify(error="not found"), 404
             body = _row_to_json(row)
-            log_succeeded(_LOG, "update_item", SOURCE, item_id=item_id, name=body["name"])
+            log_succeeded(_LOG, "update_item", SOURCE, item_id=item_id, item_name=body["name"])
             return jsonify(body)
         except DatabaseNotConfiguredError as exc:
             log_warn(
@@ -233,7 +233,7 @@ def register_items_routes(app: Flask) -> None:
                 "update_item database not configured",
                 service="postgres",
                 item_id=item_id,
-                name=name,
+                item_name=name,
                 error=str(exc),
             )
             return jsonify(error=str(exc)), 503
@@ -246,7 +246,7 @@ def register_items_routes(app: Flask) -> None:
                 exc=exc,
                 service="postgres",
                 item_id=item_id,
-                name=name,
+                item_name=name,
                 error=str(exc),
             )
             return jsonify(error="Internal server error"), 500

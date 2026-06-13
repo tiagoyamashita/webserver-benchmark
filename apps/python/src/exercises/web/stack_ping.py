@@ -101,7 +101,7 @@ class StackLinks:
     def ping(self, target: str, request_id: str | None = None) -> dict[str, Any]:
         key = target.strip().lower()
         if key == "postgres":
-            return _ping_postgres()
+            return _ping_postgres(request_id=request_id)
         if key == "redis":
             return _ping_redis()
         dispatch = {
@@ -127,7 +127,7 @@ class StackLinks:
         return _empty_get(stack, base, request_id=request_id)
 
 
-def _ping_postgres() -> dict[str, Any]:
+def _ping_postgres(*, request_id: str | None = None) -> dict[str, Any]:
     host = _read_env("DB_HOST", "")
     port = _read_env("DB_PORT", "5432")
     url = f"postgres://{host}:{port}" if host else ""
@@ -149,7 +149,7 @@ def _ping_postgres() -> dict[str, Any]:
     try:
         from exercises.web.db import connection
 
-        with connection() as conn:
+        with connection(request_id=request_id) as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT 1")
                 cur.fetchone()

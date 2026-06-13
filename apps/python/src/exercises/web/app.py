@@ -118,8 +118,11 @@ def create_app() -> Flask:
     register_session_middleware(app, auth_state)
 
     @app.before_request
-    def _record_request_start() -> None:
+    def _assign_request_id() -> None:
         g.request_id = resolve_request_id(request)
+
+    @app.before_request
+    def _record_request_start() -> None:
         g._req_start = time.perf_counter()
         if observability_enabled():
             _HTTP_REQUEST_LOG.info(

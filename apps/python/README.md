@@ -56,6 +56,18 @@ Any logger call during a request gets `request_id` and `session_id` automaticall
 
 Outside a Flask request (startup, background work), those fields are omitted.
 
+### Postgres `application_name` (not an HTTP header)
+
+Postgres does not receive `X-Request-ID` as a header. Python stamps the active request id on the DB session the same way Java and Rust do:
+
+| App | Mechanism |
+|-----|-----------|
+| **Java** | `RequestIdDataSource` → `SET application_name TO 'exercises-java;req=<uuid>'` |
+| **Rust** | `stamp_application_name` → `set_config('application_name', …)` |
+| **Python** | `db.connection()` → `psycopg.connect(..., application_name=…)` plus `set_config` |
+
+`resolve_postgres_request_id()` reads `g.request_id` (from inbound `X-Request-ID`) when callers omit an explicit id—mirroring Java `RequestIdContext`. In Kibana Postgres logs, filter on runtime field **`correlation.request_id`** or `application_name` containing `;req=`.
+
 ### HTTP access logs
 
 Logger **`http.request`** emits structured access lines:

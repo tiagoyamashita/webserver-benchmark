@@ -9,20 +9,26 @@ from typing import Any
 def current_correlation() -> dict[str, str]:
     """Return request_id and session_id from the active Flask request, when present."""
     try:
-        from flask import g
+        from flask import g, has_request_context
+
+        if not has_request_context():
+            return {}
     except RuntimeError:
         return {}
 
     fields: dict[str, str] = {}
-    request_id = getattr(g, "request_id", None)
-    if isinstance(request_id, str) and request_id.strip():
-        fields["request_id"] = request_id.strip()
+    try:
+        request_id = getattr(g, "request_id", None)
+        if isinstance(request_id, str) and request_id.strip():
+            fields["request_id"] = request_id.strip()
 
-    session = getattr(g, "shared_session", None)
-    if session is not None:
-        session_id = getattr(session, "session_id", None)
-        if isinstance(session_id, str) and session_id.strip():
-            fields["session_id"] = session_id.strip()
+        session = getattr(g, "shared_session", None)
+        if session is not None:
+            session_id = getattr(session, "session_id", None)
+            if isinstance(session_id, str) and session_id.strip():
+                fields["session_id"] = session_id.strip()
+    except RuntimeError:
+        return fields
     return fields
 
 
