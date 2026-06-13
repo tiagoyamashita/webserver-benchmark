@@ -1,6 +1,6 @@
 //! OpenAPI spec + Swagger UI (utoipa), `/api/items` only — mirrors Java springdoc scope.
 
-use crate::items::{CreateItemQuery, CreateItemResponse, ItemResponse};
+use crate::items::{CreateItemRequest, CreateItemResponse, ItemResponse};
 use serde::Serialize;
 use utoipa::OpenApi;
 
@@ -27,14 +27,14 @@ pub struct ApiError {
 )]
 fn items_list() {}
 
-/// `POST /api/items?name=...` — insert a row into the shared `items` table.
+/// `POST /api/items` with JSON `{"name": "…"}` — insert a row into the shared `items` table.
 #[allow(dead_code)]
 #[utoipa::path(
     post,
     path = "/api/items",
     tag = "Items",
+    request_body = CreateItemRequest,
     params(
-        ("name" = String, Query, description = "Item name"),
         ("X-Request-ID" = Option<String>, Header, description = "Correlation id for logs and Postgres trace; generated if omitted; echoed in response"),
         ("X-Request-Origin" = Option<String>, Header, description = "Upstream service when relayed (e.g. exercises-java); logged as request_origin for tracing")
     ),
@@ -50,7 +50,7 @@ fn items_create() {}
 #[derive(OpenApi)]
 #[openapi(
     paths(items_list, items_create),
-    components(schemas(ItemResponse, CreateItemQuery, CreateItemResponse, ApiError)),
+    components(schemas(ItemResponse, CreateItemRequest, CreateItemResponse, ApiError)),
     tags(
         (name = "Items", description = "Shared PostgreSQL `items` table (Flyway schema from Java)")
     ),

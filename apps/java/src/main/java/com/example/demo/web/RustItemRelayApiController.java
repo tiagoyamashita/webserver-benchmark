@@ -2,14 +2,16 @@ package com.example.demo.web;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
 
+import com.example.demo.exercises.validation.CreateItemRequest;
 import com.example.demo.observability.DashboardPageContext;
+import jakarta.validation.Valid;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -26,9 +28,13 @@ public class RustItemRelayApiController {
     this.rustItemRelayService = rustItemRelayService;
   }
 
-  /** AJAX from home page: calls Rust {@code POST /api/items?name=…} and returns JSON for display. */
-  @PostMapping(value = "/add-via-rust", produces = MediaType.APPLICATION_JSON_VALUE)
-  public Map<String, Object> addViaRustJson(@RequestParam("name") String name) {
+  /** AJAX from home page: calls Rust {@code POST /api/items} with JSON {@code {"name": "…"}}. */
+  @PostMapping(
+      value = "/add-via-rust",
+      consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public Map<String, Object> addViaRustJson(@Valid @RequestBody CreateItemRequest body) {
+    String name = body.name();
     log.info(
         "RustItemRelayApiController.addViaRustJson request received",
         kv("source", SOURCE),

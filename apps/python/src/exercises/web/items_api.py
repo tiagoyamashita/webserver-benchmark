@@ -72,6 +72,7 @@ def register_items_routes(app: Flask) -> None:
 
     @app.post("/api/items")
     def create_item():
+        """Create item from JSON body ``{"name": "…"}`` (query params are not accepted)."""
         payload = request.get_json(silent=True)
         name = _read_name(payload)
         log_received(_LOG, "create_item", SOURCE, "POST", "/api/items", item_name=name)

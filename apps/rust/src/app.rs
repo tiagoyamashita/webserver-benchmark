@@ -268,7 +268,7 @@ async fn create_item(
     Extension(request_id_source): Extension<crate::request_id::RequestIdSource>,
     Extension(request_origin): Extension<crate::request_id::RequestOrigin>,
     Extension(log_seq): Extension<crate::request_id::RequestLogSeq>,
-    Query(query): Query<crate::items::CreateItemQuery>,
+    Json(body): Json<crate::items::CreateItemRequest>,
 ) -> impl IntoResponse {
     let Some(pool) = state.pg_pool.clone() else {
         tracing::warn!(
@@ -276,7 +276,7 @@ async fn create_item(
             controller = "create_item",
             method = "POST",
             path = "/api/items",
-            name = %query.name,
+            name = %body.name,
             reason = "postgres-not-configured",
             "create_item database not configured"
         );
@@ -291,7 +291,7 @@ async fn create_item(
     };
     crate::items::create_item(
         pool,
-        query,
+        body,
         Some(&request_id.0),
         request_origin.0.as_deref(),
         request_id_source,

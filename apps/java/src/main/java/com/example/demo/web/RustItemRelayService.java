@@ -9,18 +9,17 @@ import com.example.demo.observability.RequestIdRelay;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
-import org.springframework.web.util.UriComponentsBuilder;
 
 @Service
 public class RustItemRelayService {
@@ -43,7 +42,8 @@ public class RustItemRelayService {
   }
 
   /**
-   * Calls Rust {@code POST /api/items?name=…}; Rust inserts into Postgres {@code items} (Flyway schema).
+   * Calls Rust {@code POST /api/items} with JSON {@code {"name": "…"}}; Rust inserts into Postgres
+   * {@code items} (Flyway schema).
    */
   public Map<String, Object> addItemViaRust(String name) {
     String trimmed = name == null ? "" : name.trim();
@@ -73,17 +73,20 @@ public class RustItemRelayService {
         kv("ui_event", "dashboard.ui"),
         kv("action", "add-item-via-rust"));
     String base = properties.getRustBaseUrl().trim().replaceAll("/+$", "");
-    URI uri =
-        UriComponentsBuilder.fromUriString(base + "/api/items")
-            .queryParam("name", trimmed)
-            .encode(StandardCharsets.UTF_8)
-            .build()
-            .toUri();
+    URI uri = URI.create(base + "/api/items");
     OutboundHttpLogger.logRequest("POST", uri, "exercises-rust", Map.of("name", trimmed));
     long start = System.nanoTime();
     try {
       ResponseEntity<String> res =
-          RequestIdRelay.applyOutbound(restClient.post().uri(uri)).retrieve().toEntity(String.class);
+          RequestIdRelay
+              .applyOutbound(
+                  restClient
+                      .post()
+                      .uri(uri)
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .body(Map.of("name", trimmed)))
+              .retrieve()
+              .toEntity(String.class);
       long ms = (System.nanoTime() - start) / 1_000_000L;
       String rawBody = res.getBody() != null ? res.getBody() : "";
       OutboundHttpLogger.logResponse(

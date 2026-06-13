@@ -383,7 +383,7 @@
 
         <section id="view-create-item" class="view-panel" aria-hidden="true">
           <h2 class="form-heading">Create item</h2>
-          <p class="form-hint">Persists a row to the shared PostgreSQL <code>items</code> table via <code>POST /api/items?name=...</code>.</p>
+          <p class="form-hint">Persists a row to the shared PostgreSQL <code>items</code> table via <code>POST /api/items</code> with JSON <code>{"name": "…"}</code>.</p>
           <form id="create-item-form">
             <div class="field-row">
               <label for="item-name">Name</label>
@@ -681,10 +681,11 @@
             }
             resultEl.textContent = "Saving…";
             resultEl.className = "result-box";
-            fetch("/api/items?name=" + encodeURIComponent(name), {
+            fetch("/api/items", {
               method: "POST",
               credentials: "same-origin",
-              headers: apiRequest().headers
+              headers: apiRequest({ "Content-Type": "application/json" }).headers,
+              body: JSON.stringify({ name: name })
             })
               .then(function (res) {
                 return res.json().then(function (data) {

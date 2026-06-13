@@ -72,6 +72,12 @@ def test_post_items_collection_is_reachable(client):
     assert r.status_code == 201
 
 
+def test_post_items_rejects_name_in_query_without_json_body(client):
+    with _mock_db():
+        r = client.post(f"{BASE}?name=Widget")
+    assert r.status_code == 400
+
+
 def test_get_item_by_id_is_reachable(client):
     with _mock_db():
         r = client.get(f"{BASE}/1")

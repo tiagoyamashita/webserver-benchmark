@@ -466,13 +466,13 @@
             showResult('Enter an item name.');
             return;
           }
-          var rustReq = apiRequest('home-rust-relay', { Accept: 'application/json' });
+          var rustReq = apiRequest('home-rust-relay', { Accept: 'application/json', 'Content-Type': 'application/json' });
           showResult('Calling Rust…\nrequest_id=' + rustReq.requestId + '\ndashboard_page=home-rust-relay');
-          var url = addUrl + '?name=' + encodeURIComponent(name);
-          fetch(url, {
+          fetch(addUrl, {
             method: 'POST',
             credentials: 'same-origin',
-            headers: rustReq.headers
+            headers: rustReq.headers,
+            body: JSON.stringify({ name: name })
           })
             .then(function (res) {
               return res.json().then(function (data) {
@@ -550,13 +550,13 @@
             showResult('Enter an item name.');
             return;
           }
-          var pythonReq = apiRequest('home-python-relay', { Accept: 'application/json' });
+          var pythonReq = apiRequest('home-python-relay', { Accept: 'application/json', 'Content-Type': 'application/json' });
           showResult('Calling Python…\nrequest_id=' + pythonReq.requestId + '\ndashboard_page=home-python-relay');
-          var url = addUrl + '?name=' + encodeURIComponent(name);
-          fetch(url, {
+          fetch(addUrl, {
             method: 'POST',
             credentials: 'same-origin',
-            headers: pythonReq.headers
+            headers: pythonReq.headers,
+            body: JSON.stringify({ name: name })
           })
             .then(function (res) {
               return res.json().then(function (data) {

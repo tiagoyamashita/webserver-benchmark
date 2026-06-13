@@ -8,7 +8,7 @@ use utoipa::ToSchema;
 const SOURCE: &str = "src/items.rs";
 
 #[derive(Deserialize, ToSchema)]
-pub struct CreateItemQuery {
+pub struct CreateItemRequest {
     pub name: String,
 }
 
@@ -91,16 +91,16 @@ fn request_id_source_label(source: crate::request_id::RequestIdSource) -> &'stat
     }
 }
 
-/// `POST /api/items?name=...` — inserts into Postgres `items` (Flyway schema from Java).
+/// `POST /api/items` with JSON `{"name": "…"}` — inserts into Postgres `items` (Flyway schema from Java).
 pub async fn create_item(
     pool: PgPool,
-    query: CreateItemQuery,
+    body: CreateItemRequest,
     request_id: Option<&str>,
     request_origin: Option<&str>,
     request_id_source: crate::request_id::RequestIdSource,
     log_seq: Option<&crate::request_id::RequestLogSeq>,
 ) -> impl IntoResponse {
-    let name = query.name.trim().to_string();
+    let name = body.name.trim().to_string();
     let id_source = request_id_source_label(request_id_source);
     let seq = log_seq.map(crate::request_id::RequestLogSeq::next).unwrap_or(0);
     tracing::info!(
@@ -118,7 +118,7 @@ pub async fn create_item(
         tracing::warn!(
             source = SOURCE,
             controller = "create_item",
-            name = %query.name,
+            name = %body.name,
             reason = "blank-name",
             log_seq = log_seq.map(crate::request_id::RequestLogSeq::next).unwrap_or(0),
             "create_item validation failed"

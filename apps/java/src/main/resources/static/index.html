@@ -381,7 +381,7 @@
             Java forwards <code>X-Request-ID</code> and <code>X-Request-Origin: exercises-java</code> on each relay.
           </p>
           <h3 class="form-heading" style="font-size: 0.95rem; margin-top: 1rem;">Rust</h3>
-          <p class="form-hint">Calls Rust <code>POST /api/items</code>.</p>
+          <p class="form-hint">Calls Rust <code>POST /api/items</code> with JSON <code>{"name": "…"}</code>.</p>
           <div class="field-row">
             <label for="rust-item-name">Item</label>
             <input type="text" id="rust-item-name" placeholder="Item name"/>
@@ -1012,13 +1012,14 @@
           addBtn.addEventListener("click", function () {
             var name = (nameInput.value || "").trim();
             if (!name) { resultEl.textContent = "Enter an item name."; return; }
-            var rustReq = apiRequest({ Accept: "application/json" });
+            var rustReq = apiRequest({ Accept: "application/json", "Content-Type": "application/json" });
             resultEl.textContent =
               "Calling Rust…\nrequest_id=" + rustReq.requestId + "\ndashboard_page=" + currentView;
-            fetch("/dashboard/items/add-via-rust?name=" + encodeURIComponent(name), {
+            fetch("/dashboard/items/add-via-rust", {
               method: "POST",
               credentials: "same-origin",
-              headers: rustReq.headers
+              headers: rustReq.headers,
+              body: JSON.stringify({ name: name })
             })
               .then(function (res) { return res.json().then(function (data) { return { httpOk: res.ok, status: res.status, data: data }; }); })
               .then(function (r) {
@@ -1045,13 +1046,14 @@
           pythonAddBtn.addEventListener("click", function () {
             var name = (pythonNameInput.value || "").trim();
             if (!name) { pythonResultEl.textContent = "Enter an item name."; return; }
-            var pythonReq = apiRequest({ Accept: "application/json" });
+            var pythonReq = apiRequest({ Accept: "application/json", "Content-Type": "application/json" });
             pythonResultEl.textContent =
               "Calling Python…\nrequest_id=" + pythonReq.requestId + "\ndashboard_page=" + currentView;
-            fetch("/dashboard/items/add-via-python?name=" + encodeURIComponent(name), {
+            fetch("/dashboard/items/add-via-python", {
               method: "POST",
               credentials: "same-origin",
-              headers: pythonReq.headers
+              headers: pythonReq.headers,
+              body: JSON.stringify({ name: name })
             })
               .then(function (res) { return res.json().then(function (data) { return { httpOk: res.ok, status: res.status, data: data }; }); })
               .then(function (r) {
