@@ -313,7 +313,7 @@ async fn publish_create_user_kafka(
 }
 
 async fn welcome_redirect(
-    Extension(request_id): Extension<crate::request_id::RequestId>,
+    Extension(_request_id): Extension<crate::request_id::RequestId>,
 ) -> Redirect {
     tracing::info!(
         source = "src/app.rs",
@@ -331,7 +331,7 @@ async fn welcome_redirect(
     Redirect::to("/")
 }
 
-async fn health(Extension(request_id): Extension<crate::request_id::RequestId>) -> impl IntoResponse {
+async fn health(Extension(_request_id): Extension<crate::request_id::RequestId>) -> impl IntoResponse {
     tracing::info!(
         source = "src/app.rs",
         controller = "health",
@@ -354,7 +354,7 @@ async fn health(Extension(request_id): Extension<crate::request_id::RequestId>) 
 }
 
 async fn observability_sample_log(
-    Extension(request_id): Extension<crate::request_id::RequestId>,
+    Extension(_request_id): Extension<crate::request_id::RequestId>,
 ) -> impl IntoResponse {
     tracing::info!(
         source = "src/app.rs",
@@ -385,7 +385,7 @@ async fn observability_sample_log(
 
 async fn stack_landing(
     State(state): State<AppState>,
-    Extension(request_id): Extension<crate::request_id::RequestId>,
+    Extension(_request_id): Extension<crate::request_id::RequestId>,
 ) -> Result<Html<String>, StatusCode> {
     tracing::info!(
         source = "src/app.rs",
@@ -413,7 +413,7 @@ async fn stack_landing(
 
 async fn tests_dashboard(
     State(state): State<AppState>,
-    Extension(request_id): Extension<crate::request_id::RequestId>,
+    Extension(_request_id): Extension<crate::request_id::RequestId>,
 ) -> Result<Html<String>, StatusCode> {
     tracing::info!(
         source = "src/app.rs",
@@ -614,7 +614,7 @@ pub struct RunForm {
 
 async fn run_tests_post(
     State(state): State<AppState>,
-    Extension(request_id): Extension<crate::request_id::RequestId>,
+    Extension(_request_id): Extension<crate::request_id::RequestId>,
     Form(form): Form<RunForm>,
 ) -> impl IntoResponse {
     let filter = form.nodeid.as_deref().filter(|s| !s.trim().is_empty());
@@ -687,7 +687,7 @@ pub struct SourceQ {
 
 async fn test_source(
     State(state): State<AppState>,
-    Extension(request_id): Extension<crate::request_id::RequestId>,
+    Extension(_request_id): Extension<crate::request_id::RequestId>,
     Query(q): Query<SourceQ>,
 ) -> impl IntoResponse {
     tracing::info!(

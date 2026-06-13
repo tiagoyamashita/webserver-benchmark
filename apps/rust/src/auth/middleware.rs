@@ -96,19 +96,3 @@ pub async fn session_log_span(req: Request, next: Next) -> Response {
         None => next.run(req).await,
     }
 }
-
-/// Attach `session_id` to controller tracing fields (HTTP access logs run outside this span).
-pub async fn session_log_span(req: Request, next: Next) -> Response {
-    let session_id = req
-        .extensions()
-        .get::<CurrentSession>()
-        .map(|session| session.0.session_id.clone());
-
-    match session_id {
-        Some(id) => {
-            let span = tracing::info_span!("request", session_id = %id);
-            next.run(req).instrument(span).await
-        }
-        None => next.run(req).await,
-    }
-}
