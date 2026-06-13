@@ -67,7 +67,7 @@ When Postgres runs via the **root** `docker-compose.yml`, it writes **JSON Lines
 | File pattern | `postgresql-*` (under host `apps/postgres/logs/`) |
 | Kibana filter | `service: "exercises-postgres"` |
 
-Logged by default: connections, disconnections, and data-modifying statements (`log_statement=mod`) with duration.
+Logged by default: connections, disconnections, and data-modifying statements (`log_statement=mod`). `log_duration=off` avoids separate `duration: … ms` lines for idle waits and extended-query protocol steps (PARSE/BIND) where no SQL statement is logged.
 
 ### Shared `items` table
 

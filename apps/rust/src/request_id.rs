@@ -241,16 +241,18 @@ pub async fn assign_request_id(req: Request, next: Next) -> Response {
     let method = req.method().to_string();
     let path = req.uri().path().to_string();
     let session_id = http_access_session_id(req.headers());
-    crate::obs_log::log_http_request_received(
-        &method,
-        &path,
-        &id,
-        session_id.as_deref(),
-        log_seq,
-        &headers,
-        &url_params,
-        &body_map,
-    );
+    if crate::http_access_logging::should_log_http_access(&method, &path, None) {
+        crate::obs_log::log_http_request_received(
+            &method,
+            &path,
+            &id,
+            session_id.as_deref(),
+            log_seq,
+            &headers,
+            &url_params,
+            &body_map,
+        );
+    }
     let mut res = next.run(req).await;
     if let Ok(value) = HeaderValue::from_str(&id) {
         res.headers_mut().insert("x-request-id", value);

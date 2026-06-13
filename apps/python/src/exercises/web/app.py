@@ -17,6 +17,7 @@ from exercises.web.controller_logging import (
     log_succeeded,
     log_warn,
 )
+from exercises.web.http_access_logging import should_log_http_access
 from exercises.web.items_api import register_items_routes
 from exercises.web.relay_api import register_relay_routes
 from exercises.web.openapi_routes import register_openapi_routes
@@ -126,7 +127,8 @@ def create_app() -> Flask:
     @app.before_request
     def _record_request_start() -> None:
         g._req_start = time.perf_counter()
-        if observability_enabled():
+        g._log_http_access_received = should_log_http_access(request.method, request.path)
+        if observability_enabled() and g._log_http_access_received:
             _HTTP_REQUEST_LOG.info(
                 "%s %s request received",
                 request.method,
@@ -143,6 +145,23 @@ def create_app() -> Flask:
                 },
             )
 
+    def _emit_http_access_received() -> None:
+        _HTTP_REQUEST_LOG.info(
+            "%s %s request received",
+            request.method,
+            request.path,
+            extra={
+                "method": request.method,
+                "path": request.path,
+                "request_id": g.request_id,
+                "phase": "received",
+                **http_access_session_fields(),
+                "headers": request_headers(request),
+                "url_params": request_url_params(request),
+                "body": request_body(request),
+            },
+        )
+
     @app.after_request
     def after_request_hooks(response):
         _HTTP_REQUESTS.labels(request.method, request.endpoint or "unknown").inc()
@@ -150,34 +169,40 @@ def create_app() -> Flask:
         if request_id:
             response.headers["X-Request-ID"] = request_id
         if observability_enabled():
-            start = getattr(g, "_req_start", None)
-            ms = int((time.perf_counter() - start) * 1000) if start is not None else 0
-            completed_fields = {
-                "method": request.method,
-                "path": request.path,
-                "status": response.status_code,
-                "ms": ms,
-                "request_id": request_id,
-                "phase": "completed",
-                **http_access_session_fields(),
-            }
-            if request.method == "POST" and response.status_code >= 300:
-                completed_fields["error"] = _response_error(response)
-                _HTTP_REQUEST_LOG.warning(
-                    "%s %s %s",
-                    request.method,
-                    request.path,
-                    response.status_code,
-                    extra=completed_fields,
-                )
-            else:
-                _HTTP_REQUEST_LOG.info(
-                    "%s %s %s",
-                    request.method,
-                    request.path,
-                    response.status_code,
-                    extra=completed_fields,
-                )
+            log_completed = should_log_http_access(
+                request.method, request.path, response.status_code
+            )
+            if log_completed:
+                if not getattr(g, "_log_http_access_received", True):
+                    _emit_http_access_received()
+                start = getattr(g, "_req_start", None)
+                ms = int((time.perf_counter() - start) * 1000) if start is not None else 0
+                completed_fields = {
+                    "method": request.method,
+                    "path": request.path,
+                    "status": response.status_code,
+                    "ms": ms,
+                    "request_id": request_id,
+                    "phase": "completed",
+                    **http_access_session_fields(),
+                }
+                if request.method == "POST" and response.status_code >= 300:
+                    completed_fields["error"] = _response_error(response)
+                    _HTTP_REQUEST_LOG.warning(
+                        "%s %s %s",
+                        request.method,
+                        request.path,
+                        response.status_code,
+                        extra=completed_fields,
+                    )
+                else:
+                    _HTTP_REQUEST_LOG.info(
+                        "%s %s %s",
+                        request.method,
+                        request.path,
+                        response.status_code,
+                        extra=completed_fields,
+                    )
         if request.endpoint in ("stack_landing", "tests_dashboard"):
             response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
             response.headers["Pragma"] = "no-cache"

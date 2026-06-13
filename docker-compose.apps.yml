@@ -38,7 +38,7 @@ services:
       - -c
       - log_statement=mod
       - -c
-      - log_duration=on
+      - log_duration=off
     volumes:
       - exercises_pg_data:/var/lib/postgresql/data
       - ./apps/postgres/logs:/var/log/postgresql

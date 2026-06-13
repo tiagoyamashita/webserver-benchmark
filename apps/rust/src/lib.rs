@@ -3,6 +3,7 @@
 pub mod app;
 pub mod auth;
 pub mod db;
+pub mod http_access_logging;
 pub mod request_id;
 pub mod stack_ping;
 pub mod tracing_init;

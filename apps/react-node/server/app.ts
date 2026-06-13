@@ -23,6 +23,7 @@ import {
 } from "./observability-logging.js";
 import { metricsHandler, metricsMiddleware } from "./metrics.js";
 import { registerOpenApiRoutes } from "./openapi.js";
+import { shouldLogHttpAccess } from "./http-access-logging.js";
 import { probeById } from "./probe.js";
 import { requestIdMiddleware } from "./request-id.js";
 import { requestContext } from "./request-context.js";
@@ -84,31 +85,64 @@ export function createApp(options: CreateAppOptions = {}): Express {
   if (observabilityEnabled()) {
     app.use((req: Request, res: Response, next: NextFunction) => {
       const start = Date.now();
-      const receivedFields = {
-        method: req.method,
-        path: req.originalUrl,
-        request_id: req.requestId,
-        phase: "received",
-        ...httpAccessSessionFields(req),
-        headers: requestHeaders(req),
-        url_params: requestUrlParams(req),
-        body: requestBody(req),
-      };
-      writeLog(
-        "INFO",
-        `${req.method} ${req.originalUrl} request received request_id=${req.requestId}`,
-        receivedFields,
-        "http.request",
-      );
-      console.info(
-        JSON.stringify({
-          level: "INFO",
-          logger: "http.request",
-          message: `${req.method} ${req.originalUrl} request received request_id=${req.requestId}`,
-          ...receivedFields,
-        }),
-      );
+      const accessPath = req.path || req.originalUrl;
+      const logAccess = shouldLogHttpAccess(req.method, accessPath);
+      if (logAccess) {
+        const receivedFields = {
+          method: req.method,
+          path: req.originalUrl,
+          request_id: req.requestId,
+          phase: "received",
+          ...httpAccessSessionFields(req),
+          headers: requestHeaders(req),
+          url_params: requestUrlParams(req),
+          body: requestBody(req),
+        };
+        writeLog(
+          "INFO",
+          `${req.method} ${req.originalUrl} request received request_id=${req.requestId}`,
+          receivedFields,
+          "http.request",
+        );
+        console.info(
+          JSON.stringify({
+            level: "INFO",
+            logger: "http.request",
+            message: `${req.method} ${req.originalUrl} request received request_id=${req.requestId}`,
+            ...receivedFields,
+          }),
+        );
+      }
       res.on("finish", () => {
+        if (!shouldLogHttpAccess(req.method, accessPath, res.statusCode)) {
+          return;
+        }
+        if (!logAccess) {
+          const receivedFields = {
+            method: req.method,
+            path: req.originalUrl,
+            request_id: req.requestId,
+            phase: "received",
+            ...httpAccessSessionFields(req),
+            headers: requestHeaders(req),
+            url_params: requestUrlParams(req),
+            body: requestBody(req),
+          };
+          writeLog(
+            "INFO",
+            `${req.method} ${req.originalUrl} request received request_id=${req.requestId}`,
+            receivedFields,
+            "http.request",
+          );
+          console.info(
+            JSON.stringify({
+              level: "INFO",
+              logger: "http.request",
+              message: `${req.method} ${req.originalUrl} request received request_id=${req.requestId}`,
+              ...receivedFields,
+            }),
+          );
+        }
         const completedFields = {
           method: req.method,
           path: req.originalUrl,

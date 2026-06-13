@@ -114,38 +114,40 @@ async fn record_http_request_metrics(req: Request, next: Next) -> Response {
     HTTP_REQUESTS
         .with_label_values(&[method.as_str(), endpoint])
         .inc();
-    let log_seq = log_seq_counter.as_ref().map(crate::request_id::RequestLogSeq::next).unwrap_or(0);
-    let id_source = match request_id_source {
-        crate::request_id::RequestIdSource::ReceivedHeader => "header",
-        crate::request_id::RequestIdSource::Generated => "generated",
-    };
-    if let Some(ref session_id) = session_id {
-        tracing::info!(
-            method = %method,
-            path = %path,
-            status = status,
-            ms = %ms,
-            request_id = %request_id,
-            session_id = %session_id,
-            request_id_source = id_source,
-            request_origin = %request_origin,
-            log_seq = log_seq,
-            phase = "completed",
-            "{method} {path} {status} request_id={request_id}"
-        );
-    } else {
-        tracing::info!(
-            method = %method,
-            path = %path,
-            status = status,
-            ms = %ms,
-            request_id = %request_id,
-            request_id_source = id_source,
-            request_origin = %request_origin,
-            log_seq = log_seq,
-            phase = "completed",
-            "{method} {path} {status} request_id={request_id}"
-        );
+    if crate::http_access_logging::should_log_http_access(&method, &path, Some(status)) {
+        let log_seq = log_seq_counter.as_ref().map(crate::request_id::RequestLogSeq::next).unwrap_or(0);
+        let id_source = match request_id_source {
+            crate::request_id::RequestIdSource::ReceivedHeader => "header",
+            crate::request_id::RequestIdSource::Generated => "generated",
+        };
+        if let Some(ref session_id) = session_id {
+            tracing::info!(
+                method = %method,
+                path = %path,
+                status = status,
+                ms = %ms,
+                request_id = %request_id,
+                session_id = %session_id,
+                request_id_source = id_source,
+                request_origin = %request_origin,
+                log_seq = log_seq,
+                phase = "completed",
+                "{method} {path} {status} request_id={request_id}"
+            );
+        } else {
+            tracing::info!(
+                method = %method,
+                path = %path,
+                status = status,
+                ms = %ms,
+                request_id = %request_id,
+                request_id_source = id_source,
+                request_origin = %request_origin,
+                log_seq = log_seq,
+                phase = "completed",
+                "{method} {path} {status} request_id={request_id}"
+            );
+        }
     }
     res
 }
@@ -354,19 +356,7 @@ async fn welcome_redirect(
     Redirect::to("/")
 }
 
-async fn health(Extension(_request_id): Extension<crate::request_id::RequestId>) -> impl IntoResponse {
-    tracing::info!(
-        source = "src/app.rs",
-        controller = "health",
-        method = "GET",
-        path = "/health",
-        "health request received"
-    );
-    tracing::info!(
-        source = "src/app.rs",
-        controller = "health",
-        "health succeeded"
-    );
+async fn health() -> impl IntoResponse {
     (
         [(
             header::CONTENT_TYPE,
