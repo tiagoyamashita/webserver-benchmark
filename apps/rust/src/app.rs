@@ -107,7 +107,7 @@ async fn record_http_request_metrics(req: Request, next: Next) -> Response {
         .extensions()
         .get::<crate::auth::CurrentSession>()
         .map(|session| session.0.session_id.clone())
-        .or_else(|| crate::auth::cookies::http_access_session_id(req.headers(), &cookie_name));
+        .or_else(|| crate::auth::http_access_session_id(req.headers(), &cookie_name));
     let res = next.run(req).await;
     let status = res.status().as_u16();
     let ms = start.elapsed().as_millis();

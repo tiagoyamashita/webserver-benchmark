@@ -177,7 +177,7 @@ fn generate_request_id() -> String {
 fn http_access_session_id(headers: &HeaderMap) -> Option<String> {
     let cookie_name =
         std::env::var("EXERCISES_SESSION_COOKIE").unwrap_or_else(|_| "exercises_session".to_string());
-    crate::auth::cookies::http_access_session_id(headers, &cookie_name)
+    crate::auth::http_access_session_id(headers, &cookie_name)
 }
 
 pub async fn assign_request_id(req: Request, next: Next) -> Response {

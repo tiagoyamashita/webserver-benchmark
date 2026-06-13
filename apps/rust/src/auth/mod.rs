@@ -5,6 +5,7 @@ mod repository;
 mod service;
 mod session;
 
+pub use cookies::http_access_session_id;
 pub use middleware::{bootstrap_page_session, resolve_session, session_log_span};
 pub use session::redis_url_from_env;
 pub use session::SessionConfig;
