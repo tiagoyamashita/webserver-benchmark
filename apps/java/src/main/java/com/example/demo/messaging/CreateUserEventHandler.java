@@ -4,6 +4,8 @@ import static net.logstash.logback.argument.StructuredArguments.kv;
 
 import com.example.demo.exercises.db.User;
 import com.example.demo.exercises.db.UserRepository;
+import com.example.demo.observability.RequestIdContext;
+import com.example.demo.observability.RequestIdRelay;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -32,7 +34,7 @@ public class CreateUserEventHandler {
           "CreateUserEventHandler.handle skipped",
           kv("source", SOURCE),
           kv("controller", "CreateUserEventHandler"),
-          kv("request_id", requestIdHeader),
+          kv("request_id", RequestIdRelay.resolveKafkaRequestId(null, requestIdHeader)),
           kv("reason", "empty-payload"));
       return;
     }
@@ -45,26 +47,32 @@ public class CreateUserEventHandler {
           "CreateUserEventHandler.handle parse failed",
           kv("source", SOURCE),
           kv("controller", "CreateUserEventHandler"),
-          kv("request_id", requestIdHeader),
+          kv("request_id", RequestIdRelay.resolveKafkaRequestId(null, requestIdHeader)),
           kv("error", e.getMessage()));
       return;
     }
 
+    String effectiveRequestId =
+        RequestIdRelay.resolveKafkaRequestId(event.requestId(), requestIdHeader);
+    RequestIdContext.set(effectiveRequestId);
+    try {
+      handleEvent(event, effectiveRequestId);
+    } finally {
+      RequestIdContext.clear();
+    }
+  }
+
+  private void handleEvent(CreateUserEvent event, String effectiveRequestId) {
     if (!CreateUserEvent.EVENT_TYPE.equals(event.event())) {
       log.warn(
           "CreateUserEventHandler.handle skipped",
           kv("source", SOURCE),
           kv("controller", "CreateUserEventHandler"),
-          kv("request_id", requestIdHeader),
+          kv("request_id", effectiveRequestId),
           kv("kafka_event", event.event()),
           kv("reason", "unexpected-event-type"));
       return;
     }
-
-    String effectiveRequestId =
-        event.requestId() != null && !event.requestId().isBlank()
-            ? event.requestId()
-            : requestIdHeader;
 
     String trimmedName = event.name() == null ? "" : event.name().trim();
     String trimmedEmail = event.email() == null ? "" : event.email().trim();

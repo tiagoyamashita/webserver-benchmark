@@ -15,6 +15,26 @@ public final class RequestIdRelay {
 
   private RequestIdRelay() {}
 
+  /**
+   * Restore correlation id when consuming a Kafka message: prefer JSON {@code requestId}, then
+   * {@code X-Request-ID} header; generate only when both are missing or invalid.
+   */
+  public static String resolveKafkaRequestId(String messageRequestId, String headerRequestId) {
+    if (messageRequestId != null && !messageRequestId.isBlank()) {
+      String trimmed = messageRequestId.trim();
+      if (SAFE.matcher(trimmed).matches()) {
+        return trimmed;
+      }
+    }
+    if (headerRequestId != null && !headerRequestId.isBlank()) {
+      String trimmed = headerRequestId.trim();
+      if (SAFE.matcher(trimmed).matches()) {
+        return trimmed;
+      }
+    }
+    return UUID.randomUUID().toString();
+  }
+
   /** Use inbound request id when valid; otherwise generate one for this outbound call. */
   public static String resolveOutboundRequestId() {
     String requestId = RequestIdContext.get();

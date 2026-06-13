@@ -461,7 +461,7 @@ async fn run_create_user_consumer(
     loop {
         match consumer.recv().await {
             Ok(message) => {
-                let request_id = message
+                let header_request_id = message
                     .headers()
                     .and_then(|headers| {
                         headers
@@ -471,13 +471,16 @@ async fn run_create_user_consumer(
                             .and_then(|v| std::str::from_utf8(v).ok())
                     })
                     .map(str::to_string);
-                let id_for_log = request_id.as_deref().unwrap_or("");
 
                 let Some(payload) = message.payload() else {
+                    let request_id = crate::request_id::resolve_kafka_request_id(
+                        None,
+                        header_request_id.as_deref(),
+                    );
                     tracing::warn!(
                         source = SOURCE,
                         controller = "create_user_consumer",
-                        request_id = id_for_log,
+                        request_id = %request_id,
                         reason = "empty-payload",
                         "create-user event skipped"
                     );
@@ -486,11 +489,15 @@ async fn run_create_user_consumer(
 
                 match serde_json::from_slice::<CreateUserEvent>(payload) {
                     Ok(event) => {
+                        let request_id = crate::request_id::resolve_kafka_request_id(
+                            event.request_id.as_deref(),
+                            header_request_id.as_deref(),
+                        );
                         if event.event != "create-user" {
                             tracing::warn!(
                                 source = SOURCE,
                                 controller = "create_user_consumer",
-                                request_id = id_for_log,
+                                request_id = %request_id,
                                 kafka_event = %event.event,
                                 reason = "unexpected-event-type",
                                 "create-user event skipped"
@@ -500,7 +507,7 @@ async fn run_create_user_consumer(
                         tracing::info!(
                             source = SOURCE,
                             controller = "create_user_consumer",
-                            request_id = id_for_log,
+                            request_id = %request_id,
                             kafka_event = %event.event,
                             name = %event.name,
                             email = %event.email,
@@ -510,7 +517,7 @@ async fn run_create_user_consumer(
                             &pool,
                             &event.name,
                             &event.email,
-                            event.request_id.as_deref().or(request_id.as_deref()),
+                            Some(request_id.as_str()),
                         )
                         .await
                         {
@@ -518,7 +525,7 @@ async fn run_create_user_consumer(
                                 tracing::info!(
                                     source = SOURCE,
                                     controller = "create_user_consumer",
-                                    request_id = id_for_log,
+                                    request_id = %request_id,
                                     id = user.id,
                                     name = %user.name,
                                     email = %user.email,
@@ -529,7 +536,7 @@ async fn run_create_user_consumer(
                                 tracing::error!(
                                     source = SOURCE,
                                     controller = "create_user_consumer",
-                                    request_id = id_for_log,
+                                    request_id = %request_id,
                                     name = %event.name,
                                     email = %event.email,
                                     error = %e,
@@ -539,10 +546,14 @@ async fn run_create_user_consumer(
                         }
                     }
                     Err(e) => {
+                        let request_id = crate::request_id::resolve_kafka_request_id(
+                            None,
+                            header_request_id.as_deref(),
+                        );
                         tracing::error!(
                             source = SOURCE,
                             controller = "create_user_consumer",
-                            request_id = id_for_log,
+                            request_id = %request_id,
                             error = %e,
                             "create-user event parse failed"
                         );

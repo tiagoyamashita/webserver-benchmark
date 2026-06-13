@@ -58,6 +58,26 @@ pub fn postgres_application_name(service: &str, request_id: &str) -> String {
     }
 }
 
+/// Prefer JSON `requestId`, then Kafka `X-Request-ID` header; generate only when both are missing.
+pub fn resolve_kafka_request_id(
+    message_request_id: Option<&str>,
+    header_request_id: Option<&str>,
+) -> String {
+    if let Some(text) = message_request_id {
+        let trimmed = text.trim();
+        if is_acceptable_request_id(trimmed) {
+            return trimmed.to_string();
+        }
+    }
+    if let Some(text) = header_request_id {
+        let trimmed = text.trim();
+        if is_acceptable_request_id(trimmed) {
+            return trimmed.to_string();
+        }
+    }
+    generate_request_id()
+}
+
 pub fn resolve_outbound_request_id(current: Option<&str>) -> String {
     if let Some(text) = current {
         let trimmed = text.trim();

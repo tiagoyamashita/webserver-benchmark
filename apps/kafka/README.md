@@ -93,11 +93,13 @@ podman compose -f docker-compose.apps.yml exec kafka \
 | Consumer group (Java + Rust, shared) | `exercises-create-user` |
 | Effect | Rust inserts into Postgres `users` |
 
-Event JSON:
+Event JSON (includes the dashboard/API `requestId` for log correlation):
 
 ```json
 {"event":"create-user","name":"Jane Doe","email":"jane@example.com","requestId":"…"}
 ```
+
+The same id is also sent as Kafka header `X-Request-ID`. Java and Rust consumers restore it into their request context so handler logs and Postgres `application_name` match the original HTTP request instead of generating a new id.
 
 **Topic creation:** Java and Rust both ensure `create-user` on startup when it is missing (fail-fast if Kafka is down or config mismatches). No manual `kafka-topics.sh` step is required when Kafka is healthy before the apps start.
 
