@@ -44,8 +44,8 @@ pub async fn ensure_session(
     current: Option<Extension<CurrentSession>>,
     body: Option<Json<EnsureSessionRequest>>,
 ) -> Response {
-    log_controller_received("ensure_session", "POST", "/api/auth/ensure", &http);
     let Some(auth) = state.auth.as_ref() else {
+        log_controller_received("ensure_session", "POST", "/api/auth/ensure", &http);
         return auth_unavailable();
     };
     let client_id = body.and_then(|Json(b)| b.session_id);
@@ -67,19 +67,23 @@ pub async fn ensure_session(
             } else {
                 StatusCode::OK
             };
-            tracing::info!(
-                source = SOURCE,
-                controller = "ensure_session",
-                session_id = %result.session.session_id,
-                session_created = result.created,
-                user_id = result.session.user_id,
-                "ensure_session succeeded"
-            );
+            if status != StatusCode::OK {
+                log_controller_received("ensure_session", "POST", "/api/auth/ensure", &http);
+                tracing::info!(
+                    source = SOURCE,
+                    controller = "ensure_session",
+                    session_id = %result.session.session_id,
+                    session_created = result.created,
+                    user_id = result.session.user_id,
+                    "ensure_session succeeded"
+                );
+            }
             let mut res = (status, Json(payload)).into_response();
             append_session_cookie(res.headers_mut(), &auth.config, &result.session.session_id);
             res
         }
         Err(err) => {
+            log_controller_received("ensure_session", "POST", "/api/auth/ensure", &http);
             tracing::warn!(
                 source = SOURCE,
                 controller = "ensure_session",
