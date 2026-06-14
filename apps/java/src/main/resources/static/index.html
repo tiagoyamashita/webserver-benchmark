@@ -132,6 +132,7 @@
         background: var(--code-bg);
         color: var(--text);
       }
+      .header-auth-btn { margin-left: 0.65rem; vertical-align: middle; }
       .btn:hover { filter: brightness(1.08); }
       .btn.primary { border-color: var(--ok); color: var(--ok); }
       .connectivity {
@@ -217,7 +218,11 @@
     <h1>Java APP</h1>
     <p class="page-subtitle">Use the menu on the left to open connectivity checks or action forms.</p>
     <p class="page-subtitle">Last request ID: <code id="page-request-id">—</code> (new id per API call — use to isolate actions in logs)</p>
-    <p class="page-subtitle">Shared Redis session ID: <code id="page-session-id">…</code> (auto-created on load if missing; stored in Redis for cross-app auth)</p>
+    <p class="page-subtitle" id="page-session-summary">Loading session…</p>
+    <p class="page-subtitle">
+      Session ID: <code id="page-session-id">…</code> · Redis: <code id="page-session-redis-key">…</code>
+      <button type="button" class="btn header-auth-btn" id="header-auth-btn">Login</button>
+    </p>
 
     <div class="dashboard">
       <nav class="sidebar" aria-label="Dashboard menu">
@@ -297,7 +302,10 @@
 
         <section id="view-create-user" class="view-panel" aria-hidden="true">
           <h2 class="form-heading">Create user</h2>
-          <p class="form-hint">Persists a row to the shared PostgreSQL <code>users</code> table via <code>POST /api/users</code>.</p>
+          <p class="form-hint">
+            Persists a row to the shared PostgreSQL <code>users</code> table via <code>POST /api/users</code>.
+            Password is stored as a BCrypt hash in <code>password_hash</code> (never returned in API responses).
+          </p>
           <form id="create-user-form">
             <div class="field-row">
               <label for="user-name">Name</label>
@@ -306,6 +314,10 @@
             <div class="field-row">
               <label for="user-email">Email</label>
               <input type="email" id="user-email" name="email" required autocomplete="email" placeholder="jane@example.com"/>
+            </div>
+            <div class="field-row">
+              <label for="user-password">Password</label>
+              <input type="password" id="user-password" name="password" required minlength="8" maxlength="128" autocomplete="new-password" placeholder="At least 8 characters"/>
             </div>
             <button type="submit" class="btn primary">Save user</button>
           </form>
@@ -516,10 +528,6 @@
     <script src="/js/reachability-parent.js"></script>
     <script>
       window.exercisesSession.ensureSession().then(function (session) {
-        var pageSessionIdEl = document.getElementById("page-session-id");
-        if (pageSessionIdEl && session && session.sessionId) {
-          pageSessionIdEl.textContent = session.sessionId;
-        }
       (function () {
         var navButtons = document.querySelectorAll(".sidebar-btn[data-view]");
         var viewPanels = document.querySelectorAll(".view-panel");
@@ -532,6 +540,55 @@
         }
 
         var currentView = "view-connectivity";
+        var lastKnownSession = null;
+
+        function isLoggedInSession(data) {
+          return !!(data && data.sessionId && data.userId > 0 && data.email);
+        }
+
+        function updateHeaderAuthButton(data) {
+          var btn = document.getElementById("header-auth-btn");
+          if (!btn) return;
+          if (isLoggedInSession(data)) {
+            btn.textContent = "Logout";
+            btn.setAttribute("aria-label", "Sign out");
+          } else {
+            btn.textContent = "Login";
+            btn.setAttribute("aria-label", "Sign in");
+          }
+        }
+
+        function refreshSessionHeader() {
+          var req = apiRequest({ Accept: "application/json" });
+          return fetch("/api/auth/session", {
+            method: "GET",
+            credentials: "same-origin",
+            headers: req.headers
+          })
+            .then(function (res) {
+              return res.text().then(function (text) {
+                var data = text;
+                try { data = JSON.parse(text); } catch (e) { /* plain */ }
+                return { ok: res.ok, status: res.status, data: data };
+              });
+            })
+            .then(function (r) {
+              if (r.ok && r.data && r.data.sessionId) {
+                renderSessionStatus(r.data);
+                return r.data;
+              }
+              return window.exercisesSession.ensureSession().then(function (s) {
+                renderSessionStatus(s);
+                return s;
+              });
+            })
+            .catch(function () {
+              return window.exercisesSession.ensureSession().then(function (s) {
+                renderSessionStatus(s);
+                return s;
+              });
+            });
+        }
 
         function apiRequest(extra) {
           var requestId = newRequestId();
@@ -551,21 +608,68 @@
           return { requestId: requestId, headers: headers };
         }
 
-        function renderSessionStatus(data) {
-          var el = document.getElementById("session-status");
-          if (!el) return;
+        function sessionWhoLabel(data) {
           if (!data || !data.sessionId) {
-            el.textContent = "No session.";
+            return "No session";
+          }
+          if (data.userId === 0 || !data.email) {
+            return String(data.name || "Guest") + " (guest — sign in to bind a user)";
+          }
+          return String(data.name) + " (" + String(data.email) + ")";
+        }
+
+        function renderSessionStatus(data) {
+          lastKnownSession = data && data.sessionId ? data : null;
+          var el = document.getElementById("session-status");
+          var summaryEl = document.getElementById("page-session-summary");
+          var pageSessionIdEl = document.getElementById("page-session-id");
+          var redisKeyEl = document.getElementById("page-session-redis-key");
+          if (!data || !data.sessionId) {
+            if (el) el.textContent = "No session.";
+            if (summaryEl) summaryEl.textContent = "No session.";
+            if (pageSessionIdEl) pageSessionIdEl.textContent = "—";
+            if (redisKeyEl) redisKeyEl.textContent = "—";
+            updateHeaderAuthButton(null);
             return;
           }
-          var who =
-            data.userId === 0 || !data.email
-              ? String(data.name || "Guest") + " (guest — sign in to bind a user)"
-              : String(data.name) + " (" + String(data.email) + ")";
-          el.textContent =
-            who + " — session " + data.sessionId + " — Redis key " + data.redisKey;
-          var pageSessionIdEl = document.getElementById("page-session-id");
+          var who = sessionWhoLabel(data);
+          if (el) {
+            el.textContent =
+              who + " — session " + data.sessionId + " — Redis key " + data.redisKey;
+          }
+          if (summaryEl) summaryEl.textContent = who;
           if (pageSessionIdEl) pageSessionIdEl.textContent = data.sessionId;
+          if (redisKeyEl) redisKeyEl.textContent = data.redisKey || "—";
+          updateHeaderAuthButton(data);
+        }
+
+        function performLogout() {
+          var sessionResult = document.getElementById("session-result");
+          if (sessionResult) sessionResult.textContent = "Logging out…";
+          var logoutReq = apiRequest({ Accept: "application/json" });
+          return fetch("/api/auth/logout", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: logoutReq.headers
+          })
+            .then(function (res) {
+              renderSessionStatus(null);
+              if (sessionResult) {
+                sessionResult.textContent = res.ok ? "Logged out." : "HTTP " + res.status;
+              }
+              if (res.ok) {
+                return window.exercisesSession.ensureSession().then(function (session) {
+                  renderSessionStatus(session);
+                  if (sessionResult) {
+                    sessionResult.textContent =
+                      "Logged out. New guest session:\n" + JSON.stringify(session, null, 2);
+                  }
+                });
+              }
+            })
+            .catch(function (err) {
+              if (sessionResult) sessionResult.textContent = String(err.message || err);
+            });
         }
 
         function fetchCurrentSession() {
@@ -589,12 +693,12 @@
             })
             .then(function (r) {
               if (!r.ok) {
-                window.exercisesSession.setStoredSessionId("");
-                renderSessionStatus(null);
                 if (resultEl) resultEl.textContent = "HTTP " + r.status + "\n" + String(r.data);
-                return null;
+                return window.exercisesSession.ensureSession().then(function (s) {
+                  renderSessionStatus(s);
+                  return s;
+                });
               }
-              window.exercisesSession.setStoredSessionId(r.data.sessionId);
               renderSessionStatus(r.data);
               if (resultEl) resultEl.textContent = JSON.stringify(r.data, null, 2);
               return r.data;
@@ -624,12 +728,10 @@
             })
             .then(function (r) {
               if (!r.ok) {
-                window.exercisesSession.setStoredSessionId("");
                 renderSessionStatus(null);
                 if (resultEl) resultEl.textContent = "HTTP " + r.status + "\n" + String(r.data);
                 return;
               }
-              window.exercisesSession.setStoredSessionId(r.data.sessionId);
               renderSessionStatus(r.data);
               if (resultEl) {
                 resultEl.textContent =
@@ -808,14 +910,12 @@
               })
               .then(function (r) {
                 if (!r.ok) {
-                  window.exercisesSession.setStoredSessionId("");
-                  renderSessionStatus(null);
-                  if (sessionResult) {
+                renderSessionStatus(null);
+                if (sessionResult) {
                     sessionResult.textContent = "HTTP " + r.status + "\n" + String(r.data);
                   }
                   return;
                 }
-                window.exercisesSession.setStoredSessionId(r.data.sessionId);
                 renderSessionStatus(r.data);
                 if (sessionResult) sessionResult.textContent = JSON.stringify(r.data, null, 2);
               })
@@ -827,34 +927,26 @@
 
         if (sessionLogoutBtn) {
           sessionLogoutBtn.addEventListener("click", function () {
-            if (sessionResult) sessionResult.textContent = "Logging out…";
-            var logoutReq = apiRequest({ Accept: "application/json" });
-            fetch("/api/auth/logout", {
-              method: "POST",
-              credentials: "same-origin",
-              headers: logoutReq.headers
-            })
-              .then(function (res) {
-                window.exercisesSession.setStoredSessionId("");
-                renderSessionStatus(null);
-                if (sessionResult) {
-                  sessionResult.textContent = res.ok ? "Logged out." : "HTTP " + res.status;
-                }
-                if (res.ok) {
-                  return window.exercisesSession.ensureSession().then(function (session) {
-                    renderSessionStatus(session);
-                    if (sessionResult) {
-                      sessionResult.textContent =
-                        "Logged out. New guest session:\n" + JSON.stringify(session, null, 2);
-                    }
-                  });
-                }
-              })
-              .catch(function (err) {
-                if (sessionResult) sessionResult.textContent = String(err.message || err);
-              });
+            performLogout();
           });
         }
+
+        var headerAuthBtn = document.getElementById("header-auth-btn");
+        if (headerAuthBtn) {
+          headerAuthBtn.addEventListener("click", function () {
+            if (isLoggedInSession(lastKnownSession)) {
+              performLogout();
+              return;
+            }
+            window.location.href = "/login";
+          });
+        }
+
+        document.addEventListener("visibilitychange", function () {
+          if (document.visibilityState === "visible") {
+            refreshSessionHeader();
+          }
+        });
 
         if (sessionRefreshBtn) {
           sessionRefreshBtn.addEventListener("click", rotateSessionId);
@@ -1018,16 +1110,24 @@
             ev.preventDefault();
             var name = (document.getElementById("user-name").value || "").trim();
             var email = (document.getElementById("user-email").value || "").trim();
+            var password = (document.getElementById("user-password").value || "");
             if (!name || !email) { userResult.textContent = "Name and email are required."; return; }
+            if (password.length < 8) { userResult.textContent = "Password must be at least 8 characters."; return; }
             var userReq = apiRequest({ Accept: "application/json", "Content-Type": "application/json" });
             userResult.textContent = "Saving…\nrequest_id=" + userReq.requestId + "\ndashboard_page=" + currentView;
             fetch("/api/users", {
               method: "POST",
               credentials: "same-origin",
               headers: userReq.headers,
-              body: JSON.stringify({ name: name, email: email })
+              body: JSON.stringify({ name: name, email: email, password: password })
             })
-              .then(function (res) { return res.json().then(function (data) { return { httpOk: res.ok, status: res.status, data: data }; }); })
+              .then(function (res) {
+                return res.text().then(function (text) {
+                  var data = text;
+                  try { data = JSON.parse(text); } catch (e) { /* plain error text */ }
+                  return { httpOk: res.ok, status: res.status, data: data };
+                });
+              })
               .then(function (r) {
                 if (r.httpOk) {
                   var u = r.data || {};
@@ -1039,7 +1139,7 @@
                 }
                 userResult.textContent =
                   "HTTP " + r.status + "\nrequest_id=" + userReq.requestId + "\ndashboard_page=" + currentView +
-                  "\n" + JSON.stringify(r.data, null, 2);
+                  "\n" + (typeof r.data === "string" ? r.data : JSON.stringify(r.data, null, 2));
               })
               .catch(function (err) { userResult.textContent = String(err.message || err); });
           });
@@ -1275,11 +1375,17 @@
               .catch(function (err) { pythonReactRelayResultEl.textContent = String(err.message || err); });
           });
         }
+
+        refreshSessionHeader();
       })();
       }).catch(function (err) {
         console.error("[dashboard] session bootstrap failed", err);
+        var summaryEl = document.getElementById("page-session-summary");
+        if (summaryEl) summaryEl.textContent = "Session unavailable (is Redis up?)";
         var pageSessionIdEl = document.getElementById("page-session-id");
         if (pageSessionIdEl) pageSessionIdEl.textContent = "unavailable";
+        var redisKeyEl = document.getElementById("page-session-redis-key");
+        if (redisKeyEl) redisKeyEl.textContent = "—";
       });
     </script>
   </body>

@@ -1,25 +1,13 @@
 /**
- * Ensures a shared Redis session exists in the browser (localStorage + httpOnly cookie).
+ * Ensures a shared Redis session via HttpOnly cookie only (no localStorage).
  * Call exercisesSession.ensureSession() once when a dashboard page loads.
  */
 (function (global) {
-  var STORAGE_KEY = "exercises_session_id";
+  var LEGACY_STORAGE_KEY = "exercises_session_id";
 
-  function storedSessionId() {
+  function clearLegacyStoredSessionId() {
     try {
-      return global.localStorage.getItem(STORAGE_KEY) || "";
-    } catch (e) {
-      return "";
-    }
-  }
-
-  function setStoredSessionId(sessionId) {
-    try {
-      if (sessionId) {
-        global.localStorage.setItem(STORAGE_KEY, sessionId);
-      } else {
-        global.localStorage.removeItem(STORAGE_KEY);
-      }
+      global.localStorage.removeItem(LEGACY_STORAGE_KEY);
     } catch (e) {
       /* ignore */
     }
@@ -32,33 +20,23 @@
     return "req-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
   }
 
+  /** Session id is sent only via HttpOnly cookie; do not add Bearer / X-Session-ID from JS. */
   function withSessionHeaders(headers) {
-    var next = headers || {};
-    var sessionId = storedSessionId();
-    if (sessionId) {
-      next["X-Session-ID"] = sessionId;
-      next.Authorization = "Bearer " + sessionId;
-    }
-    return next;
+    return headers || {};
   }
 
   function ensureSession() {
-    var sessionId = storedSessionId();
-    var headers = {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "X-Request-ID": newRequestId()
-    };
-    if (sessionId) {
-      headers["X-Session-ID"] = sessionId;
-      headers.Authorization = "Bearer " + sessionId;
-    }
+    clearLegacyStoredSessionId();
     return global
       .fetch("/api/auth/ensure", {
         method: "POST",
         credentials: "same-origin",
-        headers: headers,
-        body: JSON.stringify(sessionId ? { sessionId: sessionId } : {})
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "X-Request-ID": newRequestId()
+        },
+        body: "{}"
       })
       .then(function (res) {
         return res.text().then(function (text) {
@@ -73,20 +51,17 @@
       })
       .then(function (r) {
         if (!r.ok || !r.data || !r.data.sessionId) {
-          setStoredSessionId("");
           throw new Error(
             "Session ensure failed: HTTP " + r.status + " " + String(r.data || "")
           );
         }
-        setStoredSessionId(r.data.sessionId);
         return r.data;
       });
   }
 
+  clearLegacyStoredSessionId();
+
   global.exercisesSession = {
-    STORAGE_KEY: STORAGE_KEY,
-    storedSessionId: storedSessionId,
-    setStoredSessionId: setStoredSessionId,
     withSessionHeaders: withSessionHeaders,
     ensureSession: ensureSession
   };

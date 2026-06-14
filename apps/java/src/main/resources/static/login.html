@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta name="color-scheme" content="dark light"/>
+    <title>Login — Java APP</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #121212;
+        --text: #e8e8ea;
+        --muted: #a3a3a8;
+        --border: #3f3f46;
+        --code-bg: #27272a;
+        --ok: #4ade80;
+        --err: #f87171;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          color-scheme: light;
+          --bg: #fafafa;
+          --text: #1a1a1a;
+          --muted: #555;
+          --border: #ccc;
+          --code-bg: #eee;
+          --ok: #0d6d0d;
+          --err: #b91c1c;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+        background: var(--bg);
+        color: var(--text);
+      }
+      .login-card {
+        width: 100%;
+        max-width: 22rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 1.5rem 1.35rem;
+        background: rgba(128, 128, 128, 0.04);
+      }
+      h1 { font-size: 1.35rem; margin: 0 0 0.35rem; }
+      .lead { color: var(--muted); font-size: 0.9rem; margin: 0 0 1.25rem; line-height: 1.45; }
+      .field-row { margin-bottom: 0.85rem; }
+      label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.3rem; }
+      input {
+        width: 100%;
+        padding: 0.5rem 0.6rem;
+        font-size: 0.95rem;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--bg);
+        color: var(--text);
+      }
+      .btn {
+        cursor: pointer;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0.55rem 0.85rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        background: rgba(128, 128, 128, 0.12);
+        color: var(--text);
+      }
+      .btn.primary {
+        width: 100%;
+        margin-top: 0.35rem;
+        background: var(--text);
+        color: var(--bg);
+        border-color: var(--text);
+      }
+      .btn.linkish {
+        margin-top: 0.85rem;
+        width: 100%;
+        background: transparent;
+      }
+      .result-box {
+        margin-top: 1rem;
+        padding: 0.65rem 0.75rem;
+        font-size: 0.82rem;
+        line-height: 1.45;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--code-bg);
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .result-box.ok { border-color: var(--ok); color: var(--ok); }
+      .result-box.err { border-color: var(--err); color: var(--err); }
+      .session-meta {
+        margin-top: 1rem;
+        font-size: 0.78rem;
+        color: var(--muted);
+        line-height: 1.4;
+      }
+      code { font-size: 0.85em; background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px; }
+      a { color: inherit; }
+    </style>
+  </head>
+  <body>
+    <main class="login-card">
+      <h1>Sign in</h1>
+      <p class="lead">
+        Uses Postgres credentials and stores your session in Redis (<code>exercises_session</code> HttpOnly cookie).
+      </p>
+      <form id="login-form">
+        <div class="field-row">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" name="email" required autocomplete="username" placeholder="jane@example.com"/>
+        </div>
+        <div class="field-row">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" name="password" required minlength="8" autocomplete="current-password" placeholder="Your password"/>
+        </div>
+        <button type="submit" class="btn primary" id="login-submit">Sign in</button>
+      </form>
+      <p class="session-meta" id="session-meta" hidden></p>
+      <pre id="login-result" class="result-box" aria-live="polite" hidden></pre>
+      <button type="button" class="btn linkish" id="go-dashboard" hidden>Continue to dashboard</button>
+      <p class="session-meta">
+        No account? Create one from the <a href="/">dashboard</a> (Actions → Create user).
+      </p>
+    </main>
+
+    <script src="/js/session-bootstrap.js"></script>
+    <script>
+      (function () {
+        function newRequestId() {
+          if (typeof crypto !== "undefined" && crypto.randomUUID) {
+            return crypto.randomUUID();
+          }
+          return "req-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+        }
+
+        var form = document.getElementById("login-form");
+        var resultEl = document.getElementById("login-result");
+        var metaEl = document.getElementById("session-meta");
+        var goDashboard = document.getElementById("go-dashboard");
+        var submitBtn = document.getElementById("login-submit");
+
+        function showResult(text, ok) {
+          resultEl.hidden = false;
+          resultEl.textContent = text;
+          resultEl.className = "result-box" + (ok ? " ok" : " err");
+        }
+
+        window.exercisesSession.ensureSession().catch(function () {
+          showResult("Could not start guest session. Is Redis up?", false);
+          submitBtn.disabled = true;
+        });
+
+        form.addEventListener("submit", function (ev) {
+          ev.preventDefault();
+          var email = (document.getElementById("login-email").value || "").trim();
+          var password = document.getElementById("login-password").value || "";
+          if (!email || password.length < 8) {
+            showResult("Email and password (min 8 characters) are required.", false);
+            return;
+          }
+          submitBtn.disabled = true;
+          showResult("Signing in…", true);
+          fetch("/api/auth/login", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json",
+              "X-Request-ID": newRequestId()
+            },
+            body: JSON.stringify({ email: email, password: password })
+          })
+            .then(function (res) {
+              return res.text().then(function (text) {
+                var data = text;
+                try { data = JSON.parse(text); } catch (e) { /* plain */ }
+                return { ok: res.ok, status: res.status, data: data };
+              });
+            })
+            .then(function (r) {
+              submitBtn.disabled = false;
+              if (!r.ok) {
+                var msg =
+                  typeof r.data === "string"
+                    ? r.data
+                    : typeof r.data === "object" && r.data && r.data.message
+                      ? r.data.message
+                      : String(r.data || r.status);
+                showResult("Login failed (HTTP " + r.status + "): " + msg, false);
+                return;
+              }
+              var session = r.data;
+              showResult(
+                "Signed in as " + session.name + " (" + session.email + ").",
+                true
+              );
+              metaEl.hidden = false;
+              metaEl.textContent =
+                "Session " + session.sessionId + " · Redis " + session.redisKey;
+              goDashboard.hidden = false;
+            })
+            .catch(function (err) {
+              submitBtn.disabled = false;
+              showResult(String(err.message || err), false);
+            });
+        });
+
+        goDashboard.addEventListener("click", function () {
+          window.location.href = "/";
+        });
+      })();
+    </script>
+  </body>
+</html>

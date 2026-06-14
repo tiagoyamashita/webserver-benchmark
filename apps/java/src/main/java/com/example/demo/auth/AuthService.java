@@ -15,14 +15,17 @@ public class AuthService {
   private final UserRepository users;
   private final RedisSessionRepository sessions;
   private final SessionProperties sessionProperties;
+  private final PasswordHasher passwordHasher;
 
   public AuthService(
       UserRepository users,
       RedisSessionRepository sessions,
-      SessionProperties sessionProperties) {
+      SessionProperties sessionProperties,
+      PasswordHasher passwordHasher) {
     this.users = users;
     this.sessions = sessions;
     this.sessionProperties = sessionProperties;
+    this.passwordHasher = passwordHasher;
   }
 
   public EnsureSessionResult ensureSession(String clientSessionId, SharedSession requestSession) {
@@ -42,6 +45,8 @@ public class AuthService {
 
   public SharedSession login(LoginRequest request) {
     User user = resolveUser(request);
+    verifyPassword(request, user);
+    // New Redis key for this login; leave any prior session (e.g. guest in other tabs) untouched.
     Instant issuedAt = Instant.now();
     Instant expiresAt = issuedAt.plus(sessionProperties.getTtl());
     SharedSession session =
@@ -148,6 +153,20 @@ public class AuthService {
 
   private Optional<SharedSession> validStoredSession(String sessionId, Instant now) {
     return sessions.findById(sessionId).filter(session -> !session.isExpired(now));
+  }
+
+  private void verifyPassword(LoginRequest request, User user) {
+    if (request.password() == null || request.password().isBlank()) {
+      return;
+    }
+    String hash = user.getPasswordHash();
+    if (hash == null || hash.isBlank()) {
+      throw new AuthException(
+          HttpStatus.UNAUTHORIZED, "Password login is not available for this user");
+    }
+    if (!passwordHasher.matches(request.password(), hash)) {
+      throw new AuthException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
+    }
   }
 
   private User resolveUser(LoginRequest request) {

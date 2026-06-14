@@ -125,3 +125,15 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+
+---
+# Compose dev overlay: serve /js and other static assets from src/ (see docker-compose.dev.yml).
+spring:
+  config:
+    activate:
+      on-profile: dev-static
+  web:
+    resources:
+      static-locations:
+        - file:src/main/resources/static/
+        - classpath:/static/

@@ -45,7 +45,10 @@ public class SessionPageBootstrapFilter extends OncePerRequestFilter {
       return false;
     }
     String path = request.getRequestURI();
-    if (path == null || !"/".equals(path)) {
+    if (path == null) {
+      return false;
+    }
+    if (!"/".equals(path) && !"/login".equals(path)) {
       return false;
     }
     String accept = request.getHeader("Accept");

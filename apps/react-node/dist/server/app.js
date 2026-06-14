@@ -2,17 +2,26 @@ import express from "express";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { logError, logReceived, logSucceeded, logTrace, logWarn, } from "./controller-logging.js";
+import { logError, logReceivedFromRequest, logSucceeded, logTrace, logWarn, } from "./controller-logging.js";
 import { createItem, fetchItems } from "./items.js";
+import { DatabaseNotConfiguredError, insertItemIntoPostgres, listItemsFromPostgres, } from "./postgres-items.js";
 import { registerAuthRoutes, sessionMiddleware } from "./auth/routes.js";
+import { requireApiSession } from "./auth/require-api-session.js";
 import { observabilityEnabled, writeLog, } from "./observability-logging.js";
 import { metricsHandler, metricsMiddleware } from "./metrics.js";
 import { registerOpenApiRoutes } from "./openapi.js";
+import { shouldLogHttpAccess } from "./http-access-logging.js";
 import { probeById } from "./probe.js";
 import { requestIdMiddleware } from "./request-id.js";
+import { requestContext } from "./request-context.js";
 import { requestBody, requestHeaders, requestUrlParams } from "./request-snapshot.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SOURCE = "server/app.ts";
+const POSTGRES_ITEMS_SOURCE = "server/postgres-items.ts";
+function httpAccessSessionFields(req) {
+    const sessionId = req.sharedSession?.sessionId;
+    return sessionId ? { session_id: sessionId } : {};
+}
 /** Built client assets (Vite outDir: dist/client). */
 function resolveClientDir() {
     const candidates = [
@@ -29,33 +38,84 @@ function resolveClientDir() {
 export function createApp(options = {}) {
     const { isProduction = process.env.NODE_ENV === "production", fetchImpl, authRuntime = { auth: null } } = options;
     const app = express();
+    const protectApiSession = requireApiSession(authRuntime.auth);
     app.use(express.json());
     app.use(requestIdMiddleware);
     app.use(sessionMiddleware(authRuntime.auth));
+    app.use((req, res, next) => {
+        requestContext.run({
+            sessionId: req.sharedSession?.sessionId,
+            requestId: req.requestId,
+            inboundMethod: req.method,
+            inboundPath: req.path,
+        }, () => next());
+    });
     app.use(metricsMiddleware);
     registerOpenApiRoutes(app);
     registerAuthRoutes(app, authRuntime);
     if (observabilityEnabled()) {
         app.use((req, res, next) => {
             const start = Date.now();
-            writeLog("INFO", `${req.method} ${req.originalUrl} request received`, {
-                method: req.method,
-                path: req.originalUrl,
-                request_id: req.requestId,
-                phase: "received",
-                headers: requestHeaders(req),
-                url_params: requestUrlParams(req),
-                body: requestBody(req),
-            });
+            const accessPath = req.path || req.originalUrl;
+            const logAccess = shouldLogHttpAccess(req.method, accessPath);
+            if (logAccess) {
+                const receivedFields = {
+                    method: req.method,
+                    path: req.originalUrl,
+                    request_id: req.requestId,
+                    phase: "received",
+                    ...httpAccessSessionFields(req),
+                    headers: requestHeaders(req),
+                    url_params: requestUrlParams(req),
+                    body: requestBody(req),
+                };
+                writeLog("INFO", `${req.method} ${req.originalUrl} request received request_id=${req.requestId}`, receivedFields, "http.request");
+                console.info(JSON.stringify({
+                    level: "INFO",
+                    logger: "http.request",
+                    message: `${req.method} ${req.originalUrl} request received request_id=${req.requestId}`,
+                    ...receivedFields,
+                }));
+            }
             res.on("finish", () => {
-                writeLog("INFO", `${req.method} ${req.originalUrl} ${res.statusCode}`, {
+                if (!shouldLogHttpAccess(req.method, accessPath, res.statusCode)) {
+                    return;
+                }
+                if (!logAccess) {
+                    const receivedFields = {
+                        method: req.method,
+                        path: req.originalUrl,
+                        request_id: req.requestId,
+                        phase: "received",
+                        ...httpAccessSessionFields(req),
+                        headers: requestHeaders(req),
+                        url_params: requestUrlParams(req),
+                        body: requestBody(req),
+                    };
+                    writeLog("INFO", `${req.method} ${req.originalUrl} request received request_id=${req.requestId}`, receivedFields, "http.request");
+                    console.info(JSON.stringify({
+                        level: "INFO",
+                        logger: "http.request",
+                        message: `${req.method} ${req.originalUrl} request received request_id=${req.requestId}`,
+                        ...receivedFields,
+                    }));
+                }
+                const completedFields = {
                     method: req.method,
                     path: req.originalUrl,
                     status: res.statusCode,
                     ms: Date.now() - start,
                     request_id: req.requestId,
                     phase: "completed",
-                });
+                    ...httpAccessSessionFields(req),
+                };
+                writeLog("INFO", `${req.method} ${req.originalUrl} ${res.statusCode} request_id=${req.requestId}`, completedFields, "http.request");
+                console.info(JSON.stringify({
+                    level: "INFO",
+                    logger: "http.request",
+                    message: `${req.method} ${req.originalUrl} ${res.statusCode} request_id=${req.requestId}`,
+                    ...completedFields,
+                }));
             });
             next();
         });
@@ -76,8 +136,8 @@ export function createApp(options = {}) {
         const rawId = req.params.id;
         const id = Array.isArray(rawId) ? rawId[0] : rawId;
         const target = id ?? "";
-        logReceived("probe", SOURCE, "GET", "/api/probe/{id}", { target });
-        const result = await probeById(target, fetchImpl);
+        logReceivedFromRequest(req, "probe", SOURCE, "GET", "/api/probe/{id}", { target });
+        const result = await probeById(target, fetchImpl, req.requestId);
         if ("status" in result && "error" in result && !("ok" in result)) {
             logWarn("probe", SOURCE, "probe unknown target", {
                 target,
@@ -108,36 +168,94 @@ export function createApp(options = {}) {
         }
         res.json(result);
     });
-    app.get("/api/items", async (req, res) => {
-        logReceived("listItems", SOURCE, "GET", "/api/items", {
-            request_id: req.requestId,
+    app.get("/api/items", protectApiSession, async (req, res) => {
+        logReceivedFromRequest(req, "list_items", POSTGRES_ITEMS_SOURCE, "GET", "/api/items");
+        try {
+            const items = await listItemsFromPostgres(req.requestId);
+            logSucceeded("list_items", POSTGRES_ITEMS_SOURCE, { count: items.length });
+            logTrace("list_items", POSTGRES_ITEMS_SOURCE, "list_items result", { items });
+            res.json(items);
+        }
+        catch (error) {
+            if (error instanceof DatabaseNotConfiguredError) {
+                logWarn("list_items", POSTGRES_ITEMS_SOURCE, "list_items database not configured", {
+                    target_service: "postgres",
+                    error: error.message,
+                });
+                res.status(503).json({ error: error.message });
+                return;
+            }
+            const message = error instanceof Error ? error.message : String(error);
+            logError("list_items", POSTGRES_ITEMS_SOURCE, "list_items failed", {
+                target_service: "postgres",
+                error: message,
+            });
+            res.status(500).json({ error: "Internal server error" });
+        }
+    });
+    app.post("/api/items", protectApiSession, async (req, res) => {
+        const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
+        logReceivedFromRequest(req, "create_item", POSTGRES_ITEMS_SOURCE, "POST", "/api/items", {
+            item_name: name || undefined,
         });
+        if (!name) {
+            logWarn("create_item", POSTGRES_ITEMS_SOURCE, "create_item validation failed", {
+                item_name: req.body?.name,
+                reason: "blank-name",
+            });
+            res.status(400).json({ error: "name must not be blank" });
+            return;
+        }
+        try {
+            const item = await insertItemIntoPostgres(name, req.requestId);
+            logSucceeded("create_item", POSTGRES_ITEMS_SOURCE, {
+                item_id: item.id,
+                item_name: item.name,
+            });
+            res.status(201).json(item);
+        }
+        catch (error) {
+            if (error instanceof DatabaseNotConfiguredError) {
+                logWarn("create_item", POSTGRES_ITEMS_SOURCE, "create_item database not configured", {
+                    target_service: "postgres",
+                    item_name: name,
+                    error: error.message,
+                });
+                res.status(503).json({ error: error.message });
+                return;
+            }
+            const message = error instanceof Error ? error.message : String(error);
+            logError("create_item", POSTGRES_ITEMS_SOURCE, "create_item failed", {
+                target_service: "postgres",
+                item_name: name,
+                error: message,
+            });
+            res.status(500).json({ error: "Internal server error" });
+        }
+    });
+    app.get("/java/api/items", async (req, res) => {
+        logReceivedFromRequest(req, "listItems", SOURCE, "GET", "/java/api/items");
         try {
             const items = await fetchItems(fetchImpl, req.requestId);
-            logSucceeded("listItems", SOURCE, { count: items.length, request_id: req.requestId });
-            logTrace("listItems", SOURCE, "listItems result", { items, request_id: req.requestId });
+            logSucceeded("listItems", SOURCE, { count: items.length });
+            logTrace("listItems", SOURCE, "listItems result", { items });
             res.json(items);
         }
         catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             logError("listItems", SOURCE, "listItems failed", {
-                request_id: req.requestId,
                 error: message,
             });
             res.status(502).json({ error: message });
         }
     });
-    app.post("/api/items", async (req, res) => {
+    app.post("/java/api/items", async (req, res) => {
         const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
-        logReceived("createItem", SOURCE, "POST", "/api/items", {
-            name,
-            request_id: req.requestId,
-        });
+        logReceivedFromRequest(req, "createItem", SOURCE, "POST", "/java/api/items", { name });
         if (!name) {
             logWarn("createItem", SOURCE, "createItem validation failed", {
                 name: req.body?.name,
                 reason: "blank-name",
-                request_id: req.requestId,
             });
             res.status(400).json({ error: "name must not be blank" });
             return;
@@ -147,7 +265,6 @@ export function createApp(options = {}) {
             logSucceeded("createItem", SOURCE, {
                 id: item.id,
                 name: item.name,
-                request_id: req.requestId,
             });
             res.status(201).json(item);
         }
@@ -155,7 +272,6 @@ export function createApp(options = {}) {
             const message = error instanceof Error ? error.message : String(error);
             logError("createItem", SOURCE, "createItem failed", {
                 name,
-                request_id: req.requestId,
                 error: message,
             });
             res.status(502).json({ error: message });

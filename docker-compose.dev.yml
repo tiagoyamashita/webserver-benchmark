@@ -22,7 +22,7 @@ services:
       - path: .env.apps
         required: false
     environment:
-      SPRING_PROFILES_ACTIVE: postgres,observability
+      SPRING_PROFILES_ACTIVE: postgres,observability,dev-static
       LOG_PATH: /workspace/logs
     volumes:
       - ./apps/java:/workspace

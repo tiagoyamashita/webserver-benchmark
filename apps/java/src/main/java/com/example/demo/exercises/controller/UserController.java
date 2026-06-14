@@ -2,6 +2,7 @@ package com.example.demo.exercises.controller;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
 
+import com.example.demo.auth.PasswordHasher;
 import com.example.demo.exercises.db.User;
 import com.example.demo.exercises.db.UserRepository;
 import com.example.demo.observability.RequestIdContext;
@@ -37,9 +38,11 @@ public class UserController {
   private static final Logger log = LoggerFactory.getLogger(UserController.class);
 
   private final UserRepository users;
+  private final PasswordHasher passwordHasher;
 
-  public UserController(UserRepository users) {
+  public UserController(UserRepository users, PasswordHasher passwordHasher) {
     this.users = users;
+    this.passwordHasher = passwordHasher;
   }
 
   @GetMapping
@@ -76,8 +79,11 @@ public class UserController {
         kv("method", "POST"),
         kv("path", "/api/users"),
         kv("name", body.name()),
-        kv("email", body.email()));
-    User saved = users.save(new User(body.name(), body.email()));
+        kv("email", body.email()),
+        kv("passwordProvided", true));
+    User user = new User(body.name(), body.email());
+    user.setPasswordHash(passwordHasher.encode(body.password()));
+    User saved = users.save(user);
     UserResponse response = UserResponse.from(saved);
     log.info(
         "UserController.create succeeded",

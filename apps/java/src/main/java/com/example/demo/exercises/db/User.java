@@ -25,6 +25,10 @@ public class User {
   @Column(nullable = false)
   private Instant createdAt = Instant.now();
 
+  /** BCrypt hash; null for users created via Kafka without a password. */
+  @Column(name = "password_hash", length = 255)
+  private String passwordHash;
+
   protected User() {}
 
   public User(String name, String email) {
@@ -54,5 +58,13 @@ public class User {
 
   public Instant getCreatedAt() {
     return createdAt;
+  }
+
+  public String getPasswordHash() {
+    return passwordHash;
+  }
+
+  public void setPasswordHash(String passwordHash) {
+    this.passwordHash = passwordHash;
   }
 }

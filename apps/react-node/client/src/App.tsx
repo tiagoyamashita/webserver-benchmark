@@ -40,6 +40,9 @@ export default function App() {
   const [createMessage, setCreateMessage] = useState<string | null>(null);
   const [openapiSrc, setOpenapiSrc] = useState<string | null>(null);
   const [pageSessionId, setPageSessionId] = useState("…");
+  const [pageSessionSummary, setPageSessionSummary] = useState("Loading session…");
+  const [pageRedisKey, setPageRedisKey] = useState("…");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [lastRequestId, setLastRequestId] = useState("—");
   const [sessionStatus, setSessionStatus] = useState("Loading session…");
   const [sessionResult, setSessionResult] = useState<string | null>(null);
@@ -49,21 +52,13 @@ export default function App() {
 
   useEffect(() => subscribeLastRequestId(setLastRequestId), []);
 
-  useEffect(() => {
-    void ensureSession()
-      .then((session) => {
-        setPageSessionId(session.sessionId);
-        renderSessionStatus(session);
-      })
-      .catch(() => {
-        setPageSessionId("unavailable");
-        setSessionStatus("Session unavailable.");
-      });
-  }, []);
-
   function renderSessionStatus(data: SessionData | null) {
     if (!data?.sessionId) {
       setSessionStatus("No session.");
+      setPageSessionSummary("No session.");
+      setPageSessionId("—");
+      setPageRedisKey("—");
+      setIsLoggedIn(false);
       return;
     }
     const who =
@@ -71,8 +66,43 @@ export default function App() {
         ? `${data.name || "Guest"} (guest — sign in to bind a user)`
         : `${data.name} (${data.email})`;
     setSessionStatus(`${who} — session ${data.sessionId} — Redis key ${data.redisKey}`);
+    setPageSessionSummary(who);
     setPageSessionId(data.sessionId);
+    setPageRedisKey(data.redisKey || "—");
+    setIsLoggedIn(data.userId > 0 && Boolean(data.email));
   }
+
+  const refreshSessionHeader = useCallback(async () => {
+    try {
+      const session = await fetchCurrentSession();
+      renderSessionStatus(session);
+    } catch {
+      try {
+        const session = await ensureSession();
+        renderSessionStatus(session);
+      } catch {
+        setPageSessionId("unavailable");
+        setPageSessionSummary("Session unavailable (is Redis up?)");
+        setPageRedisKey("—");
+        setSessionStatus("Session unavailable.");
+        setIsLoggedIn(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshSessionHeader();
+  }, [refreshSessionHeader]);
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        void refreshSessionHeader();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [refreshSessionHeader]);
 
   const refreshSessionView = useCallback(async () => {
     setSessionPending(true);
@@ -139,6 +169,14 @@ export default function App() {
       setSessionPending(false);
     }
   }, []);
+
+  const submitHeaderAuth = useCallback(async () => {
+    if (isLoggedIn) {
+      await submitSessionLogout();
+      return;
+    }
+    setActiveView("session");
+  }, [isLoggedIn, submitSessionLogout]);
 
   const pingOne = useCallback(async (id: string) => {
     setRows((prev) => ({ ...prev, [id]: { pending: true } }));
@@ -210,8 +248,18 @@ export default function App() {
       <p className="page-subtitle">
         Last request ID: <code>{lastRequestId}</code> (new id per API call — use to isolate actions in logs)
       </p>
+      <p className="page-subtitle">{pageSessionSummary}</p>
       <p className="page-subtitle">
-        Shared Redis session ID: <code>{pageSessionId}</code> (auto-created on load; stored in Redis for cross-app auth)
+        Session ID: <code>{pageSessionId}</code> · Redis: <code>{pageRedisKey}</code>
+        <button
+          type="button"
+          className="btn header-auth-btn"
+          disabled={sessionPending}
+          aria-label={isLoggedIn ? "Sign out" : "Sign in"}
+          onClick={() => void submitHeaderAuth()}
+        >
+          {isLoggedIn ? "Logout" : "Login"}
+        </button>
       </p>
 
       <div className="dashboard">

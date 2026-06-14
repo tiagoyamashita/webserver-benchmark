@@ -103,7 +103,8 @@ public class AuthController {
         kv("method", "POST"),
         kv("path", "/api/auth/login"),
         kv("email", body.email()),
-        kv("userId", body.userId()));
+        kv("userId", body.userId()),
+        kv("passwordProvided", body.password() != null && !body.password().isBlank()));
     SharedSession session = authService.login(body);
     SessionContext.set(session);
     response.addHeader(HttpHeaders.SET_COOKIE, sessionCookie(session.sessionId()).toString());

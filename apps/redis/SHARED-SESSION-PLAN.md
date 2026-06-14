@@ -8,7 +8,7 @@ A user who logs in on one app should be recognized on every other app without lo
 
 | Layer | Responsibility |
 |-------|----------------|
-| **Browser** | Stores and sends `sessionId` (cookie + optional `localStorage` + API headers) |
+| **Browser** | Sends `sessionId` via **HttpOnly cookie only** (`fetch` with `credentials: "same-origin"`) |
 | **Any app** | Resolves `sessionId` → loads `SharedSession` from Redis |
 | **Redis** | Single source of truth for session **state** (user, expiry, issuer) |
 | **Postgres** | Source of truth for **users** at login time only |
@@ -42,9 +42,7 @@ Under a shared parent domain, a cookie with `Domain=.exercises.example.com` can 
 ```mermaid
 flowchart TB
   subgraph browser [Browser on exercises.example.com]
-    LS["localStorage: exercises_session_id"]
-    CK["Cookie: exercises_session=uuid"]
-    HDR["Headers: Bearer / X-Session-ID"]
+    CK["HttpOnly cookie: exercises_session=uuid"]
   end
 
   subgraph apps [App tier]
@@ -58,15 +56,10 @@ flowchart TB
     KEY["exercises:session:{sessionId}"]
   end
 
-  LS --> HDR
   CK --> J
   CK --> P
   CK --> R
   CK --> RN
-  HDR --> J
-  HDR --> P
-  HDR --> R
-  HDR --> RN
   J --> KEY
   P --> KEY
   R --> KEY
@@ -79,7 +72,8 @@ flowchart TB
 
 - Opaque UUID string (e.g. `550e8400-e29b-41d4-a716-446655440000`).
 - Created by whichever app runs `ensure` or `login`.
-- **Safe to pass in headers**; treat like a bearer token (HTTPS in production, `HttpOnly` cookie when possible).
+- **Browsers:** sent only via HttpOnly cookie (not readable by JS).
+- **API clients / curl / stack relays:** may still use `Authorization: Bearer` or `X-Session-ID` headers.
 
 ### Redis record
 
@@ -109,7 +103,11 @@ Inspect keys in **RedisInsight** (`http://127.0.0.1:5540/`) under pattern `exerc
 
 ## How the browser carries the session id
 
-All four apps accept the session id from the same three sources, in this **priority order**:
+**Dashboard clients (Java, Python, Rust, React Node):** session id is sent **only** via the HttpOnly `exercises_session` cookie. All `fetch` calls use `credentials: "same-origin"`. Client JS does **not** read or write `localStorage`, and does **not** set `Authorization` or `X-Session-ID` (avoids XSS session theft).
+
+Legacy `localStorage` key `exercises_session_id` is cleared on load if present.
+
+**Server-side resolution** still accepts three sources (for API clients, curl, stack tooling), in priority order:
 
 1. `Authorization: Bearer {sessionId}`
 2. `X-Session-ID: {sessionId}`
@@ -117,10 +115,10 @@ All four apps accept the session id from the same three sources, in this **prior
 
 Implementation references:
 
-- Java: `SessionAuthFilter`
-- Python: `session_auth.session_id_candidates`
-- Rust: `auth/cookies.rs` → `session_id_candidates`
-- React Node: `server/auth/cookies.ts` → `sessionIdCandidates`
+- Java: `SessionAuthFilter`, `static/js/session-bootstrap.js`
+- Python: `session_auth.session_id_candidates`, `static/session-bootstrap.js`
+- Rust: `auth/cookies.rs`, inline bootstrap in `templates/landing.html`
+- React Node: `server/auth/cookies.ts`, `client/src/session.ts`
 
 ### Cookie (same-origin / same-domain)
 
@@ -139,18 +137,6 @@ exercises_session={sessionId}; HttpOnly; Path=/; Max-Age=86400; SameSite=Lax
 | `Domain` | *(not set)* | Host-only: only the exact host:port that set it |
 
 **Same-domain plan:** when apps sit behind one parent domain, set `Domain=.exercises.example.com` (or equivalent) in all apps so one login cookie is visible to Java, Python, Rust, and React Node. Keep `Path=/` unless path-based routing requires a narrower path.
-
-### localStorage (per-origin helper)
-
-Dashboard UIs also persist the id in `localStorage` under key `exercises_session_id`:
-
-- Java: `static/js/session-bootstrap.js`
-- Rust: inline in `templates/landing.html`
-- React Node: `client/src/session.ts`
-
-`localStorage` is **scoped to one origin** (one port in local dev). It does not cross ports. It exists so client-side `fetch` calls can attach `Authorization` and `X-Session-ID` even when the httpOnly cookie is the primary transport on that origin.
-
-**Same-domain plan:** with a shared `Domain` cookie, `localStorage` duplication becomes optional for API calls on the same host; still useful for SPA clients that prefer explicit headers. For true cross-subdomain SPAs, prefer the shared cookie or a small “session bootstrap” redirect that copies the id once.
 
 ## Auth API (identical surface on each app)
 
@@ -182,7 +168,7 @@ sequenceDiagram
     A->>R: SETEX new guest session
     A-->>B: 201 + session + Set-Cookie
   end
-  B->>B: localStorage.setItem(exercises_session_id)
+  B->>B: Cookie updated by Set-Cookie (HttpOnly)
 ```
 
 **Server-side bootstrap:** on `GET /` (HTML landing), Java, Python, and Rust can auto-create a guest session and set the cookie before the page renders, so the first visit already has a Redis row.
@@ -196,8 +182,8 @@ sequenceDiagram
 
 ### Logout / refresh
 
-- **Logout:** delete Redis key; clear cookie; client clears `localStorage`.
-- **Refresh:** delete old key, write new UUID with same `userId` / guest fields; update cookie and client storage. Use after rotation or debugging stale ids.
+- **Logout:** delete Redis key; clear cookie.
+- **Refresh:** delete old key, write new UUID with same `userId` / guest fields; update cookie. Use after rotation or debugging stale ids.
 
 ## Server-to-server (no browser session)
 
@@ -250,7 +236,7 @@ The browser holds only a **session id** (locker number). **Redis holds the full 
 |-------|------|
 | **Redis** | Fast, shared, TTL-backed session state; instant revoke via `DEL` |
 | **Postgres** | Users at login time only (`userId`, email, name copied into session JSON) |
-| **Browser** | Opaque id in cookie (and today also `localStorage` / headers — see security below) |
+| **Browser** | Opaque id in HttpOnly cookie (not readable by JS) |
 
 **Lifecycle:** create on `ensure` / login → resolve on each request → delete on logout → TTL expiry. Login always mints a **new** UUID; refresh deletes the old key and writes a new id with the same `userId`.
 
@@ -285,12 +271,12 @@ Whoever holds the session id is treated as that user until expiry or logout. **R
 | Random UUID v4 session ids | Yes | Keep |
 | Server-side state in Redis | Yes | Keep; lock down Redis (private network, auth) |
 | `HttpOnly` + `SameSite=Lax` cookie | Yes | Add `Secure` over HTTPS |
-| Session id in `localStorage` + Bearer headers | Yes | **Remove** — negates `HttpOnly`; any XSS can steal the id |
+| Browser session via cookie only (no localStorage / Bearer from JS) | Yes | Keep |
 | CSRF tokens on cookie-auth mutations | No | Add for `POST`/`PUT`/`DELETE` |
 | Short TTL + rotate on login/refresh | 24h; refresh exists | Shorten TTL; invalidate old keys on login |
 | Rate limit `/api/auth/*` | No | Add at gateway or in-app |
 
-**Highest-impact hardening:** browser uses **HttpOnly cookie only** + `fetch(..., { credentials: "include" })` — no session id in JS. Focus on XSS prevention (CSP, sanitization) regardless of model.
+**Highest-impact hardening:** keep browser transport to **HttpOnly cookie only** + `fetch(..., { credentials: "include" })`. Focus on XSS prevention (CSP, sanitization) regardless of model.
 
 ### JWT vs Redis (this stack)
 
@@ -319,7 +305,7 @@ Session **fixation** is mitigated by minting a **new** UUID on login (already th
 
 ### Security checklist (prod)
 
-1. HttpOnly + `Secure` cookie only in the browser (drop `localStorage` session id).
+1. HttpOnly + `Secure` cookie only in the browser (no session id in JS).
 2. HTTPS everywhere.
 3. Rate limit `/api/auth/*`.
 4. CSRF protection on mutating routes.
@@ -343,6 +329,6 @@ Session **fixation** is mitigated by minting a **new** UUID on login (already th
 ## Summary
 
 - **Shared:** session **id** + **Redis JSON** at `exercises:session:{sessionId}` — works today across all apps on the Compose network.
-- **Per-origin today:** httpOnly cookie and `localStorage` on each port; not automatically shared between `:8080` and `:5000`.
+- **Per-origin today:** each port has its own HttpOnly cookie; not automatically shared between `:8080` and `:5000`.
 - **Same domain:** add reverse proxy + `Domain` cookie (and `Secure` in prod) so one browser cookie carries the same id to every app; Redis lookup logic stays the same.
-- **Security:** Redis server-side sessions fit this stack better than JWT for revocation and cross-app auth; UUID ids are not brute-forceable — protect against theft (cookie-only transport, HTTPS, no id in JS), rate-limit auth routes, and lock down Redis in prod.
+- **Security:** Redis server-side sessions; browser uses HttpOnly cookie only (no localStorage); UUID ids are not brute-forceable — protect against theft (HTTPS, XSS), rate-limit auth routes, lock down Redis in prod.

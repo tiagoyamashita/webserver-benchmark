@@ -1,7 +1,5 @@
 import { apiRequest } from "./api-request";
 
-const STORAGE_KEY = "exercises_session_id";
-
 export type SessionData = {
   sessionId: string;
   userId: number;
@@ -13,43 +11,31 @@ export type SessionData = {
   redisKey: string;
 };
 
-export function storedSessionId(): string {  try {
-    return localStorage.getItem(STORAGE_KEY) ?? "";
-  } catch {
-    return "";
-  }
-}
+const LEGACY_STORAGE_KEY = "exercises_session_id";
 
-export function setStoredSessionId(sessionId: string): void {
+function clearLegacyStoredSessionId(): void {
   try {
-    if (sessionId) {
-      localStorage.setItem(STORAGE_KEY, sessionId);
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
-    }
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
   } catch {
     /* ignore */
   }
 }
 
+clearLegacyStoredSessionId();
+
+/** Session id is sent only via HttpOnly cookie; do not add Bearer / X-Session-ID from JS. */
 export function withSessionHeaders(headers: Record<string, string> = {}): Record<string, string> {
-  const next = { ...headers };
-  const sessionId = storedSessionId();
-  if (sessionId) {
-    next["X-Session-ID"] = sessionId;
-    next.Authorization = `Bearer ${sessionId}`;
-  }
-  return next;
+  return { ...headers };
 }
 
 export async function ensureSession(): Promise<SessionData> {
-  const sessionId = storedSessionId();
+  clearLegacyStoredSessionId();
   const { headers } = apiRequest({ "Content-Type": "application/json" });
   const response = await fetch("/api/auth/ensure", {
     method: "POST",
     credentials: "same-origin",
     headers,
-    body: JSON.stringify(sessionId ? { sessionId } : {}),
+    body: "{}",
   });
   const text = await response.text();
   let data: unknown = text;
@@ -59,12 +45,9 @@ export async function ensureSession(): Promise<SessionData> {
     /* plain error */
   }
   if (!response.ok || !data || typeof data !== "object" || !("sessionId" in data)) {
-    setStoredSessionId("");
     throw new Error(`Session ensure failed: HTTP ${response.status} ${String(text)}`);
   }
-  const session = data as SessionData;
-  setStoredSessionId(session.sessionId);
-  return session;
+  return data as SessionData;
 }
 
 export async function fetchCurrentSession(): Promise<SessionData> {
@@ -78,7 +61,6 @@ export async function fetchCurrentSession(): Promise<SessionData> {
   if (!response.ok) {
     throw new Error(data.error ?? response.statusText);
   }
-  setStoredSessionId(data.sessionId);
   return data;
 }
 
@@ -97,7 +79,6 @@ export async function loginSession(body: {
   if (!response.ok) {
     throw new Error(data.error ?? response.statusText);
   }
-  setStoredSessionId(data.sessionId);
   return data;
 }
 
@@ -108,7 +89,6 @@ export async function logoutSession(): Promise<void> {
     credentials: "same-origin",
     headers,
   });
-  setStoredSessionId("");
   if (!response.ok && response.status !== 204) {
     const data = (await response.json().catch(() => ({}))) as { error?: string };
     throw new Error(data.error ?? response.statusText);
@@ -131,10 +111,7 @@ export async function refreshSessionId(): Promise<SessionData> {
     /* plain error */
   }
   if (!response.ok || !data || typeof data !== "object" || !("sessionId" in data)) {
-    setStoredSessionId("");
     throw new Error(`Session refresh failed: HTTP ${response.status} ${String(text)}`);
   }
-  const session = data as SessionData;
-  setStoredSessionId(session.sessionId);
-  return session;
+  return data as SessionData;
 }
