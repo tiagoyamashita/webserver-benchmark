@@ -10,6 +10,9 @@
 #
 # After editing prometheus/prometheus.yml (new scrape jobs), reload Prometheus:
 #   curl -X POST http://127.0.0.1:9090/-/reload
+# After adding podman-exporter, restart observability (socket mount — Linux only):
+#   podman compose -f docker-compose.observability.yml --profile podman-metrics up -d podman-exporter
+# Windows Podman Machine: devops/prometheus/start-podman-exporter.ps1 (socket lives in the VM, not on Windows).
 # After editing filebeat/filebeat-compose.yml, restart Filebeat (HTTP :5066 for metrics):
 #   podman compose -f docker-compose.observability.yml restart filebeat beat-exporter
 #
@@ -117,6 +120,26 @@ services:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
       - --web.enable-lifecycle
+
+  # Per-container CPU/RAM (optional — profile podman-metrics). Socket bind mount fails on Windows
+  # host compose; use devops/prometheus/start-podman-exporter.ps1 instead (runs inside Podman Machine).
+  podman-exporter:
+    profiles: ["podman-metrics"]
+    image: quay.io/navidys/prometheus-podman-exporter:v1.14.0
+    networks: [exercises]
+    ports:
+      - "9882:9882"
+    environment:
+      CONTAINER_HOST: unix:///run/podman/podman.sock
+    volumes:
+      - /run/podman/podman.sock:/run/podman/podman.sock
+    user: "0"
+    security_opt:
+      - label=type:container_runtime_t
+    command:
+      - --collector.enable-all
+      - --web.listen-address=:9882
+    restart: unless-stopped
 
   grafana:
     image: docker.io/grafana/grafana-oss:11.5.2

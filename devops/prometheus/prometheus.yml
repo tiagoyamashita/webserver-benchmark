@@ -41,3 +41,9 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets: ["kafka-exporter:9308"]
+
+  # prometheus-podman-exporter — per-container memory/CPU (Podman socket on host VM).
+  - job_name: exercises-podman
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["podman-exporter:9882"]

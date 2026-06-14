@@ -1,0 +1,14 @@
+# Optional rootless override for podman-exporter (see devops/prometheus/README.md).
+# Usage:
+#   podman compose -f docker-compose.observability.yml -f docker-compose.podman-exporter-rootless.yml up -d podman-exporter
+
+x-podman:
+  in_pod: false
+
+services:
+  podman-exporter:
+    profiles: ["podman-metrics"]
+    user: "65534"
+    userns_mode: "keep-id:uid=65534"
+    volumes:
+      - ${XDG_RUNTIME_DIR}/podman/podman.sock:/run/podman/podman.sock
