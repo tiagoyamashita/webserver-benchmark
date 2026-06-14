@@ -61,6 +61,39 @@ public class AuthService {
     sessions.delete(sessionId);
   }
 
+  /** Delete the current Redis session (if any) and issue a new session id with fresh payload. */
+  public SharedSession refreshSession(SharedSession current) {
+    if (current != null) {
+      sessions.delete(current.sessionId());
+    }
+    Instant issuedAt = Instant.now();
+    Instant expiresAt = issuedAt.plus(sessionProperties.getTtl());
+    SharedSession session;
+    if (current != null && current.userId() > 0L) {
+      session =
+          new SharedSession(
+              UUID.randomUUID().toString(),
+              current.userId(),
+              current.email(),
+              current.name(),
+              issuedAt,
+              expiresAt,
+              "java");
+    } else {
+      session =
+          new SharedSession(
+              UUID.randomUUID().toString(),
+              0L,
+              null,
+              "Guest",
+              issuedAt,
+              expiresAt,
+              "java");
+    }
+    sessions.save(session);
+    return session;
+  }
+
   public SharedSession requireCurrentSession() {
     SharedSession session = SessionContext.get();
     if (session == null) {

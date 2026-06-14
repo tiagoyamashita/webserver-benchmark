@@ -7,6 +7,7 @@ import {
   fetchCurrentSession,
   loginSession,
   logoutSession,
+  refreshSessionId,
   type SessionData,
 } from "./session";
 import type { Item, ProbeResult, ServiceRow } from "./types";
@@ -80,6 +81,21 @@ export default function App() {
       const session = await fetchCurrentSession();
       renderSessionStatus(session);
       setSessionResult(JSON.stringify(session, null, 2));
+    } catch (error) {
+      renderSessionStatus(null);
+      setSessionResult(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSessionPending(false);
+    }
+  }, []);
+
+  const rotateSessionId = useCallback(async () => {
+    setSessionPending(true);
+    setSessionResult("Issuing new session id…");
+    try {
+      const session = await refreshSessionId();
+      renderSessionStatus(session);
+      setSessionResult(`New session stored in Redis:\n${JSON.stringify(session, null, 2)}`);
     } catch (error) {
       renderSessionStatus(null);
       setSessionResult(error instanceof Error ? error.message : String(error));
@@ -340,9 +356,9 @@ export default function App() {
                 type="button"
                 className="btn"
                 disabled={sessionPending}
-                onClick={() => void refreshSessionView()}
+                onClick={() => void rotateSessionId()}
               >
-                Refresh session
+                New session ID (Redis)
               </button>
             </form>
             {sessionResult ? (

@@ -152,6 +152,7 @@ def register_auth_routes(app: Flask) -> None:
         except Exception as exc:
             log_error(_LOG, "auth_refresh", SOURCE, "auth_refresh failed", error=str(exc))
             return jsonify(error=str(exc)), 503
+        g.shared_session = session
         payload = session_response(session, auth.config.redis_key(session.session_id))
         response = jsonify(payload)
         response.status_code = 201

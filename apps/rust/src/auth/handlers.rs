@@ -171,6 +171,52 @@ pub async fn logout(
     res
 }
 
+pub async fn refresh_session(
+    State(state): State<AppState>,
+    Extension(http): Extension<RequestHttpSnapshot>,
+    current: Option<Extension<CurrentSession>>,
+) -> Response {
+    log_controller_received("refresh_session", "POST", "/api/auth/refresh", &http);
+    let Some(auth) = state.auth.as_ref() else {
+        return auth_unavailable();
+    };
+    let previous_id = current
+        .as_ref()
+        .map(|Extension(CurrentSession(session))| session.session_id.clone());
+    let request_session = optional_shared_session(&current);
+    let mut conn = auth.redis.clone();
+    match service::refresh_session(&mut conn, &auth.config, request_session).await {
+        Ok(session) => {
+            let redis_key = auth.config.redis_key(&session.session_id);
+            let payload = SessionResponse::from_session(&session, redis_key);
+            tracing::info!(
+                source = SOURCE,
+                controller = "refresh_session",
+                previous_session_id = previous_id.as_deref().unwrap_or(""),
+                session_id = %session.session_id,
+                user_id = session.user_id,
+                "refresh_session succeeded"
+            );
+            let mut res = (StatusCode::CREATED, Json(payload)).into_response();
+            append_session_cookie(res.headers_mut(), &auth.config, &session.session_id);
+            res
+        }
+        Err(err) => {
+            tracing::warn!(
+                source = SOURCE,
+                controller = "refresh_session",
+                error = %err,
+                "refresh_session failed"
+            );
+            (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(serde_json::json!({ "error": err.to_string() })),
+            )
+                .into_response()
+        }
+    }
+}
+
 pub async fn current_session(
     Extension(http): Extension<RequestHttpSnapshot>,
     State(state): State<AppState>,

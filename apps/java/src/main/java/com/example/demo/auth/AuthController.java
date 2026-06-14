@@ -67,6 +67,32 @@ public class AuthController {
     return ResponseEntity.status(responseStatus).body(payload);
   }
 
+  @PostMapping("/refresh")
+  public ResponseEntity<SessionResponse> refresh(HttpServletResponse response) {
+    SharedSession current = SessionContext.get();
+    String previousSessionId = current != null ? current.sessionId() : null;
+    log.info(
+        "AuthController.refresh request received",
+        kv("source", SOURCE),
+        kv("controller", "AuthController"),
+        kv("method", "POST"),
+        kv("path", "/api/auth/refresh"),
+        kv("previousSessionId", previousSessionId));
+    SharedSession session = authService.refreshSession(current);
+    SessionContext.set(session);
+    response.addHeader(HttpHeaders.SET_COOKIE, sessionCookie(session.sessionId()).toString());
+    SessionResponse payload =
+        SessionResponse.from(session, authService.redisKey(session.sessionId()));
+    log.info(
+        "AuthController.refresh succeeded",
+        kv("source", SOURCE),
+        kv("previousSessionId", previousSessionId),
+        kv("sessionId", session.sessionId()),
+        kv("userId", session.userId()),
+        kv("redisKey", payload.redisKey()));
+    return ResponseEntity.status(HttpStatus.CREATED).body(payload);
+  }
+
   @PostMapping("/login")
   public ResponseEntity<SessionResponse> login(
       @Valid @RequestBody LoginRequest body, HttpServletResponse response) {

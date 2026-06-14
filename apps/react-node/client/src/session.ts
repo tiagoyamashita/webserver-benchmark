@@ -114,3 +114,27 @@ export async function logoutSession(): Promise<void> {
     throw new Error(data.error ?? response.statusText);
   }
 }
+
+export async function refreshSessionId(): Promise<SessionData> {
+  const { headers } = apiRequest({ "Content-Type": "application/json" });
+  const response = await fetch("/api/auth/refresh", {
+    method: "POST",
+    credentials: "same-origin",
+    headers,
+    body: "{}",
+  });
+  const text = await response.text();
+  let data: unknown = text;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    /* plain error */
+  }
+  if (!response.ok || !data || typeof data !== "object" || !("sessionId" in data)) {
+    setStoredSessionId("");
+    throw new Error(`Session refresh failed: HTTP ${response.status} ${String(text)}`);
+  }
+  const session = data as SessionData;
+  setStoredSessionId(session.sessionId);
+  return session;
+}

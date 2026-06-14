@@ -77,6 +77,53 @@ pub async fn logout(
     repository::delete(conn, config, session_id).await
 }
 
+pub async fn refresh_session(
+    conn: &mut ConnectionManager,
+    config: &SessionConfig,
+    current: Option<&SharedSession>,
+) -> Result<SharedSession, redis::RedisError> {
+    if let Some(session) = current {
+        repository::delete(conn, config, &session.session_id).await?;
+    }
+    let issued_at = Utc::now();
+    let expires_at = issued_at + Duration::seconds(config.ttl_secs as i64);
+    let session = if let Some(current) = current {
+        if current.user_id > 0 {
+            SharedSession {
+                session_id: Uuid::new_v4().to_string(),
+                user_id: current.user_id,
+                email: current.email.clone(),
+                name: current.name.clone(),
+                issued_at,
+                expires_at,
+                issuer: "rust".into(),
+            }
+        } else {
+            SharedSession {
+                session_id: Uuid::new_v4().to_string(),
+                user_id: 0,
+                email: None,
+                name: "Guest".into(),
+                issued_at,
+                expires_at,
+                issuer: "rust".into(),
+            }
+        }
+    } else {
+        SharedSession {
+            session_id: Uuid::new_v4().to_string(),
+            user_id: 0,
+            email: None,
+            name: "Guest".into(),
+            issued_at,
+            expires_at,
+            issuer: "rust".into(),
+        }
+    };
+    repository::save(conn, config, &session).await?;
+    Ok(session)
+}
+
 async fn create_anonymous_session(
     conn: &mut ConnectionManager,
     config: &SessionConfig,

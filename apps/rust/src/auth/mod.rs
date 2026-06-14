@@ -53,4 +53,4 @@ pub async fn verify_redis_startup(auth: &AuthState) {
     }
 }
 
-pub use handlers::{current_session, ensure_session, login, logout};
+pub use handlers::{current_session, ensure_session, login, logout, refresh_session};

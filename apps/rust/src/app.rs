@@ -74,6 +74,7 @@ fn route_endpoint_label(path: &str) -> &'static str {
         "/api/auth/ensure" => "auth_ensure",
         "/api/auth/login" => "auth_login",
         "/api/auth/logout" => "auth_logout",
+        "/api/auth/refresh" => "auth_refresh",
         "/api/auth/session" => "auth_session",
         "/metrics" => "metrics",
         _ => "other",
@@ -586,6 +587,7 @@ pub fn build_router(state: AppState) -> Router {
         .route("/api/auth/ensure", post(crate::auth::ensure_session))
         .route("/api/auth/login", post(crate::auth::login))
         .route("/api/auth/logout", post(crate::auth::logout))
+        .route("/api/auth/refresh", post(crate::auth::refresh_session))
         .route("/api/auth/session", get(crate::auth::current_session))
         .route("/metrics", get(metrics))
         .layer(middleware::from_fn(record_http_request_metrics))

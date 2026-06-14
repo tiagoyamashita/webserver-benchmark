@@ -8,6 +8,7 @@ import {
   ensureSession,
   login,
   logout,
+  refreshSession,
   resolveSharedSession,
 } from "./service.js";
 import {
@@ -143,6 +144,38 @@ export function registerAuthRoutes(app: Express, runtime: AuthRuntime): void {
     logSucceeded("authLogout", SOURCE, {
       session_id: session.sessionId,
     });
+  });
+
+  app.post("/api/auth/refresh", async (req, res) => {
+    logReceivedFromRequest(req, "authRefresh", SOURCE, "POST", "/api/auth/refresh");
+    if (!runtime.auth) {
+      logWarn("authRefresh", SOURCE, "redis not configured");
+      res.status(503).json({ error: "Redis session store not configured" });
+      return;
+    }
+    const previousSessionId = req.sharedSession?.sessionId ?? null;
+    try {
+      const session = await refreshSession(runtime.auth, req.sharedSession ?? null);
+      const payload = toSessionResponse(
+        session,
+        redisKey(runtime.auth.config, session.sessionId),
+      );
+      res
+        .status(201)
+        .setHeader("Set-Cookie", sessionCookieValue(runtime.auth.config, session.sessionId))
+        .json(payload);
+      logSucceeded("authRefresh", SOURCE, {
+        previous_session_id: previousSessionId,
+        session_id: session.sessionId,
+        user_id: session.userId,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logError("authRefresh", SOURCE, "authRefresh failed", {
+        error: message,
+      });
+      res.status(503).json({ error: message });
+    }
   });
 
   app.get("/api/auth/session", (req, res) => {

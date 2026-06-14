@@ -72,6 +72,39 @@ export async function logout(auth: AuthState, sessionId: string): Promise<void> 
   await deleteSession(auth, sessionId);
 }
 
+export async function refreshSession(
+  auth: AuthState,
+  current: SharedSession | null | undefined,
+): Promise<SharedSession> {
+  if (current) {
+    await deleteSession(auth, current.sessionId);
+  }
+  const issuedAt = new Date();
+  const expiresAt = new Date(issuedAt.getTime() + auth.config.ttlSecs * 1000);
+  const session: SharedSession =
+    current && current.userId > 0
+      ? {
+          sessionId: randomUUID(),
+          userId: current.userId,
+          email: current.email,
+          name: current.name,
+          issuedAt: formatInstant(issuedAt),
+          expiresAt: formatInstant(expiresAt),
+          issuer: "react-node",
+        }
+      : {
+          sessionId: randomUUID(),
+          userId: 0,
+          email: null,
+          name: "Guest",
+          issuedAt: formatInstant(issuedAt),
+          expiresAt: formatInstant(expiresAt),
+          issuer: "react-node",
+        };
+  await saveSession(auth, session);
+  return session;
+}
+
 async function createAnonymousSession(auth: AuthState): Promise<SharedSession> {
   const issuedAt = new Date();
   const expiresAt = new Date(issuedAt.getTime() + auth.config.ttlSecs * 1000);

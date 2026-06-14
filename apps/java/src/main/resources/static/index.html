@@ -290,7 +290,7 @@
             </div>
             <button type="submit" class="btn primary">Login (store in Redis)</button>
             <button type="button" class="btn" id="session-logout-btn">Logout</button>
-            <button type="button" class="btn" id="session-refresh-btn">Refresh session</button>
+            <button type="button" class="btn" id="session-refresh-btn">New session ID (Redis)</button>
           </form>
           <pre id="session-result" class="result-box" aria-live="polite"></pre>
         </section>
@@ -568,13 +568,48 @@
           if (pageSessionIdEl) pageSessionIdEl.textContent = data.sessionId;
         }
 
-        function refreshSessionView() {
+        function fetchCurrentSession() {
           var resultEl = document.getElementById("session-result");
           var req = apiRequest({ Accept: "application/json" });
-          fetch("/api/auth/session", {
+          return fetch("/api/auth/session", {
             method: "GET",
             credentials: "same-origin",
             headers: req.headers
+          })
+            .then(function (res) {
+              return res.text().then(function (text) {
+                var data = text;
+                try {
+                  data = JSON.parse(text);
+                } catch (e) {
+                  /* plain error text */
+                }
+                return { ok: res.ok, status: res.status, data: data };
+              });
+            })
+            .then(function (r) {
+              if (!r.ok) {
+                window.exercisesSession.setStoredSessionId("");
+                renderSessionStatus(null);
+                if (resultEl) resultEl.textContent = "HTTP " + r.status + "\n" + String(r.data);
+                return null;
+              }
+              window.exercisesSession.setStoredSessionId(r.data.sessionId);
+              renderSessionStatus(r.data);
+              if (resultEl) resultEl.textContent = JSON.stringify(r.data, null, 2);
+              return r.data;
+            });
+        }
+
+        function rotateSessionId() {
+          var resultEl = document.getElementById("session-result");
+          if (resultEl) resultEl.textContent = "Issuing new session id…";
+          var req = apiRequest({ Accept: "application/json", "Content-Type": "application/json" });
+          fetch("/api/auth/refresh", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: req.headers,
+            body: "{}"
           })
             .then(function (res) {
               return res.text().then(function (text) {
@@ -596,7 +631,10 @@
               }
               window.exercisesSession.setStoredSessionId(r.data.sessionId);
               renderSessionStatus(r.data);
-              if (resultEl) resultEl.textContent = JSON.stringify(r.data, null, 2);
+              if (resultEl) {
+                resultEl.textContent =
+                  "New session stored in Redis:\n" + JSON.stringify(r.data, null, 2);
+              }
             })
             .catch(function (err) {
               if (resultEl) resultEl.textContent = String(err.message || err);
@@ -616,7 +654,10 @@
             }
           });
           if (viewId === "view-session") {
-            refreshSessionView();
+            fetchCurrentSession().catch(function (err) {
+              var resultEl = document.getElementById("session-result");
+              if (resultEl) resultEl.textContent = String(err.message || err);
+            });
           }
           if (viewId === "view-list-users") {
             loadUsers();
@@ -816,7 +857,7 @@
         }
 
         if (sessionRefreshBtn) {
-          sessionRefreshBtn.addEventListener("click", refreshSessionView);
+          sessionRefreshBtn.addEventListener("click", rotateSessionId);
         }
 
         var userForm = document.getElementById("create-user-form");
