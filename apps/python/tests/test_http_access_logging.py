@@ -20,6 +20,16 @@ def test_still_logs_other_routes():
     assert should_log_http_access("POST", "/metrics", 200) is True
 
 
+def test_skips_post_auth_ensure_on_200_or_unknown_status():
+    assert should_log_http_access("POST", "/api/auth/ensure", 200) is False
+    assert should_log_http_access("POST", "/api/auth/ensure") is False
+
+
+def test_logs_post_auth_ensure_on_non_200():
+    assert should_log_http_access("POST", "/api/auth/ensure", 201) is True
+    assert should_log_http_access("POST", "/api/auth/ensure", 503) is True
+
+
 def test_strips_query_string_from_path():
     assert request_pathname("/metrics?verbose=1") == "/metrics"
     assert should_log_http_access("GET", "/metrics?verbose=1", 200) is False

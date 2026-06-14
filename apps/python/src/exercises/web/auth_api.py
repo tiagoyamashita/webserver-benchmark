@@ -6,9 +6,9 @@ import logging
 
 from flask import Flask, g, jsonify, make_response, request
 
-from exercises.web.auth_service import AuthServiceError, ensure_session, login, logout
+from exercises.web.auth_service import AuthServiceError, ensure_session, login, logout, refresh_session
+from exercises.web.session_models import session_response, utc_now
 from exercises.web.controller_logging import log_error, log_received, log_succeeded, log_warn
-from exercises.web.session_models import session_response
 from exercises.web.session_auth import (
     AuthState,
     append_clear_session_cookie,
@@ -34,9 +34,9 @@ def _shared_session():
 def register_auth_routes(app: Flask) -> None:
     @app.post("/api/auth/ensure")
     def auth_ensure():
-        log_received(_LOG, "auth_ensure", SOURCE, "POST", "/api/auth/ensure")
         auth = _auth_state()
         if auth is None:
+            log_received(_LOG, "auth_ensure", SOURCE, "POST", "/api/auth/ensure")
             log_warn(_LOG, "auth_ensure", SOURCE, "redis not configured")
             return jsonify(error="Redis session store not configured"), 503
         body = request.get_json(silent=True) or {}
@@ -51,6 +51,7 @@ def register_auth_routes(app: Flask) -> None:
                 _shared_session(),
             )
         except Exception as exc:
+            log_received(_LOG, "auth_ensure", SOURCE, "POST", "/api/auth/ensure")
             log_error(_LOG, "auth_ensure", SOURCE, "auth_ensure failed", error=str(exc))
             return jsonify(error=str(exc)), 503
         payload = session_response(result.session, auth.config.redis_key(result.session.session_id))
@@ -58,14 +59,16 @@ def register_auth_routes(app: Flask) -> None:
         response = jsonify(payload)
         response.status_code = status
         append_session_cookie(response, auth.config, result.session.session_id)
-        log_succeeded(
-            _LOG,
-            "auth_ensure",
-            SOURCE,
-            session_id=result.session.session_id,
-            session_created=result.created,
-            user_id=result.session.user_id,
-        )
+        if status != 200:
+            log_received(_LOG, "auth_ensure", SOURCE, "POST", "/api/auth/ensure")
+            log_succeeded(
+                _LOG,
+                "auth_ensure",
+                SOURCE,
+                session_id=result.session.session_id,
+                session_created=result.created,
+                user_id=result.session.user_id,
+            )
         return response
 
     @app.post("/api/auth/login")
@@ -134,6 +137,36 @@ def register_auth_routes(app: Flask) -> None:
         append_clear_session_cookie(response, auth.config)
         log_succeeded(_LOG, "auth_logout", SOURCE, session_id=session.session_id)
         return response
+
+    @app.post("/api/auth/refresh")
+    def auth_refresh():
+        log_received(_LOG, "auth_refresh", SOURCE, "POST", "/api/auth/refresh")
+        auth = _auth_state()
+        if auth is None:
+            log_warn(_LOG, "auth_refresh", SOURCE, "redis not configured")
+            return jsonify(error="Redis session store not configured"), 503
+        current = _shared_session()
+        previous_id = current.session_id if current is not None else None
+        try:
+            session = refresh_session(auth.repo, auth.config, current)
+        except Exception as exc:
+            log_error(_LOG, "auth_refresh", SOURCE, "auth_refresh failed", error=str(exc))
+            return jsonify(error=str(exc)), 503
+        payload = session_response(session, auth.config.redis_key(session.session_id))
+        response = jsonify(payload)
+        response.status_code = 201
+        append_session_cookie(response, auth.config, session.session_id)
+        log_succeeded(
+            _LOG,
+            "auth_refresh",
+            SOURCE,
+            previous_session_id=previous_id,
+            session_id=session.session_id,
+            user_id=session.user_id,
+        )
+        return response
+
+    @app.get("/api/auth/session")
     def auth_session():
         log_received(_LOG, "auth_session", SOURCE, "GET", "/api/auth/session")
         auth = _auth_state()
@@ -142,8 +175,6 @@ def register_auth_routes(app: Flask) -> None:
         session = _shared_session()
         if session is None:
             return jsonify(error="No active session"), 401
-        from exercises.web.session_models import utc_now
-
         if session.is_expired(utc_now()):
             return jsonify(error="Session expired"), 401
         payload = session_response(session, auth.config.redis_key(session.session_id))

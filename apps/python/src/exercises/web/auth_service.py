@@ -71,6 +71,40 @@ def logout(repo: SessionRepository, session_id: str) -> None:
     repo.delete(session_id)
 
 
+def refresh_session(
+    repo: SessionRepository,
+    config: SessionConfig,
+    current: SharedSession | None,
+) -> SharedSession:
+    """Delete the current Redis session (if any) and issue a new session id."""
+    if current is not None:
+        repo.delete(current.session_id)
+    issued_at = utc_now()
+    expires_at = issued_at + timedelta(seconds=config.ttl_secs)
+    if current is not None and current.user_id > 0:
+        session = SharedSession(
+            session_id=str(uuid.uuid4()),
+            user_id=current.user_id,
+            email=current.email,
+            name=current.name,
+            issued_at=issued_at,
+            expires_at=expires_at,
+            issuer="python",
+        )
+    else:
+        session = SharedSession(
+            session_id=str(uuid.uuid4()),
+            user_id=0,
+            email=None,
+            name="Guest",
+            issued_at=issued_at,
+            expires_at=expires_at,
+            issuer="python",
+        )
+    repo.save(session)
+    return session
+
+
 def _create_anonymous_session(repo: SessionRepository, config: SessionConfig) -> SharedSession:
     issued_at = utc_now()
     expires_at = issued_at + timedelta(seconds=config.ttl_secs)

@@ -43,26 +43,28 @@ public class AuthController {
   public ResponseEntity<SessionResponse> ensure(
       @RequestBody(required = false) EnsureSessionRequest body, HttpServletResponse response) {
     String clientSessionId = body != null ? body.sessionId() : null;
-    log.info(
-        "AuthController.ensure request received",
-        kv("source", SOURCE),
-        kv("controller", "AuthController"),
-        kv("method", "POST"),
-        kv("path", "/api/auth/ensure"),
-        kv("clientSessionId", clientSessionId));
     EnsureSessionResult result = authService.ensureSession(clientSessionId, SessionContext.get());
     SessionContext.set(result.session());
     response.addHeader(
         HttpHeaders.SET_COOKIE, sessionCookie(result.session().sessionId()).toString());
     SessionResponse payload =
         SessionResponse.from(result.session(), authService.redisKey(result.session().sessionId()));
-    log.info(
-        "AuthController.ensure succeeded",
-        kv("source", SOURCE),
-        kv("created", result.created()),
-        kv("userId", result.session().userId()));
-    return ResponseEntity.status(result.created() ? HttpStatus.CREATED : HttpStatus.OK)
-        .body(payload);
+    HttpStatus responseStatus = result.created() ? HttpStatus.CREATED : HttpStatus.OK;
+    if (responseStatus != HttpStatus.OK) {
+      log.info(
+          "AuthController.ensure request received",
+          kv("source", SOURCE),
+          kv("controller", "AuthController"),
+          kv("method", "POST"),
+          kv("path", "/api/auth/ensure"),
+          kv("clientSessionId", clientSessionId));
+      log.info(
+          "AuthController.ensure succeeded",
+          kv("source", SOURCE),
+          kv("created", result.created()),
+          kv("userId", result.session().userId()));
+    }
+    return ResponseEntity.status(responseStatus).body(payload);
   }
 
   @PostMapping("/login")

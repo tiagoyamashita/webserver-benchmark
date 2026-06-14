@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 QUIET_GET_PATHS = frozenset({"/metrics"})
+QUIET_POST_STATUSES: dict[str, frozenset[int]] = {
+    "/api/auth/ensure": frozenset({200}),
+}
 
 
 def request_pathname(path: str) -> str:
@@ -14,10 +17,18 @@ def request_pathname(path: str) -> str:
 
 def should_log_http_access(method: str, path: str, status: int | None = None) -> bool:
     """When False, skip http.request received/completed lines for this request."""
-    if method.upper() != "GET":
-        return True
-    if request_pathname(path) not in QUIET_GET_PATHS:
-        return True
-    if status is None:
-        return False
-    return status != 200
+    pathname = request_pathname(path)
+    upper = method.upper()
+
+    if upper == "GET" and pathname in QUIET_GET_PATHS:
+        if status is None:
+            return False
+        return status != 200
+
+    quiet_statuses = QUIET_POST_STATUSES.get(pathname)
+    if upper == "POST" and quiet_statuses is not None:
+        if status is None:
+            return False
+        return status not in quiet_statuses
+
+    return True

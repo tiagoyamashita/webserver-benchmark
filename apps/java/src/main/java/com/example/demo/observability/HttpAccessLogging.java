@@ -1,11 +1,16 @@
 package com.example.demo.observability;
 
+import java.util.Map;
 import java.util.Set;
 
 /** Skip noisy http.request access lines for routine probe/scrape traffic (log failures only). */
 public final class HttpAccessLogging {
 
-  private static final Set<String> QUIET_GET_PATHS = Set.of("/actuator/prometheus");
+  private static final Set<String> QUIET_GET_PATHS =
+      Set.of("/actuator/prometheus", "/api/observability/health");
+
+  private static final Map<String, Set<Integer>> QUIET_POST_STATUSES =
+      Map.of("/api/auth/ensure", Set.of(200));
 
   private HttpAccessLogging() {}
 
@@ -19,12 +24,19 @@ public final class HttpAccessLogging {
 
   /** When false, skip both received and completed http.request lines for this request. */
   public static boolean shouldLogHttpAccess(String method, String path, int status) {
-    if (method == null || !"GET".equalsIgnoreCase(method)) {
+    String pathname = requestPathname(path);
+    if (method != null && "GET".equalsIgnoreCase(method)) {
+      if (QUIET_GET_PATHS.contains(pathname)) {
+        return status != 200;
+      }
       return true;
     }
-    if (!QUIET_GET_PATHS.contains(requestPathname(path))) {
-      return true;
+    if (method != null && "POST".equalsIgnoreCase(method)) {
+      Set<Integer> quietStatuses = QUIET_POST_STATUSES.get(pathname);
+      if (quietStatuses != null) {
+        return !quietStatuses.contains(status);
+      }
     }
-    return status != 200;
+    return true;
   }
 }

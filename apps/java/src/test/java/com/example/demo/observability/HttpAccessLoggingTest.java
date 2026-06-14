@@ -28,4 +28,25 @@ class HttpAccessLoggingTest {
     assertFalse(
         HttpAccessLogging.shouldLogHttpAccess("GET", "/actuator/prometheus?verbose=1", 200));
   }
+
+  @Test
+  void skipsGetObservabilityHealthOn200() {
+    assertFalse(HttpAccessLogging.shouldLogHttpAccess("GET", "/api/observability/health", 200));
+  }
+
+  @Test
+  void logsGetObservabilityHealthOnNon200() {
+    assertTrue(HttpAccessLogging.shouldLogHttpAccess("GET", "/api/observability/health", 503));
+  }
+
+  @Test
+  void skipsPostAuthEnsureOn200() {
+    assertFalse(HttpAccessLogging.shouldLogHttpAccess("POST", "/api/auth/ensure", 200));
+  }
+
+  @Test
+  void logsPostAuthEnsureOnNon200() {
+    assertTrue(HttpAccessLogging.shouldLogHttpAccess("POST", "/api/auth/ensure", 201));
+    assertTrue(HttpAccessLogging.shouldLogHttpAccess("POST", "/api/auth/ensure", 503));
+  }
 }
