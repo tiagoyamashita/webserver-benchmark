@@ -9,7 +9,7 @@ Optional **Grafana OSS** setup for dashboards (metrics, logs, or anything you wi
 | `docker-compose.yml` | Runs Grafana on port **3000** with provisioning mounts |
 | `provisioning/datasources/` | Data source definitions loaded at startup |
 | `provisioning/dashboards/` | Dashboard sidecar config (loads JSON from `dashboards/`) |
-| `dashboards/` | Dashboard JSON (e.g. **`exercises-java-python-rust.json`**, **`exercises-kafka.json`** — Prometheus kafka-exporter + ELK broker logs; **`exercises-log-pipeline.json`** — Filebeat/Logstash + ES ingest; **`exercises-postgres.json`** — items-only SQL view; **`exercises-requests-logs.json`** — HTTP status + Postgres SQL from Elasticsearch; **`exercises-containers.json`** — Podman per-container memory/CPU via podman-exporter). Kibana mirror: **`devops/elk/kibana/import-requests-logs.ps1`** → **Exercises — HTTP & Postgres logs** |
+| `dashboards/` | Dashboard JSON (e.g. **`exercises-java-python-rust.json`**, **`exercises-kafka.json`**, **`exercises-log-pipeline.json`**, **`exercises-postgres.json`**, **`exercises-containers.json`**). HTTP/SQL correlation lives in **Kibana** — **`devops/elk/kibana/import-requests-logs.ps1`** → **Exercises — HTTP & Postgres logs** |
 
 ### Dashboard JSON not updating in the UI?
 
@@ -17,7 +17,7 @@ Grafana copies provisioned dashboards into its **`exercises_grafana_data`** volu
 
 1. Edit JSON under **`devops/grafana/dashboards/`** (save as UTF-8 **without** BOM).
 2. Restart Grafana: `podman compose -f docker-compose.observability.yml restart grafana` (from repo root).
-3. Hard-refresh the browser (**Ctrl+Shift+R**). Open **Dashboards → Exercises → Exercises HTTP requests & SQL logs** (uid `exercises-requests-logs`).
+3. Hard-refresh the browser (**Ctrl+Shift+R**). Open **Dashboards → Exercises → Exercises — Apps & Postgres** (uid `exercises-java-python-rust`).
 4. If it still looks old: open the dashboard → **Settings (gear) → Delete**, wait ~10s or restart Grafana again (file provisioning re-imports it).
 
 `provisioning/dashboards/dashboards.yml` sets **`allowUiUpdates: false`** so saves in the Grafana UI do not replace the JSON on disk.
@@ -68,7 +68,7 @@ Grafana does **not** auto-discover your Java/Python/Rust HTTP ports. “Servers�
 - Edit **`provisioning/datasources/datasources.yml`** to add Loki, extra Prometheus targets, etc. ([Grafana provisioning](https://grafana.com/docs/grafana/latest/administration/provisioning/)).
 - Drop dashboard JSON under **`dashboards/`**; Grafana picks them up via **`provisioning/dashboards/dashboards.yml`**.
 
-The shipped **`datasources.yml`** provisions **Prometheus** (default), **PostgreSQL** (**`postgres:5432`**, database **`demo`**), **Elasticsearch** (**`http://elasticsearch:9200`**, index **`logstash-*`** — requires **`docker-compose.observability.yml`** + Filebeat), and **TestData**. Dashboards: **`exercises-java-python-rust.json`** (Prometheus + Postgres + log pipeline), **`exercises-kafka.json`** (kafka-exporter + broker ELK logs), **`exercises-log-pipeline.json`** (Filebeat/Logstash metrics + ES ingest), **`exercises-postgres.json`** (SQL table), **`exercises-requests-logs.json`** (HTTP **`status`** coloring + Postgres **`statement`** logs from ELK), **`exercises-containers.json`** (Podman container memory/CPU). Alert rules: **`provisioning/alerting/log-pipeline.yaml`** (review under **Alerting → Alert rules → Exercises**). Restart Grafana after edits.
+The shipped **`datasources.yml`** provisions **Prometheus** (default), **PostgreSQL** (**`postgres:5432`**, database **`demo`**), **Elasticsearch** (**`http://elasticsearch:9200`**, index **`logstash-*`** — requires **`docker-compose.observability.yml`** + Filebeat), and **TestData**. Dashboards: **`exercises-java-python-rust.json`**, **`exercises-kafka.json`**, **`exercises-log-pipeline.json`**, **`exercises-postgres.json`**, **`exercises-containers.json`**. HTTP/SQL log correlation: **Kibana** (`exercises-requests-logs-kibana`). Alert rules: **`provisioning/alerting/log-pipeline.yaml`** (review under **Alerting → Alert rules → Exercises**). Restart Grafana after edits.
 
 ## Embedding in an `<iframe>`
 

@@ -6,13 +6,14 @@
 #   podman compose -f docker-compose.observability.yml up -d
 # After editing devops/grafana/dashboards/*.json (on Windows, auto-reload often fails):
 #   podman compose -f docker-compose.observability.yml restart grafana
-# Then hard-refresh the browser (Ctrl+Shift+R). Dashboard: Exercises → Exercises HTTP requests & SQL logs
+# Then hard-refresh the browser (Ctrl+Shift+R). Example: Exercises → Exercises — Container memory (Podman)
 #
 # After editing prometheus/prometheus.yml (new scrape jobs), reload Prometheus:
 #   curl -X POST http://127.0.0.1:9090/-/reload
 # After adding podman-exporter, restart observability (socket mount — Linux only):
 #   podman compose -f docker-compose.observability.yml --profile podman-metrics up -d podman-exporter
 # Windows Podman Machine: devops/prometheus/start-podman-exporter.ps1 (socket lives in the VM, not on Windows).
+# GPU (optional, NVIDIA): devops/prometheus/start-gpu-exporter.ps1
 # After editing filebeat/filebeat-compose.yml, restart Filebeat (HTTP :5066 for metrics):
 #   podman compose -f docker-compose.observability.yml restart filebeat beat-exporter
 #

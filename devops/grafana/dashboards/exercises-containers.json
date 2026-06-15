@@ -96,7 +96,7 @@
         "defaults": {
           "color": { "mode": "palette-classic" },
           "decimals": 1,
-          "unit": "bytes"
+          "unit": "decbytes"
         },
         "overrides": []
       },
@@ -114,7 +114,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "sum( podman_container_mem_usage_bytes * on(id) group_left(name) podman_container_info{name=~\".*exercises-.*\"} )",
+          "expr": "sum( max by (name) ( ( podman_container_mem_usage_bytes and on(id) (podman_container_state == 2) ) * on(id) group_left(name) podman_container_info{name=~\".*exercises-.*\", name!~\"podman-exporter|.*-setup-.*\"} ) )",
           "instant": true,
           "legendFormat": "total",
           "range": false,
@@ -129,7 +129,7 @@
       "id": 3,
       "options": {
         "code": { "language": "markdown", "showLineNumbers": false },
-        "content": "Metrics from **podman-exporter** (not part of default `compose up` on Windows). If panels are empty: run **`devops/prometheus/start-podman-exporter.ps1`**, then **`curl.exe -X POST http://127.0.0.1:9090/-/reload`**, restart Grafana, hard-refresh. Container filter: `.*exercises-.*`.",
+        "content": "Metrics from **podman-exporter**. RAM uses **running containers only** and **decimal MB** (`decbytes`) to match `podman stats`. If empty: **`devops/prometheus/start-podman-exporter.ps1`**, reload Prometheus, restart Grafana.",
         "mode": "markdown"
       },
       "title": "Notes",
@@ -140,8 +140,67 @@
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
       "id": 101,
       "panels": [],
-      "title": "Memory by container (exercises-*)",
+      "title": "Memory by pod / container (exercises-*)",
       "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "Cgroup memory for **running** containers only (state=2), one line per name. Values align with `podman stats` MemUsage (decimal MB). Exited/restarted containers are excluded.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "RAM (MB)",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "decimals": 1,
+          "min": 0,
+          "unit": "decbytes"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 6 },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull", "mean", "max"],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "max by (name) ( ( podman_container_mem_usage_bytes and on(id) (podman_container_state == 2) ) * on(id) group_left(name) podman_container_info{name=~\".*exercises-.*\", name!~\"podman-exporter|.*-setup-.*\"} )",
+          "legendFormat": "{{name}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "RAM per pod (timeline)",
+      "type": "timeseries"
     },
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
@@ -152,7 +211,7 @@
             "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "",
+            "axisLabel": "RAM (MB)",
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
@@ -160,7 +219,7 @@
             "gradientMode": "none",
             "hideFrom": { "legend": false, "tooltip": false, "viz": false },
             "insertNulls": false,
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
             "scaleDistribution": { "type": "linear" },
@@ -169,12 +228,14 @@
             "stacking": { "group": "A", "mode": "none" },
             "thresholdsStyle": { "mode": "off" }
           },
-          "unit": "bytes"
+          "decimals": 1,
+          "min": 0,
+          "unit": "decbytes"
         },
         "overrides": []
       },
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 6 },
-      "id": 10,
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 18 },
+      "id": 13,
       "options": {
         "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true },
         "tooltip": { "mode": "multi", "sort": "desc" }
@@ -183,13 +244,13 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "podman_container_mem_usage_bytes * on(id) group_left(name) podman_container_info{name=~\".*exercises-.*\"}",
+          "expr": "max by (name) ( ( podman_container_mem_usage_bytes and on(id) (podman_container_state == 2) ) * on(id) group_left(name) podman_container_info{name=~\".*exercises-(java|python|rust|react-node).*\"} )",
           "legendFormat": "{{name}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Container memory usage over time",
+      "title": "RAM per app pod (java / python / rust / react-node)",
       "type": "timeseries"
     },
     {
@@ -204,7 +265,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 16 },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 28 },
       "id": 11,
       "options": {
         "displayMode": "gradient",
@@ -220,7 +281,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "100 * ( podman_container_mem_usage_bytes * on(id) group_left(name) podman_container_info{name=~\".*exercises-.*\"} ) / clamp_min( podman_container_mem_limit_bytes * on(id) group_left(name) podman_container_info{name=~\".*exercises-.*\"}, 1 )",
+          "expr": "100 * ( max by (name) ( ( podman_container_mem_usage_bytes and on(id) (podman_container_state == 2) ) * on(id) group_left(name) podman_container_info{name=~\".*exercises-.*\", name!~\"podman-exporter|.*-setup-.*\"} ) ) / clamp_min( max by (name) ( ( podman_container_mem_limit_bytes and on(id) (podman_container_state == 2) ) * on(id) group_left(name) podman_container_info{name=~\".*exercises-.*\", name!~\"podman-exporter|.*-setup-.*\"} ), 1 )",
           "instant": true,
           "legendFormat": "{{name}}",
           "range": false,
@@ -245,7 +306,7 @@
               { "color": "red", "value": 1073741824 }
             ]
           },
-          "unit": "bytes"
+          "unit": "decbytes"
         },
         "overrides": [
           {
@@ -254,7 +315,7 @@
           }
         ]
       },
-      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 16 },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 28 },
       "id": 12,
       "options": {
         "cellHeight": "sm",
@@ -267,7 +328,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "podman_container_mem_usage_bytes * on(id) group_left(name, image) podman_container_info{name=~\".*exercises-.*\"}",
+          "expr": "max by (name) ( ( podman_container_mem_usage_bytes and on(id) (podman_container_state == 2) ) * on(id) group_left(name, image) podman_container_info{name=~\".*exercises-.*\", name!~\"podman-exporter|.*-setup-.*\"} )",
           "format": "table",
           "instant": true,
           "legendFormat": "__auto",
@@ -277,13 +338,24 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "podman_container_mem_limit_bytes * on(id) group_left(name) podman_container_info{name=~\".*exercises-.*\"}",
+          "expr": "max by (name) ( ( podman_container_mem_limit_bytes and on(id) (podman_container_state == 2) ) * on(id) group_left(name) podman_container_info{name=~\".*exercises-.*\", name!~\"podman-exporter|.*-setup-.*\"} )",
           "format": "table",
           "hide": false,
           "instant": true,
           "legendFormat": "__auto",
           "range": false,
           "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "max by (name) ( max_over_time( ( ( podman_container_mem_usage_bytes and on(id) (podman_container_state == 2) ) * on(id) group_left(name) podman_container_info{name=~\".*exercises-.*\", name!~\"podman-exporter|.*-setup-.*\"} )[$__range:15s] ) )",
+          "format": "table",
+          "hide": false,
+          "instant": true,
+          "legendFormat": "__auto",
+          "range": false,
+          "refId": "C"
         }
       ],
       "title": "Current memory (table)",
@@ -299,15 +371,25 @@
               "Time": true,
               "Time 1": true,
               "Time 2": true,
+              "Time 3": true,
               "id": true,
               "id 1": true,
               "id 2": true,
-              "image 2": true
+              "id 3": true,
+              "image 2": true,
+              "image 3": true
             },
-            "indexByName": {},
+            "indexByName": {
+              "Container": 0,
+              "Image": 1,
+              "Memory": 2,
+              "Max RAM": 3,
+              "Limit": 4
+            },
             "renameByName": {
               "Value #A": "Memory",
               "Value #B": "Limit",
+              "Value #C": "Max RAM",
               "image": "Image",
               "name": "Container"
             }
@@ -318,11 +400,69 @@
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 25 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 37 },
       "id": 102,
       "panels": [],
-      "title": "CPU (optional)",
+      "title": "CPU by pod / container (exercises-*)",
       "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "CPU usage per Podman container (cores consumed). One line per pod/container.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "CPU (cores)",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "decimals": 3,
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 38 },
+      "id": 20,
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull", "mean", "max"],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "rate(podman_container_cpu_seconds_total[5m]) * on(id) group_left(name) podman_container_info{name=~\".*exercises-.*\"}",
+          "legendFormat": "{{name}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "CPU per pod (timeline)",
+      "type": "timeseries"
     },
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
@@ -333,11 +473,11 @@
             "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "",
+            "axisLabel": "CPU (cores)",
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 10,
+            "fillOpacity": 20,
             "gradientMode": "none",
             "hideFrom": { "legend": false, "tooltip": false, "viz": false },
             "insertNulls": false,
@@ -346,43 +486,342 @@
             "pointSize": 5,
             "scaleDistribution": { "type": "linear" },
             "showPoints": "never",
-            "spanNulls": false,
+            "spanNulls": true,
             "stacking": { "group": "A", "mode": "none" },
             "thresholdsStyle": { "mode": "off" }
           },
-          "unit": "percentunit"
+          "decimals": 3,
+          "unit": "none"
         },
         "overrides": []
       },
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 26 },
-      "id": 20,
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 50 },
+      "id": 21,
       "options": {
-        "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true },
         "tooltip": { "mode": "multi", "sort": "desc" }
       },
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "sum by (name) ( rate(podman_container_cpu_seconds_total[5m]) * on(id) group_left(name) podman_container_info{name=~\".*exercises-.*\"} )",
+          "expr": "rate(podman_container_cpu_seconds_total[5m]) * on(id) group_left(name) podman_container_info{name=~\".*exercises-(java|python|rust|react-node).*\"}",
           "legendFormat": "{{name}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Container CPU (5m rate, cores as % when ≤1 core)",
+      "title": "CPU per app pod (java / python / rust / react-node)",
       "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 60 },
+      "id": 103,
+      "panels": [],
+      "title": "GPU by pod / container (NVIDIA — optional)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [
+            {
+              "options": {
+                "0": { "color": "red", "index": 0, "text": "down" },
+                "1": { "color": "green", "index": 1, "text": "up" }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 61 },
+      "id": 30,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "up{job=\"exercises-gpu\"}",
+          "instant": true,
+          "legendFormat": "__auto",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "GPU exporter",
+      "type": "stat"
+    },
+    {
+      "gridPos": { "h": 4, "w": 18, "x": 6, "y": 61 },
+      "id": 31,
+      "options": {
+        "code": { "language": "markdown", "showLineNumbers": false },
+        "content": "Requires **NVIDIA GPU + nvidia-smi** on the Podman host. Not part of default compose — run **`devops/prometheus/start-gpu-exporter.ps1`**, reload Prometheus. Maps GPU processes → Podman container names (`exercises-*`). No GPU on this host = panels empty.",
+        "mode": "markdown"
+      },
+      "title": "GPU notes",
+      "type": "text"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "GPU framebuffer memory per exercises container (sum of compute processes in that container).",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "VRAM (MB)",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "decimals": 1,
+          "min": 0,
+          "unit": "decbytes"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 65 },
+      "id": 32,
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull", "mean", "max"],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "exercises_container_gpu_memory_bytes{name=~\".*exercises-.*\"}",
+          "legendFormat": "{{name}} (GPU {{gpu}})",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "GPU memory per pod (timeline)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "GPU util (%)",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "decimals": 1,
+          "max": 100,
+          "min": 0,
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 77 },
+      "id": 33,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "exercises_container_gpu_utilization_percent{name=~\".*exercises-.*\"}",
+          "legendFormat": "{{name}} (GPU {{gpu}})",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "GPU utilization per pod (timeline)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "inspect": false },
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 4294967296 },
+              { "color": "red", "value": 8589934592 }
+            ]
+          },
+          "unit": "decbytes"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Container" },
+            "properties": [{ "id": "custom.width", "value": 260 }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "GPU util %" },
+            "properties": [{ "id": "unit", "value": "percent" }, { "id": "decimals", "value": 1 }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Max util %" },
+            "properties": [{ "id": "unit", "value": "percent" }, { "id": "decimals", "value": 1 }]
+          }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 87 },
+      "id": 34,
+      "options": {
+        "cellHeight": "sm",
+        "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false },
+        "showHeader": true,
+        "sortBy": [{ "desc": true, "displayName": "VRAM" }]
+      },
+      "pluginVersion": "11.5.2",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "exercises_container_gpu_memory_bytes{name=~\".*exercises-.*\"}",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "__auto",
+          "range": false,
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "exercises_container_gpu_utilization_percent{name=~\".*exercises-.*\"}",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "__auto",
+          "range": false,
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "max by (name, gpu) ( max_over_time( exercises_container_gpu_memory_bytes{name=~\".*exercises-.*\"}[$__range:15s] ) )",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "__auto",
+          "range": false,
+          "refId": "C"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "max by (name, gpu) ( max_over_time( exercises_container_gpu_utilization_percent{name=~\".*exercises-.*\"}[$__range:15s] ) )",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "__auto",
+          "range": false,
+          "refId": "D"
+        }
+      ],
+      "title": "Current GPU per pod (table)",
+      "transformations": [
+        {
+          "id": "seriesToColumns",
+          "options": { "byField": "name" }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Time 1": true,
+              "Time 2": true,
+              "Time 3": true,
+              "Time 4": true
+            },
+            "indexByName": {
+              "Container": 0,
+              "GPU": 1,
+              "Max VRAM": 2,
+              "Max util %": 3,
+              "GPU util %": 4,
+              "VRAM": 5
+            },
+            "renameByName": {
+              "Value #A": "VRAM",
+              "Value #B": "GPU util %",
+              "Value #C": "Max VRAM",
+              "Value #D": "Max util %",
+              "gpu": "GPU",
+              "name": "Container"
+            }
+          }
+        }
+      ],
+      "type": "table"
     }
   ],
   "refresh": "30s",
   "schemaVersion": 39,
-  "tags": ["exercises", "podman", "containers", "memory", "prometheus"],
+  "tags": ["exercises", "podman", "containers", "memory", "cpu", "gpu", "prometheus"],
   "templating": { "list": [] },
   "time": { "from": "now-6h", "to": "now" },
   "timepicker": {},
   "timezone": "",
-  "title": "Exercises — Container memory (Podman)",
+  "title": "Exercises — Container resources (Podman)",
   "uid": "exercises-containers",
-  "version": 1,
+  "version": 6,
   "weekStart": ""
 }

@@ -94,7 +94,6 @@ Postgres logs often **are** in Elasticsearch while saved searches hide them. Ver
 2. **Elasticsearch** (browser or curl): `service.keyword:exercises-postgres AND message:*execute*` on index `logstash-*`, time **Last 15 minutes**.
 3. **Kibana Discover** (simplest query): `service: exercises-postgres and message: *execute* and not message: *SELECT 1*`
 4. **Re-import** saved objects after query changes: `.\devops\elk\kibana\provision-kibana.ps1`
-5. **Grafana** `exercises-requests-logs`: refresh dashboard or restart Grafana after JSON edits under `devops/grafana/dashboards/`.
 
 Common traps: time range too narrow; **`log_statement=mod`** (SELECT not logged — need **`all`** in Compose + postgres recreate); saved search requiring `application_name: *exercises*` while viewing unstamped JDBC lines; panel that only matched `_exists_:detail` (INSERT params only, not SELECT).
 
@@ -115,7 +114,7 @@ Open **`http://127.0.0.1:5601/`** (default route) or **`http://127.0.0.1:5601/ap
 | **PostgreSQL — log stream** | Full Postgres JSON log tail |
 | **HTTP — handler logs** | Controller received/succeeded/failed lines |
 
-Click **`correlation.request_id`** in the SQL table (URL link on the data view) to jump to handler logs for that request. Grafana **`exercises-requests-logs`** keeps the tighter click-through layout.
+Click **`correlation.request_id`** in the SQL table (URL link on the data view) to jump to handler logs for that request.
 
 ### Kafka logs (Kibana)
 

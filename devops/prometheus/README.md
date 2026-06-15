@@ -10,6 +10,7 @@ This folder holds **`prometheus.yml`** used by the **root** `docker-compose.yml`
 | `exercises-react-node` | `react-node:5174/metrics` | same |
 | `exercises-kafka` | `kafka-exporter:9308/metrics` | broker / topic metrics |
 | `exercises-podman` | `podman-exporter:9882/metrics` | **`podman_container_mem_usage_bytes`**, CPU, … |
+| `exercises-gpu` | `exercises-gpu-exporter:9066/metrics` | **`exercises_container_gpu_memory_bytes`**, GPU util per container (optional NVIDIA) |
 
 - UI: **http://127.0.0.1:9090/** (after `podman compose up`)
 - **Grafana** is provisioned with a **Prometheus** datasource pointing at **`http://prometheus:9090`**.
@@ -86,3 +87,36 @@ podman compose -f docker-compose.observability.yml -f docker-compose.podman-expo
 | Docker Engine instead of Podman | Use **`podman stats`** or cAdvisor. |
 
 Compare with CLI: `podman stats --no-stream --format "table {{.Name}}\t{{.MemUsage}}"`.
+
+## GPU exporter (per-container VRAM — optional)
+
+**podman-exporter does not expose GPU metrics.** For **GPU memory and utilization per exercises container**, use **`exercises-gpu-exporter`** (maps `nvidia-smi` PIDs → Podman container names).
+
+Requirements:
+
+- NVIDIA driver + **`nvidia-smi`** on the **Podman host VM**
+- Containers using the GPU must run with **`--device nvidia.com/gpu=all`** (or CDI) so processes appear in `nvidia-smi`
+
+Start (after stack is up):
+
+```powershell
+.\devops\prometheus\start-gpu-exporter.ps1
+```
+
+Linux / inside Podman Machine:
+
+```bash
+sh devops/prometheus/start-gpu-exporter.sh
+curl -X POST http://127.0.0.1:9090/-/reload
+```
+
+Grafana: **Exercises — Container resources (Podman)** → **GPU by pod / container** section.
+
+Quick check:
+
+```bash
+curl -s http://127.0.0.1:9066/metrics | grep exercises_container_gpu
+curl -s 'http://127.0.0.1:9090/api/v1/query?query=up{job="exercises-gpu"}'
+```
+
+**Windows Podman Desktop without GPU passthrough:** job stays down; RAM/CPU panels still work. GPU is opt-in for hosts with NVIDIA hardware.
