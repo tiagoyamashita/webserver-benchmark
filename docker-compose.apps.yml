@@ -1,4 +1,4 @@
-# Application stack — postgres + redis + redisinsight + redisinsight-embed + kafka + java + python + rust + react-node.
+# Application stack — postgres + redis + redisinsight + redisinsight-embed + kafka + java + python + rust + react-node (+ optional ai-model).
 #
 # Start / restart apps only (observability can keep running):
 #   podman compose -f docker-compose.apps.yml up -d --build
@@ -341,6 +341,36 @@ services:
       timeout: 3s
       retries: 3
       start_period: 10s
+    restart: unless-stopped
+
+  # Local AI model (GGUF + llama-cpp). Opt-in: --profile ai-model
+  ai-model:
+    profiles: ["ai-model"]
+    build:
+      context: ./apps/ai-model
+      dockerfile: Dockerfile
+      args:
+        INSTALL_LLM: ${AI_MODEL_INSTALL_LLM:-0}
+    networks: [exercises]
+    ports:
+      - "8095:8095"
+    environment:
+      AI_MODEL_HOST: "0.0.0.0"
+      AI_MODEL_PORT: "8095"
+      AI_MODEL_GGUF_PATH: ${AI_MODEL_GGUF_PATH:-/app/models/model.gguf}
+      AI_MODEL_N_CTX: "2048"
+      AI_MODEL_N_GPU_LAYERS: ${AI_MODEL_N_GPU_LAYERS:-0}
+      AI_MODEL_MAX_TOKENS: "256"
+      LOG_PATH: /app/logs
+    volumes:
+      - ./apps/ai-model/models:/app/models:ro
+      - ./apps/ai-model/logs:/app/logs
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8095/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
 
 networks:

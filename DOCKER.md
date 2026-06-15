@@ -7,6 +7,7 @@ Build contexts live next to each stack:
 | `java/` | Spring Boot | **8080** |
 | `python/` | Flask dashboard | **5000** |
 | `rust/` | Axum dashboard | **8082** |
+| `ai-model/` | Local GGUF AI model (optional `--profile ai-model`) | **8095** |
 
 From the **repository root** (use **Podman** if `docker` is not installed):
 
@@ -18,7 +19,7 @@ Compose is split so you can **restart apps without stopping observability**:
 
 | File | Services |
 |------|----------|
-| **`docker-compose.apps.yml`** | postgres, redis, redisinsight, redisinsight-embed, kafka, kafka-ui, kafka-ui-embed, java, python, rust, react-node |
+| **`docker-compose.apps.yml`** | postgres, redis, redisinsight, redisinsight-embed, kafka, kafka-ui, kafka-ui-embed, java, python, rust, react-node, optional **ai-model** (`--profile ai-model`) |
 | **`docker-compose.observability.yml`** | prometheus, grafana, elasticsearch, logstash, kibana, filebeat |
 | **`docker-compose.yml`** | includes both (full stack) |
 
@@ -35,7 +36,7 @@ podman compose -f docker-compose.apps.yml restart java rust
 
 All files share the **`exercises`** network (same Compose project name from the repo directory).
 
-**Hot reload (dev):** overlay **`docker-compose.dev.yml`** on the **apps** file so Java runs **`spring-boot:run`**, Python uses **`FLASK_DEBUG=1`**, Rust uses **`cargo-watch`**, and **react-node** runs Express + Vite on **`http://127.0.0.1:5174/`**:
+**Hot reload (dev):** overlay **`docker-compose.dev.yml`** on the **apps** file so Java runs **`spring-boot:run`**, Python uses **`FLASK_DEBUG=1`**, Rust uses **`cargo-watch`**, **react-node** runs Express + Vite on **`http://127.0.0.1:5174/`**, and optional **ai-model** runs uvicorn with **`--reload`** (`--profile ai-model`):
 
 ```bash
 podman compose -f docker-compose.apps.yml -f docker-compose.dev.yml up -d --build
@@ -113,6 +114,7 @@ All root-compose services attach to a **named bridge network** `exercises`. From
 - Java: `http://java:8080`
 - Python: `http://python:5000`
 - Rust: `http://rust:8082`
+- AI model: `http://ai-model:8095` (when `--profile ai-model` is enabled)
 - Grafana: `http://grafana:3000`
 - Prometheus: `http://prometheus:9090`
 - Elasticsearch: `http://elasticsearch:9200`, Kibana: `http://kibana:5601`, Logstash: `logstash:5044`
