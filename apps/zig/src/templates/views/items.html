@@ -8,11 +8,12 @@
     class="toolbar"
     hx-post="/htmx/items"
     hx-target="#items-body"
-    hx-swap="innerHTML"
+    hx-swap="outerHTML"
+    hx-on::after-request="if(event.detail.successful) this.reset()"
   >
-    <input type="text" name="name" placeholder="Item name" required maxlength="255" />
+    <input type="text" name="name" placeholder="Item name" required maxlength="255" autocomplete="off" />
     <button type="submit">Create item</button>
-    <button type="button" hx-get="/htmx/items" hx-target="#items-body" hx-swap="innerHTML">Reload</button>
+    <button type="button" hx-get="/htmx/items" hx-target="#items-body" hx-swap="outerHTML">Reload</button>
     <a class="btn" href="/api/items" target="_blank" rel="noopener">JSON</a>
   </form>
   <table>
@@ -20,7 +21,7 @@
     <tbody id="items-body"
            hx-get="/htmx/items"
            hx-trigger="load"
-           hx-swap="innerHTML">
+           hx-swap="outerHTML">
       <tr><td colspan="3" class="muted">Loading…</td></tr>
     </tbody>
   </table>

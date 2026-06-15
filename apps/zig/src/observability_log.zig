@@ -7,9 +7,15 @@ var log_mutex: std.Thread.Mutex = .{};
 var enabled: bool = false;
 var log_seq: u64 = 0;
 
-pub const Field = struct {
-    key: []const u8,
-    value: []const u8,
+pub const Field = union(enum) {
+    string: struct {
+        key: []const u8,
+        value: []const u8,
+    },
+    json: struct {
+        key: []const u8,
+        value: []const u8,
+    },
 };
 
 pub fn observabilityEnabled() bool {
@@ -41,23 +47,42 @@ pub fn deinit() void {
 }
 
 pub fn info(controller: []const u8, source: []const u8, message: []const u8, extra: []const Field) void {
-    write("INFO", controller, source, message, extra);
+    writeController("INFO", controller, source, message, extra);
 }
 
 pub fn warn(controller: []const u8, source: []const u8, message: []const u8, extra: []const Field) void {
-    write("WARN", controller, source, message, extra);
+    writeController("WARN", controller, source, message, extra);
 }
 
 pub fn err(controller: []const u8, source: []const u8, message: []const u8, extra: []const Field) void {
-    write("ERROR", controller, source, message, extra);
+    writeController("ERROR", controller, source, message, extra);
 }
 
-fn write(level: []const u8, controller: []const u8, source: []const u8, message: []const u8, extra: []const Field) void {
+pub fn httpInfo(logger: []const u8, message: []const u8, extra: []const Field) void {
+    writeHttp("INFO", logger, message, extra);
+}
+
+pub fn httpWarn(logger: []const u8, message: []const u8, extra: []const Field) void {
+    writeHttp("WARN", logger, message, extra);
+}
+
+fn writeHttp(level: []const u8, logger: []const u8, message: []const u8, extra: []const Field) void {
     if (!enabled or log_file == null) return;
 
-    var line_buf: [4096]u8 = undefined;
-    const line = formatLine(&line_buf, level, controller, source, message, extra) orelse return;
+    var line_buf: [8192]u8 = undefined;
+    const line = formatHttpLine(&line_buf, level, logger, message, extra) orelse return;
+    writeLine(line);
+}
 
+fn writeController(level: []const u8, controller: []const u8, source: []const u8, message: []const u8, extra: []const Field) void {
+    if (!enabled or log_file == null) return;
+
+    var line_buf: [8192]u8 = undefined;
+    const line = formatControllerLine(&line_buf, level, controller, source, message, extra) orelse return;
+    writeLine(line);
+}
+
+fn writeLine(line: []const u8) void {
     log_mutex.lock();
     defer log_mutex.unlock();
     const file = log_file.?;
@@ -66,7 +91,7 @@ fn write(level: []const u8, controller: []const u8, source: []const u8, message:
     _ = file.sync() catch {};
 }
 
-fn formatLine(
+fn formatControllerLine(
     buf: []u8,
     level: []const u8,
     controller: []const u8,
@@ -94,14 +119,58 @@ fn formatLine(
     list.appendSlice(",\"message\":") catch return null;
     appendJsonString(&list, message) catch return null;
     std.fmt.format(list.writer(), ",\"log_seq\":{d}", .{seq}) catch return null;
-    for (extra) |field| {
-        list.appendSlice(",\"") catch return null;
-        list.appendSlice(field.key) catch return null;
-        list.appendSlice("\":") catch return null;
-        appendJsonString(&list, field.value) catch return null;
-    }
+    appendFields(&list, extra) catch return null;
     list.appendSlice("}") catch return null;
     return list.items;
+}
+
+fn formatHttpLine(
+    buf: []u8,
+    level: []const u8,
+    logger: []const u8,
+    message: []const u8,
+    extra: []const Field,
+) ?[]const u8 {
+    var ts_buf: [64]u8 = undefined;
+    const timestamp = formatUtcIso(&ts_buf);
+    const seq = @atomicRmw(u64, &log_seq, .Add, 1, .monotonic);
+
+    var fba = std.heap.FixedBufferAllocator.init(buf);
+    const allocator = fba.allocator();
+    var list = std.ArrayList(u8).init(allocator);
+    list.appendSlice("{\"timestamp\":") catch return null;
+    appendJsonString(&list, timestamp) catch return null;
+    list.appendSlice(",\"level\":") catch return null;
+    appendJsonString(&list, level) catch return null;
+    list.appendSlice(",\"service\":") catch return null;
+    appendJsonString(&list, SERVICE) catch return null;
+    list.appendSlice(",\"logger\":") catch return null;
+    appendJsonString(&list, logger) catch return null;
+    list.appendSlice(",\"message\":") catch return null;
+    appendJsonString(&list, message) catch return null;
+    std.fmt.format(list.writer(), ",\"log_seq\":{d}", .{seq}) catch return null;
+    appendFields(&list, extra) catch return null;
+    list.appendSlice("}") catch return null;
+    return list.items;
+}
+
+fn appendFields(list: *std.ArrayList(u8), extra: []const Field) !void {
+    for (extra) |field| {
+        switch (field) {
+            .string => |entry| {
+                try list.appendSlice(",\"");
+                try list.appendSlice(entry.key);
+                try list.appendSlice("\":");
+                try appendJsonString(list, entry.value);
+            },
+            .json => |entry| {
+                try list.appendSlice(",\"");
+                try list.appendSlice(entry.key);
+                try list.appendSlice("\":");
+                try list.appendSlice(entry.value);
+            },
+        }
+    }
 }
 
 fn formatUtcIso(buf: []u8) []const u8 {

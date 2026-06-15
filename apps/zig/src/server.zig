@@ -3,6 +3,8 @@ const net = std.net;
 const app_mod = @import("app.zig");
 const router = @import("router.zig");
 const http = @import("http_response.zig");
+const request_snapshot = @import("request_snapshot.zig");
+const http_access = @import("http_access_log.zig");
 
 pub const App = app_mod.App;
 
@@ -36,9 +38,20 @@ fn handleConnection(app: *App, connection: net.Server.Connection) !void {
             else => return err,
         };
         router.recordRequest();
+        const snap = request_snapshot.begin(app.allocator, &request) catch |err| {
+            std.log.warn("request snapshot failed: {}", .{err});
+            router.handleRequest(app, &request) catch |handle_err| {
+                router.logRequestError(&request, handle_err);
+                http.writeTextResponse(&request, .internal_server_error, "text/plain", "internal server error") catch {};
+            };
+            continue;
+        };
+        defer request_snapshot.end(snap);
+        http_access.logReceived(snap);
         router.handleRequest(app, &request) catch |err| {
             router.logRequestError(&request, err);
             http.writeTextResponse(&request, .internal_server_error, "text/plain", "internal server error") catch {};
         };
+        http_access.logCompleted(snap);
     }
 }

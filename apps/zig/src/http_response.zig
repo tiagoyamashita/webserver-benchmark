@@ -1,6 +1,8 @@
 const std = @import("std");
+const snap = @import("request_snapshot.zig");
 
 pub fn readBody(allocator: std.mem.Allocator, request: *std.http.Server.Request) ![]u8 {
+    if (snap.preReadBody()) |body| return try allocator.dupe(u8, body);
     const length = request.head.content_length orelse 0;
     if (length == 0) return try allocator.dupe(u8, "");
     const body = try allocator.alloc(u8, length);
@@ -16,25 +18,35 @@ pub fn readBody(allocator: std.mem.Allocator, request: *std.http.Server.Request)
 }
 
 pub fn writeTextResponse(request: *std.http.Server.Request, status: std.http.Status, content_type: []const u8, body: []const u8) !void {
-    const extra_headers = [_]std.http.Header{
-        .{ .name = "content-type", .value = content_type },
-        .{ .name = "connection", .value = "close" },
-    };
+    snap.recordResponse(status, body, false);
+    var extra_headers_buf: [3]std.http.Header = undefined;
+    var extra_count: usize = 2;
+    extra_headers_buf[0] = .{ .name = "content-type", .value = content_type };
+    extra_headers_buf[1] = .{ .name = "connection", .value = "close" };
+    if (snap.activeRequestId()) |request_id| {
+        extra_headers_buf[extra_count] = .{ .name = "x-request-id", .value = request_id };
+        extra_count += 1;
+    }
     try request.respond(body, .{
         .status = status,
-        .extra_headers = &extra_headers,
+        .extra_headers = extra_headers_buf[0..extra_count],
         .keep_alive = false,
     });
 }
 
 pub fn writeJsonResponse(request: *std.http.Server.Request, status: std.http.Status, body: []const u8) !void {
-    const extra_headers = [_]std.http.Header{
-        .{ .name = "content-type", .value = "application/json" },
-        .{ .name = "connection", .value = "close" },
-    };
+    snap.recordResponse(status, body, true);
+    var extra_headers_buf: [3]std.http.Header = undefined;
+    var extra_count: usize = 2;
+    extra_headers_buf[0] = .{ .name = "content-type", .value = "application/json" };
+    extra_headers_buf[1] = .{ .name = "connection", .value = "close" };
+    if (snap.activeRequestId()) |request_id| {
+        extra_headers_buf[extra_count] = .{ .name = "x-request-id", .value = request_id };
+        extra_count += 1;
+    }
     try request.respond(body, .{
         .status = status,
-        .extra_headers = &extra_headers,
+        .extra_headers = extra_headers_buf[0..extra_count],
         .keep_alive = false,
     });
 }

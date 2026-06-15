@@ -2,6 +2,11 @@ const std = @import("std");
 const c = @cImport({
     @cInclude("libpq-fe.h");
 });
+const postgres_log = @import("postgres_log.zig");
+const request_id_mod = @import("request_id.zig");
+const snap = @import("request_snapshot.zig");
+
+const SERVICE = "exercises-zig";
 
 pub const DbError = error{
     DatabaseNotConfigured,
@@ -39,16 +44,51 @@ pub const Db = struct {
         self.conn = null;
     }
 
+    fn stampApplicationName(self: *Db) DbError!void {
+        const conn = self.conn orelse return error.DatabaseNotConfigured;
+        var app_name_buf: [64]u8 = undefined;
+        const app_name = blk: {
+            if (snap.activeRequestId()) |request_id| {
+                break :blk request_id_mod.postgresApplicationName(&app_name_buf, SERVICE, request_id);
+            }
+            break :blk SERVICE;
+        };
+        const sql = "SELECT set_config('application_name', $1, false)";
+        var name_z: [64]u8 = undefined;
+        @memcpy(name_z[0..app_name.len], app_name);
+        name_z[app_name.len] = 0;
+        const name_ptr: *const u8 = &name_z[0];
+        const param_values = [_]?*const u8{name_ptr};
+        const param_lengths = [_]c_int{@intCast(app_name.len)};
+        const param_formats = [_]c_int{0};
+        const result = c.PQexecParams(
+            conn,
+            sql,
+            1,
+            null,
+            &param_values,
+            &param_lengths,
+            &param_formats,
+            0,
+        );
+        if (result == null) return error.QueryFailed;
+        defer c.PQclear(result);
+        if (c.PQresultStatus(result) != c.PGRES_TUPLES_OK) return error.QueryFailed;
+    }
+
     pub fn listItems(self: *Db, allocator: std.mem.Allocator) DbError![]Item {
         const conn = self.conn orelse return error.DatabaseNotConfigured;
+        const operation = "list_items";
         const sql = "SELECT id, name, created_at::text FROM items ORDER BY id";
+        try self.stampApplicationName();
+        postgres_log.logQuery(operation, sql);
         const result = c.PQexec(conn, sql);
         if (result == null) return error.QueryFailed;
         defer c.PQclear(result);
 
         const status = c.PQresultStatus(result);
         if (status != c.PGRES_TUPLES_OK) {
-            std.log.err("list items failed: {s}", .{c.PQerrorMessage(conn)});
+            postgres_log.logQueryFailed(operation, sql, std.mem.span(c.PQerrorMessage(conn)));
             return error.QueryFailed;
         }
 
@@ -81,7 +121,10 @@ pub const Db = struct {
 
     pub fn insertItem(self: *Db, allocator: std.mem.Allocator, name: []const u8) DbError!Item {
         const conn = self.conn orelse return error.DatabaseNotConfigured;
+        const operation = "insert_item";
         const sql = "INSERT INTO items (name, created_at) VALUES ($1, NOW()) RETURNING id, name, created_at::text";
+        try self.stampApplicationName();
+        postgres_log.logQuery(operation, sql);
         const name_z = try allocator.allocSentinel(u8, name.len, 0);
         defer allocator.free(name_z);
         @memcpy(name_z, name);
@@ -103,7 +146,7 @@ pub const Db = struct {
         defer c.PQclear(result);
 
         if (c.PQresultStatus(result) != c.PGRES_TUPLES_OK) {
-            std.log.err("insert item failed: {s}", .{c.PQerrorMessage(conn)});
+            postgres_log.logQueryFailed(operation, sql, std.mem.span(c.PQerrorMessage(conn)));
             return error.QueryFailed;
         }
 
@@ -120,9 +163,12 @@ pub const Db = struct {
 
     pub fn getItem(self: *Db, allocator: std.mem.Allocator, item_id: i64) DbError!?Item {
         const conn = self.conn orelse return error.DatabaseNotConfigured;
+        const operation = "get_item";
+        const sql = "SELECT id, name, created_at::text FROM items WHERE id = $1";
+        try self.stampApplicationName();
+        postgres_log.logQuery(operation, sql);
         var id_buf: [32]u8 = undefined;
         const id_text = std.fmt.bufPrint(&id_buf, "{d}", .{item_id}) catch return error.QueryFailed;
-        const sql = "SELECT id, name, created_at::text FROM items WHERE id = $1";
         const id_ptr: *const u8 = &id_buf[0];
         const param_values = [_]?*const u8{id_ptr};
         const param_lengths = [_]c_int{@intCast(id_text.len)};
@@ -140,7 +186,10 @@ pub const Db = struct {
         if (result == null) return error.QueryFailed;
         defer c.PQclear(result);
 
-        if (c.PQresultStatus(result) != c.PGRES_TUPLES_OK) return error.QueryFailed;
+        if (c.PQresultStatus(result) != c.PGRES_TUPLES_OK) {
+            postgres_log.logQueryFailed(operation, sql, std.mem.span(c.PQerrorMessage(conn)));
+            return error.QueryFailed;
+        }
         if (c.PQntuples(result) == 0) return null;
 
         const id_val = c.PQgetvalue(result, 0, 0) orelse return error.QueryFailed;
@@ -155,13 +204,16 @@ pub const Db = struct {
 
     pub fn deleteItem(self: *Db, item_id: i64) DbError!bool {
         const conn = self.conn orelse return error.DatabaseNotConfigured;
+        const operation = "delete_item";
+        const sql = "DELETE FROM items WHERE id = $1";
         var id_buf: [32]u8 = undefined;
         const id_text = std.fmt.bufPrint(&id_buf, "{d}", .{item_id}) catch return error.QueryFailed;
-        const sql = "DELETE FROM items WHERE id = $1";
         const id_ptr: *const u8 = &id_buf[0];
         const param_values = [_]?*const u8{id_ptr};
         const param_lengths = [_]c_int{@intCast(id_text.len)};
         const param_formats = [_]c_int{0};
+        try self.stampApplicationName();
+        postgres_log.logQuery(operation, sql);
         const result = c.PQexecParams(
             conn,
             sql,
@@ -174,7 +226,10 @@ pub const Db = struct {
         );
         if (result == null) return error.QueryFailed;
         defer c.PQclear(result);
-        if (c.PQresultStatus(result) != c.PGRES_COMMAND_OK) return error.QueryFailed;
+        if (c.PQresultStatus(result) != c.PGRES_COMMAND_OK) {
+            postgres_log.logQueryFailed(operation, sql, std.mem.span(c.PQerrorMessage(conn)));
+            return error.QueryFailed;
+        }
         const affected = c.PQcmdTuples(result);
         return std.fmt.parseInt(usize, std.mem.span(affected), 10) catch 0 > 0;
     }

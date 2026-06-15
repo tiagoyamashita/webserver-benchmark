@@ -1,5 +1,11 @@
 const std = @import("std");
 
+/// Opening tag for htmx partial responses (must match templates/views/items.html id only).
+/// Do not include hx-trigger="load" here — outerHTML swap would re-fire load in a loop.
+pub const items_tbody_open =
+    \\<tbody id="items-body">
+;
+
 pub fn escapeHtml(allocator: std.mem.Allocator, input: []const u8) ![]u8 {
     var list = std.ArrayList(u8).init(allocator);
     errdefer list.deinit();
@@ -34,6 +40,22 @@ pub fn renderItemsRows(allocator: std.mem.Allocator, items: []const @import("db.
         );
     }
     return list.toOwnedSlice();
+}
+
+pub fn renderItemsBody(allocator: std.mem.Allocator, items: []const @import("db.zig").Item) ![]u8 {
+    const rows = try renderItemsRows(allocator, items);
+    defer allocator.free(rows);
+    return std.fmt.allocPrint(allocator, "{s}{s}</tbody>", .{ items_tbody_open, rows });
+}
+
+pub fn renderItemsMessageBody(allocator: std.mem.Allocator, message: []const u8) ![]u8 {
+    const row = try std.fmt.allocPrint(
+        allocator,
+        "<tr><td colspan=\"3\">{s}</td></tr>",
+        .{message},
+    );
+    defer allocator.free(row);
+    return std.fmt.allocPrint(allocator, "{s}{s}</tbody>", .{ items_tbody_open, row });
 }
 
 pub fn parseFormName(body: []const u8) ?[]const u8 {
