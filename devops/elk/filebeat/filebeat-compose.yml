@@ -71,8 +71,8 @@ filebeat.inputs:
     id: exercises-postgres-json
     enabled: true
     paths:
-      # Postgres log_filename=postgresql-%Y-%m-%d (optional .json suffix depending on rotation)
-      - /var/log/postgresql/postgresql-*
+      # jsonlog destination only — exclude postgresql-YYYY-MM-DD text stubs (startup hints).
+      - /var/log/postgresql/postgresql-*.json
     parsers:
       - ndjson:
           keys_under_root: true

@@ -11,7 +11,7 @@
     ],
     "sort": [["@timestamp", "desc"]],
     "kibanaSavedObjectMeta": {
-      "searchSourceJSON": "{\"query\":{\"query\":\"service: exercises-postgres and not message: statement* and not message: duration* and not message: (*Skipping* or *redirecting* or *Future* or *ending*log*output* or *stderr* or *received*fast*shutdown* or *aborting*active*transactions* or *database*system*shut*down* or *shutting*down* or *starting*PostgreSQL*)\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
+      "searchSourceJSON": "{\"query\":{\"query\":\"service: exercises-postgres and not message: duration* and not message: (*Skipping* or *redirecting* or *Future* or *ending*log*output* or *stderr* or *received*fast*shutdown* or *aborting*active*transactions* or *database*system*shut*down* or *shutting*down* or *starting*PostgreSQL*)\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
     }
   },
   "references": [
