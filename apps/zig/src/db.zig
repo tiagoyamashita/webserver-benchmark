@@ -82,7 +82,18 @@ pub const Db = struct {
         const sql = "SELECT id, name, created_at::text FROM items ORDER BY id";
         try self.stampApplicationName();
         postgres_log.logQuery(operation, sql);
-        const result = c.PQexec(conn, sql);
+        // PQexecParams (extended protocol) so Postgres logs "execute …" lines that
+        // survive Logstash filtering; PQexec simple queries log as "statement:" and are dropped.
+        const result = c.PQexecParams(
+            conn,
+            sql,
+            0,
+            null,
+            null,
+            null,
+            null,
+            0,
+        );
         if (result == null) return error.QueryFailed;
         defer c.PQclear(result);
 
