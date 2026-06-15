@@ -121,6 +121,22 @@
           "timeField": "@timestamp"
         },
         {
+          "alias": "exercises-zig",
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "2",
+              "settings": { "interval": "auto", "min_doc_count": "0" },
+              "type": "date_histogram"
+            }
+          ],
+          "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+          "metrics": [{ "id": "1", "type": "count" }],
+          "query": "service:\"exercises-zig\"",
+          "refId": "G",
+          "timeField": "@timestamp"
+        },
+        {
           "alias": "exercises-postgres",
           "bucketAggs": [
             {
@@ -294,7 +310,7 @@
       "id": 5,
       "options": {
         "code": { "language": "markdown", "showLineNumbers": false },
-        "content": "### After a pipeline alert\n\n1. Note the alert **start time** in Grafana (**Alerting → Alert history**).\n2. Check host log files for that window: `apps/java/logs/demo-app.json.log`, `apps/python/logs/demo-app.json.log`, `apps/rust/logs/demo-app.json.log`, `apps/react-node/logs/demo-app.json.log`, `apps/postgres/logs/postgresql-*`.\n3. In **Kibana Discover** (`logstash-*`), look for a flat gap in the chart above — lines on disk but missing in ES were not shipped.\n4. Logs: `podman compose -f docker-compose.observability.yml logs filebeat logstash --tail 100`.",
+        "content": "### After a pipeline alert\n\n1. Note the alert **start time** in Grafana (**Alerting → Alert history**).\n2. Check host log files for that window: `apps/java/logs/demo-app.json.log`, `apps/python/logs/demo-app.json.log`, `apps/rust/logs/demo-app.json.log`, `apps/react-node/logs/demo-app.json.log`, `apps/zig/logs/demo-app.json.log`, `apps/postgres/logs/postgresql-*`.\n3. In **Kibana Discover** (`logstash-*`), look for a flat gap in the chart above — lines on disk but missing in ES were not shipped.\n4. Logs: `podman compose -f docker-compose.observability.yml logs filebeat logstash --tail 100`.",
         "mode": "markdown"
       },
       "title": "Recovering missed logs",

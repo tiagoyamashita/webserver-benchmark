@@ -1,4 +1,4 @@
-# Application stack — postgres + redis + redisinsight + redisinsight-embed + kafka + java + python + rust + react-node (+ optional ai-model).
+# Application stack — postgres + redis + redisinsight + redisinsight-embed + kafka + java + python + rust + zig + react-node.
 #
 # Start / restart apps only (observability can keep running):
 #   podman compose -f docker-compose.apps.yml up -d --build
@@ -296,6 +296,49 @@ services:
       start_period: 10s
     restart: unless-stopped
 
+  zig:
+    build:
+      context: ./apps/zig
+      dockerfile: Dockerfile
+    networks: [exercises]
+    env_file:
+      - path: .env.apps
+        required: false
+    ports:
+      - "8083:8083"
+    environment:
+      EXERCISES_WEB_HOST: "0.0.0.0"
+      EXERCISES_WEB_PORT: "8083"
+      EXERCISES_OBSERVABILITY: "1"
+      LOG_PATH: /app/logs
+      APP_STACK_JAVA_BASE_URL: http://java:8080
+      APP_STACK_PYTHON_BASE_URL: http://python:5000
+      APP_STACK_RUST_BASE_URL: http://rust:8082
+      APP_STACK_REACT_NODE_BASE_URL: http://react-node:5174
+      APP_STACK_PROMETHEUS_BASE_URL: http://prometheus:9090
+      APP_STACK_GRAFANA_BASE_URL: http://grafana:3000
+      APP_STACK_ELASTICSEARCH_BASE_URL: http://elasticsearch:9200
+      APP_STACK_KIBANA_BASE_URL: http://kibana:5601
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: demo
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+    volumes:
+      - ./apps/zig/logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_started
+      java:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8083/health"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
   react-node:
     build:
       context: ./apps/react-node
@@ -341,36 +384,6 @@ services:
       timeout: 3s
       retries: 3
       start_period: 10s
-    restart: unless-stopped
-
-  # Local AI model (GGUF + llama-cpp). Opt-in: --profile ai-model
-  ai-model:
-    profiles: ["ai-model"]
-    build:
-      context: ./apps/ai-model
-      dockerfile: Dockerfile
-      args:
-        INSTALL_LLM: ${AI_MODEL_INSTALL_LLM:-0}
-    networks: [exercises]
-    ports:
-      - "8095:8095"
-    environment:
-      AI_MODEL_HOST: "0.0.0.0"
-      AI_MODEL_PORT: "8095"
-      AI_MODEL_GGUF_PATH: ${AI_MODEL_GGUF_PATH:-/app/models/model.gguf}
-      AI_MODEL_N_CTX: "2048"
-      AI_MODEL_N_GPU_LAYERS: ${AI_MODEL_N_GPU_LAYERS:-0}
-      AI_MODEL_MAX_TOKENS: "256"
-      LOG_PATH: /app/logs
-    volumes:
-      - ./apps/ai-model/models:/app/models:ro
-      - ./apps/ai-model/logs:/app/logs
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8095/health')"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
     restart: unless-stopped
 
 networks:

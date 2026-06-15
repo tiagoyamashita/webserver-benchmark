@@ -11,6 +11,8 @@
 # Java: spring-boot:run without DevTools restart (excludeDevtools) so pom.xml dependency changes apply after container restart; re-runs go-offline + clean compile when pom.xml changes; if still broken: podman volume rm exercises_maven-cache and up again).
 # Python: FLASK_DEBUG=1 reloader when ./apps/python changes.
 # Rust: cargo-watch rebuilds on src/ and templates/ (first start compiles; can take a few minutes).
+# Zig: rebuilds on container start (zig build); restart container after src/ changes.
+#     .zig-cache, global cache, and zig-out use named volumes (not the Windows bind mount).
 # React Node: Express + Vite middleware on http://127.0.0.1:5174
 # react-node dev entrypoint runs npm ci when package-lock.json changes (named node_modules volume).
 services:
@@ -128,23 +130,48 @@ services:
       start_period: 20s
     restart: unless-stopped
 
-  ai-model:
-    profiles: ["ai-model"]
+  zig:
     build:
-      context: ./apps/ai-model
-      dockerfile: Dockerfile
-      args:
-        INSTALL_LLM: ${AI_MODEL_INSTALL_LLM:-1}
-    entrypoint: ["/app/docker-entrypoint-dev.sh"]
+      context: ./apps/zig
+      dockerfile: Dockerfile.dev
+    env_file:
+      - path: .env.apps
+        required: false
     volumes:
-      - ./apps/ai-model:/app
+      - ./apps/zig:/app
+      - zig-cache:/app/.zig-cache
+      - zig-global-cache:/root/.cache/zig
+      - zig-out:/app/zig-out
     environment:
-      AI_MODEL_GGUF_PATH: ${AI_MODEL_GGUF_PATH:-/app/models/model.gguf}
-      AI_MODEL_N_GPU_LAYERS: ${AI_MODEL_N_GPU_LAYERS:-0}
+      EXERCISES_WEB_HOST: "0.0.0.0"
+      EXERCISES_WEB_PORT: "8083"
+      EXERCISES_OBSERVABILITY: "1"
       LOG_PATH: /app/logs
+      APP_STACK_JAVA_BASE_URL: http://java:8080
+      APP_STACK_PYTHON_BASE_URL: http://python:5000
+      APP_STACK_RUST_BASE_URL: http://rust:8082
+      APP_STACK_REACT_NODE_BASE_URL: http://react-node:5174
+      APP_STACK_PROMETHEUS_BASE_URL: http://prometheus:9090
+      APP_STACK_GRAFANA_BASE_URL: http://grafana:3000
+      APP_STACK_ELASTICSEARCH_BASE_URL: http://elasticsearch:9200
+      APP_STACK_KIBANA_BASE_URL: http://kibana:5601
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: demo
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8083/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 120s
 
 volumes:
   maven-cache:
   rust-cargo-registry:
   rust-target:
   react-node-node-modules:
+  zig-cache:
+  zig-global-cache:
+  zig-out:

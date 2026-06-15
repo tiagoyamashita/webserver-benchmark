@@ -1,0 +1,18 @@
+<section class="view-section" id="view-stack">
+  <h2>Stack connectivity</h2>
+  <p class="hint">Server-side probes from the Zig container (<code>GET /htmx/stack</code>).</p>
+  <div class="toolbar">
+    <button type="button"
+            hx-get="/htmx/stack"
+            hx-target="#stack-body"
+            hx-swap="innerHTML"
+            hx-indicator="#stack-loading">Refresh probes</button>
+    <span id="stack-loading" class="muted htmx-indicator">Refreshing…</span>
+  </div>
+  <table>
+    <thead><tr><th>Service</th><th>Status</th></tr></thead>
+    <tbody id="stack-body">
+      <tr><td colspan="2" class="muted">Click <strong>Refresh probes</strong> to check stack services.</td></tr>
+    </tbody>
+  </table>
+</section>

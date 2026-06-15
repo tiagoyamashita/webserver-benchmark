@@ -1,9 +1,0 @@
-.venv
-venv
-__pycache__
-.pytest_cache
-models/*
-!models/.gitkeep
-logs/*
-!logs/.gitkeep
-.git

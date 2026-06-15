@@ -7,7 +7,7 @@ Build contexts live next to each stack:
 | `java/` | Spring Boot | **8080** |
 | `python/` | Flask dashboard | **5000** |
 | `rust/` | Axum dashboard | **8082** |
-| `ai-model/` | Local GGUF AI model (optional `--profile ai-model`) | **8095** |
+| `zig/` | Zig + htmx dashboard | **8083** |
 
 From the **repository root** (use **Podman** if `docker` is not installed):
 
@@ -19,7 +19,7 @@ Compose is split so you can **restart apps without stopping observability**:
 
 | File | Services |
 |------|----------|
-| **`docker-compose.apps.yml`** | postgres, redis, redisinsight, redisinsight-embed, kafka, kafka-ui, kafka-ui-embed, java, python, rust, react-node, optional **ai-model** (`--profile ai-model`) |
+| **`docker-compose.apps.yml`** | postgres, redis, redisinsight, redisinsight-embed, kafka, kafka-ui, kafka-ui-embed, java, python, rust, zig, react-node |
 | **`docker-compose.observability.yml`** | prometheus, grafana, elasticsearch, logstash, kibana, filebeat |
 | **`docker-compose.yml`** | includes both (full stack) |
 
@@ -36,7 +36,7 @@ podman compose -f docker-compose.apps.yml restart java rust
 
 All files share the **`exercises`** network (same Compose project name from the repo directory).
 
-**Hot reload (dev):** overlay **`docker-compose.dev.yml`** on the **apps** file so Java runs **`spring-boot:run`**, Python uses **`FLASK_DEBUG=1`**, Rust uses **`cargo-watch`**, **react-node** runs Express + Vite on **`http://127.0.0.1:5174/`**, and optional **ai-model** runs uvicorn with **`--reload`** (`--profile ai-model`):
+**Hot reload (dev):** overlay **`docker-compose.dev.yml`** on the **apps** file so Java runs **`spring-boot:run`**, Python uses **`FLASK_DEBUG=1`**, Rust uses **`cargo-watch`**, and **react-node** runs Express + Vite on **`http://127.0.0.1:5174/`**:
 
 ```bash
 podman compose -f docker-compose.apps.yml -f docker-compose.dev.yml up -d --build
@@ -114,7 +114,7 @@ All root-compose services attach to a **named bridge network** `exercises`. From
 - Java: `http://java:8080`
 - Python: `http://python:5000`
 - Rust: `http://rust:8082`
-- AI model: `http://ai-model:8095` (when `--profile ai-model` is enabled)
+- Zig: `http://zig:8083`
 - Grafana: `http://grafana:3000`
 - Prometheus: `http://prometheus:9090`
 - Elasticsearch: `http://elasticsearch:9200`, Kibana: `http://kibana:5601`, Logstash: `logstash:5044`
@@ -128,6 +128,7 @@ URLs (use **`127.0.0.1`** in the browser on Windows if **`localhost`** hangs or 
 - Java: `http://127.0.0.1:8080/`
 - Python: `http://127.0.0.1:5000/`
 - Rust: `http://127.0.0.1:8082/`
+- Zig: `http://127.0.0.1:8083/`
 - Grafana: `http://127.0.0.1:3000/` (default login `admin` / `admin`; `GF_SERVER_ROOT_URL` matches this — use the same host you type in the address bar)
 - Prometheus UI: `http://127.0.0.1:9090/`
 - Elasticsearch: `http://localhost:9200/`, Kibana: `http://localhost:5601/` (`server.publicBaseUrl` in `elk/kibana/kibana.yml` matches this), Logstash Beats **5044**

@@ -85,6 +85,7 @@ services:
       - ./apps/python/logs:/var/log/python:ro
       - ./apps/rust/logs:/var/log/rust:ro
       - ./apps/react-node/logs:/var/log/react-node:ro
+      - ./apps/zig/logs:/var/log/zig:ro
       - ./apps/kafka/logs:/var/log/kafka:ro
     command: ["filebeat", "-e", "-strict.perms=false"]
     restart: unless-stopped

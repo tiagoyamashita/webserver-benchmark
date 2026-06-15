@@ -49,7 +49,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
       "id": 1,
       "options": {
         "colorMode": "value",
@@ -97,7 +97,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
       "id": 2,
       "options": {
         "colorMode": "value",
@@ -145,7 +145,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
       "id": 3,
       "options": {
         "colorMode": "value",
@@ -193,7 +193,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
       "id": 4,
       "options": {
         "colorMode": "value",
@@ -215,6 +215,54 @@
         }
       ],
       "title": "React Node scrape",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [
+            {
+              "options": {
+                "0": { "color": "red", "index": 0, "text": "down" },
+                "1": { "color": "green", "index": 1, "text": "up" }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "up{job=\"exercises-zig\"}",
+          "instant": true,
+          "legendFormat": "__auto",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Zig scrape",
       "type": "stat"
     },
     {
@@ -524,6 +572,82 @@
     {
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 41 },
+      "id": 106,
+      "panels": [],
+      "title": "Zig (stdlib HTTP) — exercises_http_requests_total",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 8,
+            "lineWidth": 1,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 42 },
+      "id": 42,
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "sum(rate(exercises_http_requests_total{job=\"exercises-zig\"}[5m]))",
+          "legendFormat": "total req/s",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Zig — total HTTP rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 8,
+            "lineWidth": 1,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 42 },
+      "id": 43,
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "exercises_http_requests_total{job=\"exercises-zig\"}",
+          "legendFormat": "total requests",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Zig — request counter",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 50 },
       "id": 105,
       "panels": [],
       "title": "PostgreSQL (shared demo database)",
@@ -553,7 +677,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 42 },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 51 },
       "id": 50,
       "options": {
         "colorMode": "value",
@@ -589,7 +713,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 42 },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 51 },
       "id": 51,
       "options": {
         "colorMode": "value",
@@ -625,7 +749,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 42 },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 51 },
       "id": 52,
       "options": {
         "colorMode": "value",
@@ -661,7 +785,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 42 },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 51 },
       "id": 53,
       "options": {
         "colorMode": "value",
@@ -697,7 +821,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 46 },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 55 },
       "id": 54,
       "options": {
         "cellHeight": "sm",
@@ -731,7 +855,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 46 },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 55 },
       "id": 55,
       "options": {
         "cellHeight": "sm",
@@ -754,7 +878,7 @@
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 56 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 65 },
       "id": 60,
       "panels": [],
       "title": "Log pipeline (Filebeat → Logstash)",
@@ -784,7 +908,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 57 },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 66 },
       "id": 61,
       "options": {
         "colorMode": "value",
@@ -832,7 +956,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 57 },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 66 },
       "id": 62,
       "options": {
         "colorMode": "value",
@@ -865,7 +989,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 57 },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 66 },
       "id": 63,
       "options": {
         "colorMode": "value",
@@ -897,7 +1021,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 57 },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 66 },
       "id": 64,
       "options": {
         "colorMode": "value",
@@ -935,7 +1059,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 61 },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 70 },
       "id": 65,
       "options": {
         "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
@@ -985,7 +1109,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 69 },
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 78 },
       "id": 66,
       "options": {
         "colorMode": "value",
@@ -1010,11 +1134,11 @@
       "type": "stat"
     },
     {
-      "gridPos": { "h": 4, "w": 16, "x": 8, "y": 69 },
+      "gridPos": { "h": 4, "w": 16, "x": 8, "y": 78 },
       "id": 67,
       "options": {
         "code": { "language": "markdown", "showLineNumbers": false },
-        "content": "**If the pipeline failed:** unshipped lines stay on disk under `apps/*/logs/` (and `apps/postgres/logs/postgresql-*`). After recovery, grep those files for the outage window and compare with [Kibana Discover](http://127.0.0.1:5601/app/discover) (`logstash-*`). Grafana alerts: **Alerting → Alert rules → Exercises**.",
+        "content": "**If the pipeline failed:** unshipped lines stay on disk under `apps/*/logs/` (and `apps/postgres/logs/postgresql-*`). After recovery, grep those files for the outage window and compare with [Kibana Discover](http://127.0.0.1:5601/app/discover) (`logstash-*`). Grafana alerts: **Alerting → Alert rules → Exercises**.\n\n**Zig in Kibana:** `service:exercises-zig` or open saved search **All logs for request (correlate)** (controller/source fields).",
         "mode": "markdown"
       },
       "title": "Finding missed logs",
@@ -1023,13 +1147,13 @@
   ],
   "refresh": "30s",
   "schemaVersion": 39,
-  "tags": ["exercises", "java", "python", "rust", "react-node", "postgres", "prometheus", "filebeat", "logstash"],
+  "tags": ["exercises", "java", "python", "rust", "react-node", "zig", "postgres", "prometheus", "filebeat", "logstash"],
   "templating": { "list": [] },
   "time": { "from": "now-6h", "to": "now" },
   "timepicker": {},
   "timezone": "",
   "title": "Exercises — Apps & Postgres",
   "uid": "exercises-java-python-rust",
-  "version": 4,
+  "version": 5,
   "weekStart": ""
 }

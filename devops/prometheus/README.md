@@ -7,6 +7,7 @@ This folder holds **`prometheus.yml`** used by the **root** `docker-compose.yml`
 | `exercises-java` | `java:8080/actuator/prometheus` | JVM, HTTP, … |
 | `exercises-python` | `python:5000/metrics` | `exercises_http_requests_total`, … |
 | `exercises-rust` | `rust:8082/metrics` | same |
+| `exercises-zig` | `zig:8083/metrics` | same |
 | `exercises-react-node` | `react-node:5174/metrics` | same |
 | `exercises-kafka` | `kafka-exporter:9308/metrics` | broker / topic metrics |
 | `exercises-podman` | `podman-exporter:9882/metrics` | **`podman_container_mem_usage_bytes`**, CPU, … |

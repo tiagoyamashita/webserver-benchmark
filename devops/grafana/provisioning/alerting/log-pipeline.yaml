@@ -54,6 +54,7 @@ groups:
             Filebeat or beat-exporter is unreachable. New lines may accumulate on disk:
             apps/java/logs/demo-app.json.log, apps/python/logs/demo-app.json.log,
             apps/rust/logs/demo-app.json.log, apps/react-node/logs/demo-app.json.log,
+            apps/zig/logs/demo-app.json.log,
             apps/postgres/logs/postgresql-*.json
             After recovery, grep those files for the outage window and compare with Kibana Discover (logstash-*).
           summary: Log pipeline entry (Filebeat) unhealthy

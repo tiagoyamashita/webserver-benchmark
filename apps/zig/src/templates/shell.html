@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hello Zig — stack dashboard</title>
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #121212;
+        --panel-bg: #18181b;
+        --text: #e8e8ea;
+        --muted: #a3a3a8;
+        --border: #3f3f46;
+        --nav-bg: #1c1c1f;
+        --th-bg: #27272a;
+        --code-bg: #27272a;
+        --ok: #4ade80;
+        --err: #f87171;
+      }
+      * { box-sizing: border-box; }
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+      }
+      .page-header {
+        padding: 1rem 1.15rem 0.5rem;
+        border-bottom: 1px solid var(--border);
+      }
+      h1 { margin: 0 0 0.25rem; font-size: 1.5rem; }
+      .subtitle { color: var(--muted); margin: 0; font-size: 0.92rem; }
+      .dashboard {
+        display: flex;
+        min-height: calc(100vh - 5.5rem);
+      }
+      .sidebar {
+        flex: 0 0 13.5rem;
+        width: 13.5rem;
+        min-width: 13.5rem;
+        padding: 0.75rem 0.6rem;
+        border-right: 1px solid var(--border);
+        background: var(--nav-bg);
+      }
+      .sidebar-title {
+        margin: 0 0 0.6rem;
+        padding: 0 0.5rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .sidebar-btn {
+        display: block;
+        width: 100%;
+        cursor: pointer;
+        text-align: left;
+        padding: 0.55rem 0.65rem;
+        margin-bottom: 0.2rem;
+        font-size: 0.88rem;
+        font-weight: 600;
+        border-radius: 6px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--muted);
+      }
+      .sidebar-btn:hover {
+        color: var(--text);
+        background: rgba(128, 128, 128, 0.15);
+      }
+      .sidebar-btn[aria-current="page"] {
+        color: var(--text);
+        background: var(--bg);
+        border-color: var(--border);
+      }
+      .main-panel {
+        flex: 1 1 auto;
+        min-width: 0;
+        padding: 1rem 1.15rem;
+      }
+      .view-section {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 1rem;
+        background: var(--panel-bg);
+      }
+      h2 { margin: 0 0 0.75rem; font-size: 1.05rem; }
+      .hint { color: var(--muted); font-size: 0.88rem; margin: 0 0 0.75rem; line-height: 1.45; }
+      code {
+        background: var(--code-bg);
+        padding: 0.1rem 0.35rem;
+        border-radius: 4px;
+        font-size: 0.9em;
+      }
+      table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+      th, td { border: 1px solid var(--border); padding: 0.45rem 0.55rem; text-align: left; }
+      th { background: var(--th-bg); }
+      .muted { color: #b8b8be; }
+      .ok { color: var(--ok); font-weight: 600; }
+      .err { color: var(--err); font-weight: 600; }
+      .toolbar { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-bottom: 0.75rem; }
+      input[type="text"] {
+        min-width: 14rem;
+        padding: 0.4rem 0.55rem;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--code-bg);
+        color: var(--text);
+      }
+      button, .btn {
+        cursor: pointer;
+        padding: 0.4rem 0.55rem;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--code-bg);
+        color: var(--text);
+        font-weight: 600;
+      }
+      a.btn { text-decoration: none; display: inline-block; }
+      .htmx-indicator { display: none; }
+      .htmx-request .htmx-indicator { display: inline; }
+      .htmx-request.htmx-indicator { display: inline; }
+      .panel-loading { color: var(--muted); font-size: 0.9rem; }
+    </style>
+  </head>
+  <body>
+    <header class="page-header">
+      <h1>Hello Zig</h1>
+      <p class="subtitle">Exercises stack dashboard — pick a section from the menu.</p>
+    </header>
+
+    <div class="dashboard">
+      <nav class="sidebar" aria-label="Dashboard menu">
+        <p class="sidebar-title">Menu</p>
+        <button type="button"
+                class="sidebar-btn"
+                aria-current="page"
+                data-nav="home"
+                hx-get="/htmx/view/home"
+                hx-target="#main-panel"
+                hx-swap="innerHTML"
+                hx-on:htmx:after-request="document.querySelectorAll('.sidebar-btn').forEach(function(b){ b.removeAttribute('aria-current'); }); this.setAttribute('aria-current', 'page');">
+          Home
+        </button>
+        <button type="button"
+                class="sidebar-btn"
+                data-nav="stack"
+                hx-get="/htmx/view/stack"
+                hx-target="#main-panel"
+                hx-swap="innerHTML"
+                hx-on:htmx:after-request="document.querySelectorAll('.sidebar-btn').forEach(function(b){ b.removeAttribute('aria-current'); }); this.setAttribute('aria-current', 'page');">
+          Stack connectivity
+        </button>
+        <button type="button"
+                class="sidebar-btn"
+                data-nav="items"
+                hx-get="/htmx/view/items"
+                hx-target="#main-panel"
+                hx-swap="innerHTML"
+                hx-on:htmx:after-request="document.querySelectorAll('.sidebar-btn').forEach(function(b){ b.removeAttribute('aria-current'); }); this.setAttribute('aria-current', 'page');">
+          Items (Postgres)
+        </button>
+        <button type="button"
+                class="sidebar-btn"
+                data-nav="observability"
+                hx-get="/htmx/view/observability"
+                hx-target="#main-panel"
+                hx-swap="innerHTML"
+                hx-on:htmx:after-request="document.querySelectorAll('.sidebar-btn').forEach(function(b){ b.removeAttribute('aria-current'); }); this.setAttribute('aria-current', 'page');">
+          Observability
+        </button>
+      </nav>
+
+      <main id="main-panel"
+            class="main-panel"
+            hx-get="/htmx/view/home"
+            hx-trigger="load"
+            hx-swap="innerHTML">
+        <p class="panel-loading">Loading…</p>
+      </main>
+    </div>
+  </body>
+</html>

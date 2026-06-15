@@ -1,0 +1,27 @@
+<section class="view-section" id="view-items">
+  <h2>Items (Postgres)</h2>
+  <p class="hint">
+    Shared <code>items</code> table — same as Java/Python/Rust.
+    REST: <code>GET/POST /api/items</code>.
+  </p>
+  <form
+    class="toolbar"
+    hx-post="/htmx/items"
+    hx-target="#items-body"
+    hx-swap="innerHTML"
+  >
+    <input type="text" name="name" placeholder="Item name" required maxlength="255" />
+    <button type="submit">Create item</button>
+    <button type="button" hx-get="/htmx/items" hx-target="#items-body" hx-swap="innerHTML">Reload</button>
+    <a class="btn" href="/api/items" target="_blank" rel="noopener">JSON</a>
+  </form>
+  <table>
+    <thead><tr><th>ID</th><th>Name</th><th>Created</th></tr></thead>
+    <tbody id="items-body"
+           hx-get="/htmx/items"
+           hx-trigger="load"
+           hx-swap="innerHTML">
+      <tr><td colspan="3" class="muted">Loading…</td></tr>
+    </tbody>
+  </table>
+</section>
