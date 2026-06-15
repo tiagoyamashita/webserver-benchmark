@@ -1,6 +1,9 @@
 java/target/
 rust/target/
 
+# App and service log files
+*.log
+
 # Local observability secrets (Grafana admin password)
 .env.observability
 
