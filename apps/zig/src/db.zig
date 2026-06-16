@@ -12,12 +12,27 @@ pub const DbError = error{
     DatabaseNotConfigured,
     ConnectionFailed,
     QueryFailed,
+    DuplicateEmail,
     OutOfMemory,
 };
 
 pub const Item = struct {
     id: i64,
     name: []const u8,
+    created_at: []const u8,
+};
+
+pub const UserAuthRow = struct {
+    id: i64,
+    name: []const u8,
+    email: []const u8,
+    password_hash: ?[]const u8,
+};
+
+pub const InsertedUser = struct {
+    id: i64,
+    name: []const u8,
+    email: []const u8,
     created_at: []const u8,
 };
 
@@ -243,5 +258,123 @@ pub const Db = struct {
         }
         const affected = c.PQcmdTuples(result);
         return std.fmt.parseInt(usize, std.mem.span(affected), 10) catch 0 > 0;
+    }
+
+    pub fn freeUserAuthRow(row: UserAuthRow, allocator: std.mem.Allocator) void {
+        allocator.free(row.name);
+        allocator.free(row.email);
+        if (row.password_hash) |hash| allocator.free(hash);
+    }
+
+    pub fn findUserAuthByEmail(self: *Db, allocator: std.mem.Allocator, email: []const u8) DbError!?UserAuthRow {
+        const conn = self.conn orelse return error.DatabaseNotConfigured;
+        const operation = "find_user_auth_by_email";
+        const sql = "SELECT id, name, email, password_hash FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1";
+        try self.stampApplicationName();
+        postgres_log.logQuery(operation, sql);
+        const email_z = try allocator.allocSentinel(u8, email.len, 0);
+        defer allocator.free(email_z);
+        @memcpy(email_z, email);
+        const email_ptr: *const u8 = &email_z[0];
+        const param_values = [_]?*const u8{email_ptr};
+        const param_lengths = [_]c_int{@intCast(email.len)};
+        const param_formats = [_]c_int{0};
+        const result = c.PQexecParams(
+            conn,
+            sql,
+            1,
+            null,
+            &param_values,
+            &param_lengths,
+            &param_formats,
+            0,
+        );
+        if (result == null) return error.QueryFailed;
+        defer c.PQclear(result);
+        if (c.PQresultStatus(result) != c.PGRES_TUPLES_OK) {
+            postgres_log.logQueryFailed(operation, sql, std.mem.span(c.PQerrorMessage(conn)));
+            return error.QueryFailed;
+        }
+        if (c.PQntuples(result) == 0) return null;
+        const id_text = c.PQgetvalue(result, 0, 0) orelse return error.QueryFailed;
+        const name_text = c.PQgetvalue(result, 0, 1) orelse return error.QueryFailed;
+        const email_text = c.PQgetvalue(result, 0, 2) orelse return error.QueryFailed;
+        const hash_text = c.PQgetvalue(result, 0, 3);
+        const hash_span = if (hash_text != null and c.PQgetisnull(result, 0, 3) == 0)
+            std.mem.span(hash_text)
+        else
+            "";
+        return .{
+            .id = std.fmt.parseInt(i64, std.mem.span(id_text), 10) catch return error.QueryFailed,
+            .name = try allocator.dupe(u8, std.mem.span(name_text)),
+            .email = try allocator.dupe(u8, std.mem.span(email_text)),
+            .password_hash = if (hash_span.len > 0) try allocator.dupe(u8, hash_span) else null,
+        };
+    }
+
+    pub fn insertUserWithPassword(
+        self: *Db,
+        allocator: std.mem.Allocator,
+        name: []const u8,
+        email: []const u8,
+        password_hash: ?[]const u8,
+    ) DbError!InsertedUser {
+        const conn = self.conn orelse return error.DatabaseNotConfigured;
+        const operation = "insert_user_with_password";
+        const sql = "INSERT INTO users (name, email, password_hash, created_at) VALUES ($1, $2, $3, NOW()) RETURNING id, name, email, created_at::text";
+        try self.stampApplicationName();
+        postgres_log.logQuery(operation, sql);
+        const name_z = try allocator.allocSentinel(u8, name.len, 0);
+        defer allocator.free(name_z);
+        @memcpy(name_z, name);
+        const email_z = try allocator.allocSentinel(u8, email.len, 0);
+        defer allocator.free(email_z);
+        @memcpy(email_z, email);
+        const name_ptr: *const u8 = &name_z[0];
+        const email_ptr: *const u8 = &email_z[0];
+        var hash_z: []u8 = &.{};
+        defer if (password_hash != null) allocator.free(hash_z);
+        const hash_ptr: ?*const u8 = if (password_hash) |hash| blk: {
+            hash_z = try allocator.allocSentinel(u8, hash.len, 0);
+            @memcpy(hash_z, hash);
+            break :blk &hash_z[0];
+        } else null;
+        const param_values = [_]?*const u8{ name_ptr, email_ptr, hash_ptr };
+        const param_lengths = [_]c_int{
+            @intCast(name.len),
+            @intCast(email.len),
+            if (password_hash) |hash| @intCast(hash.len) else 0,
+        };
+        const param_formats = [_]c_int{ 0, 0, 0 };
+        const result = c.PQexecParams(
+            conn,
+            sql,
+            3,
+            null,
+            &param_values,
+            &param_lengths,
+            &param_formats,
+            0,
+        );
+        if (result == null) return error.QueryFailed;
+        defer c.PQclear(result);
+        if (c.PQresultStatus(result) != c.PGRES_TUPLES_OK) {
+            const pg_err = std.mem.span(c.PQerrorMessage(conn));
+            postgres_log.logQueryFailed(operation, sql, pg_err);
+            if (std.mem.indexOf(u8, pg_err, "duplicate") != null or std.mem.indexOf(u8, pg_err, "unique") != null) {
+                return error.DuplicateEmail;
+            }
+            return error.QueryFailed;
+        }
+        const id_text = c.PQgetvalue(result, 0, 0) orelse return error.QueryFailed;
+        const name_text = c.PQgetvalue(result, 0, 1) orelse return error.QueryFailed;
+        const email_text = c.PQgetvalue(result, 0, 2) orelse return error.QueryFailed;
+        const created_text = c.PQgetvalue(result, 0, 3) orelse return error.QueryFailed;
+        return .{
+            .id = std.fmt.parseInt(i64, std.mem.span(id_text), 10) catch return error.QueryFailed,
+            .name = try allocator.dupe(u8, std.mem.span(name_text)),
+            .email = try allocator.dupe(u8, std.mem.span(email_text)),
+            .created_at = try allocator.dupe(u8, std.mem.span(created_text)),
+        };
     }
 };

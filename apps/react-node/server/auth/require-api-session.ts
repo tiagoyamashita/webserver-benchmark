@@ -8,7 +8,7 @@ const TRUSTED_ORIGINS = new Set([
   "exercises-rust",
 ]);
 
-/** Require Redis session for browser `/api/*` data routes when auth is configured. */
+/** Require a registered user for browser `/api/*` data routes when auth is configured. */
 export function requireApiSession(auth: AuthState | null) {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!auth) {
@@ -27,6 +27,10 @@ export function requireApiSession(auth: AuthState | null) {
     }
     if (isSessionExpired(session)) {
       res.status(401).json({ error: "Session expired" });
+      return;
+    }
+    if (session.userId <= 0 || !session.email) {
+      res.status(401).json({ error: "Sign in required" });
       return;
     }
     next();

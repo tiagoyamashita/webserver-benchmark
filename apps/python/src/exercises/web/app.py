@@ -33,7 +33,8 @@ from exercises.web.junit_report import (
 from exercises.web.pytest_runner import run_pytest
 from exercises.web.source_service import read_test_source
 from exercises.web.stack_ping import StackLinks
-from exercises.web.session_auth import AuthState, register_session_middleware
+from exercises.web.users_api import register_users_routes
+from exercises.web.session_auth import AuthState, register_auth_guard, register_session_middleware
 from exercises.web.session_models import SessionConfig
 from exercises.web.session_repository import connect_redis, SessionRepository
 
@@ -101,6 +102,7 @@ def create_app() -> Flask:
     register_relay_routes(app)
     register_openapi_routes(app)
     register_auth_routes(app)
+    register_users_routes(app)
 
     auth_state: AuthState | None = None
     try:
@@ -120,6 +122,7 @@ def create_app() -> Flask:
             extra={"source": _APP_SOURCE},
         )
     register_session_middleware(app, auth_state)
+    register_auth_guard(app)
     start_create_item_consumer()
 
     @app.before_request

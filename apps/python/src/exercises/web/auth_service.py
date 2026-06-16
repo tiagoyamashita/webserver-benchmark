@@ -6,7 +6,8 @@ import uuid
 from dataclasses import dataclass
 from datetime import timedelta
 
-from exercises.web.db import DatabaseNotConfiguredError, connection, find_user_by_email, find_user_by_id
+from exercises.web.db import DatabaseNotConfiguredError, connection, find_user_auth_by_email, find_user_by_email, find_user_by_id
+from exercises.web.password_util import verify_password
 from exercises.web.session_models import SessionConfig, SharedSession, utc_now
 from exercises.web.session_repository import SessionRepository
 
@@ -49,9 +50,10 @@ def login(
     *,
     email: str | None,
     user_id: int | None,
+    password: str | None = None,
     request_id: str | None = None,
 ) -> SharedSession:
-    user = _resolve_user(email=email, user_id=user_id, request_id=request_id)
+    user = _resolve_user(email=email, user_id=user_id, password=password, request_id=request_id)
     issued_at = utc_now()
     expires_at = issued_at + timedelta(seconds=config.ttl_secs)
     session = SharedSession(
@@ -69,6 +71,17 @@ def login(
 
 def logout(repo: SessionRepository, session_id: str) -> None:
     repo.delete(session_id)
+
+
+def logout_and_create_guest(
+    repo: SessionRepository,
+    config: SessionConfig,
+    session_id: str | None,
+) -> SharedSession:
+    """Delete the cookie session id (if any) and issue a fresh guest session in Redis."""
+    if session_id and session_id.strip():
+        repo.delete(session_id.strip())
+    return _create_anonymous_session(repo, config)
 
 
 def refresh_session(
@@ -125,18 +138,22 @@ def _resolve_user(
     *,
     email: str | None,
     user_id: int | None,
+    password: str | None = None,
     request_id: str | None,
 ) -> tuple[int, str, str]:
     trimmed_email = email.strip() if email else ""
     if trimmed_email:
         try:
             with connection(request_id=request_id) as conn:
-                row = find_user_by_email(conn, trimmed_email)
+                auth_row = find_user_auth_by_email(conn, trimmed_email)
         except DatabaseNotConfiguredError as exc:
             raise AuthServiceError(503, str(exc)) from exc
-        if row is None:
+        if auth_row is None:
             raise AuthServiceError(404, f"No user with email {trimmed_email}")
-        return row
+        if password:
+            if not auth_row[3] or not verify_password(password, auth_row[3]):
+                raise AuthServiceError(401, "Invalid email or password")
+        return auth_row[0], auth_row[1], auth_row[2]
     if user_id is not None:
         try:
             with connection(request_id=request_id) as conn:

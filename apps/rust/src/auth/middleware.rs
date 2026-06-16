@@ -1,7 +1,8 @@
 use axum::extract::{Request, State};
 use axum::http::Method;
+use axum::http::StatusCode;
 use axum::middleware::Next;
-use axum::response::Response;
+use axum::response::{IntoResponse, Response};
 use chrono::Utc;
 use tracing::Instrument;
 
@@ -95,4 +96,41 @@ pub async fn session_log_span(req: Request, next: Next) -> Response {
         }
         None => next.run(req).await,
     }
+}
+
+fn is_public_path(method: &Method, path: &str) -> bool {
+    if *method == Method::GET && (path == "/" || path == "/health" || path == "/metrics") {
+        return true;
+    }
+    if path.starts_with("/api/auth/") {
+        return true;
+    }
+    if *method == Method::POST && path == "/api/users" {
+        return true;
+    }
+    if path.starts_with("/swagger-ui") || path.starts_with("/api-docs") {
+        return true;
+    }
+    false
+}
+
+pub async fn require_logged_in_user(req: Request, next: Next) -> Response {
+    let method = req.method().clone();
+    let path = req.uri().path().to_string();
+    if is_public_path(&method, &path) {
+        return next.run(req).await;
+    }
+    let logged_in = req
+        .extensions()
+        .get::<CurrentSession>()
+        .map(|session| session.0.user_id > 0 && session.0.email.is_some())
+        .unwrap_or(false);
+    if logged_in {
+        return next.run(req).await;
+    }
+    (
+        StatusCode::UNAUTHORIZED,
+        axum::Json(serde_json::json!({ "error": "Sign in required" })),
+    )
+        .into_response()
 }

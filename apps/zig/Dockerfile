@@ -14,6 +14,7 @@ ENV PATH="/opt/zig:${PATH}"
 ENV C_INCLUDE_PATH="/usr/include/postgresql"
 WORKDIR /build
 COPY build.zig build.zig.zon ./
+COPY vendor ./vendor
 COPY src ./src
 RUN zig build -Doptimize=ReleaseSafe
 

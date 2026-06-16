@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { findUserByEmail, findUserById } from "../postgres-users.js";
+import { createUser, findUserAuthByEmail, findUserByEmail, findUserById, verifyPassword } from "../postgres-users.js";
 import { deleteSession, findSessionById, saveSession, type AuthState } from "./repository.js";
 import {
   formatInstant,
@@ -49,7 +49,7 @@ export async function ensureSession(
 export async function login(
   auth: AuthState,
   config: SessionConfig,
-  body: { email?: string; userId?: number },
+  body: { email?: string; userId?: number; password?: string },
   requestId?: string,
 ): Promise<SharedSession> {
   const user = await resolveUser(body, requestId);
@@ -70,6 +70,17 @@ export async function login(
 
 export async function logout(auth: AuthState, sessionId: string): Promise<void> {
   await deleteSession(auth, sessionId);
+}
+
+export async function logoutAndCreateGuest(
+  auth: AuthState,
+  sessionId: string | null | undefined,
+): Promise<SharedSession> {
+  const trimmed = sessionId?.trim();
+  if (trimmed) {
+    await deleteSession(auth, trimmed);
+  }
+  return createAnonymousSession(auth);
 }
 
 export async function refreshSession(
@@ -122,16 +133,21 @@ async function createAnonymousSession(auth: AuthState): Promise<SharedSession> {
 }
 
 async function resolveUser(
-  body: { email?: string; userId?: number },
+  body: { email?: string; userId?: number; password?: string },
   requestId?: string,
 ): Promise<{ id: number; name: string; email: string }> {
   const email = body.email?.trim();
   if (email) {
-    const user = await findUserByEmail(email, requestId);
-    if (!user) {
+    const authUser = await findUserAuthByEmail(email, requestId);
+    if (!authUser) {
       throw new AuthServiceError(404, `No user with email ${email}`);
     }
-    return user;
+    if (body.password) {
+      if (!verifyPassword(body.password, authUser.passwordHash)) {
+        throw new AuthServiceError(401, "Invalid email or password");
+      }
+    }
+    return authUser;
   }
   if (body.userId != null) {
     const user = await findUserById(body.userId, requestId);

@@ -35,6 +35,7 @@ utoipa-swagger-ui = { version = "8", features = ["axum"] }
 rdkafka = { version = "0.37", features = ["tokio"] }
 redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
 uuid = { version = "1", features = ["v4"] }
+bcrypt = "0.16"
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }

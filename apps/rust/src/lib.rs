@@ -10,6 +10,7 @@ pub mod tracing_init;
 pub mod items;
 pub mod kafka;
 pub mod users;
+pub mod users_api;
 pub mod obs_log;
 pub mod openapi;
 pub mod flash;

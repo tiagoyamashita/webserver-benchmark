@@ -4,15 +4,21 @@ from __future__ import annotations
 
 import logging
 
-from flask import Flask, g, jsonify, make_response, request
+from flask import Flask, g, jsonify, request
 
-from exercises.web.auth_service import AuthServiceError, ensure_session, login, logout, refresh_session
+from exercises.web.auth_service import (
+    AuthServiceError,
+    ensure_session,
+    login,
+    logout_and_create_guest,
+    refresh_session,
+)
 from exercises.web.session_models import session_response, utc_now
 from exercises.web.controller_logging import log_error, log_received, log_succeeded, log_warn
 from exercises.web.session_auth import (
     AuthState,
-    append_clear_session_cookie,
     append_session_cookie,
+    session_id_candidates,
 )
 
 SOURCE = "src/exercises/web/auth_api.py"
@@ -87,12 +93,16 @@ def register_auth_routes(app: Flask) -> None:
                 user_id = int(user_id)
             except (TypeError, ValueError):
                 user_id = None
+        password = body.get("password") if isinstance(body, dict) else None
+        if password is not None and not isinstance(password, str):
+            password = None
         try:
             session = login(
                 auth.repo,
                 auth.config,
                 email=email,
                 user_id=user_id,
+                password=password,
                 request_id=_request_id(),
             )
         except AuthServiceError as exc:
@@ -120,22 +130,24 @@ def register_auth_routes(app: Flask) -> None:
         auth = _auth_state()
         if auth is None:
             return jsonify(error="Redis session store not configured"), 503
-        session = _shared_session()
-        if session is None:
-            return jsonify(error="No active session"), 401
+        candidates = session_id_candidates(auth.config.cookie_name)
+        previous_id = candidates[0] if candidates else None
         try:
-            logout(auth.repo, session.session_id)
+            guest = logout_and_create_guest(auth.repo, auth.config, previous_id)
         except Exception as exc:
-            log_warn(
-                _LOG,
-                "auth_logout",
-                SOURCE,
-                "auth_logout redis delete failed",
-                error=str(exc),
-            )
-        response = make_response("", 204)
-        append_clear_session_cookie(response, auth.config)
-        log_succeeded(_LOG, "auth_logout", SOURCE, session_id=session.session_id)
+            log_error(_LOG, "auth_logout", SOURCE, "auth_logout failed", error=str(exc))
+            return jsonify(error=str(exc)), 503
+        g.shared_session = guest
+        payload = session_response(guest, auth.config.redis_key(guest.session_id))
+        response = jsonify(payload)
+        append_session_cookie(response, auth.config, guest.session_id)
+        log_succeeded(
+            _LOG,
+            "auth_logout",
+            SOURCE,
+            previous_session_id=previous_id,
+            session_id=guest.session_id,
+        )
         return response
 
     @app.post("/api/auth/refresh")

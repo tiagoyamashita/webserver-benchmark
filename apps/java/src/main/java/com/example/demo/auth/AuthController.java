@@ -4,9 +4,10 @@ import static net.logstash.logback.argument.StructuredArguments.kv;
 
 import com.example.demo.config.SessionProperties;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -119,20 +120,32 @@ public class AuthController {
   }
 
   @PostMapping("/logout")
-  public ResponseEntity<Void> logout(HttpServletResponse response) {
+  public ResponseEntity<SessionResponse> logout(
+      HttpServletRequest request, HttpServletResponse response) {
     log.info(
         "AuthController.logout request received",
         kv("source", SOURCE),
         kv("controller", "AuthController"),
         kv("method", "POST"),
         kv("path", "/api/auth/logout"));
-    SharedSession session = authService.requireCurrentSession();
-    authService.logout(session.sessionId());
-    response.addHeader(HttpHeaders.SET_COOKIE, clearSessionCookie().toString());
+    SharedSession current = SessionContext.get();
+    String cookieId = readCookie(request, sessionProperties.getCookieName());
+    String previousId =
+        current != null
+            ? current.sessionId()
+            : (cookieId != null && !cookieId.isBlank() ? cookieId.trim() : null);
+    SharedSession guest = authService.logoutAndCreateGuest(previousId);
+    SessionContext.set(guest);
+    response.addHeader(HttpHeaders.SET_COOKIE, sessionCookie(guest.sessionId()).toString());
+    SessionResponse payload =
+        SessionResponse.from(guest, authService.redisKey(guest.sessionId()));
     log.info(
         "AuthController.logout succeeded",
-        kv("source", SOURCE));
-    return ResponseEntity.noContent().build();
+        kv("source", SOURCE),
+        kv("previousSessionId", previousId),
+        kv("sessionId", guest.sessionId()),
+        kv("userId", guest.userId()));
+    return ResponseEntity.ok(payload);
   }
 
   @GetMapping("/session")
@@ -162,12 +175,17 @@ public class AuthController {
         .build();
   }
 
-  private ResponseCookie clearSessionCookie() {
-    return ResponseCookie.from(sessionProperties.getCookieName(), "")
-        .httpOnly(true)
-        .path("/")
-        .maxAge(Duration.ZERO)
-        .sameSite("Lax")
-        .build();
+  private static String readCookie(HttpServletRequest request, String name) {
+    Cookie[] cookies = request.getCookies();
+    if (cookies == null) {
+      return null;
+    }
+    for (Cookie cookie : cookies) {
+      if (name.equals(cookie.getName())) {
+        String value = cookie.getValue();
+        return value != null && !value.isBlank() ? value.trim() : null;
+      }
+    }
+    return null;
   }
 }

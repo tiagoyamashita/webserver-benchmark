@@ -9,7 +9,9 @@ const items_handler = @import("handlers/items.zig");
 const api_items_handler = @import("handlers/api_items.zig");
 const observability_handler = @import("handlers/observability.zig");
 const health_handler = @import("handlers/health.zig");
-const auth_proxy_handler = @import("handlers/auth_proxy.zig");
+const auth_handler = @import("handlers/auth.zig");
+const users_handler = @import("handlers/users.zig");
+const auth_guard = @import("auth/guard.zig");
 
 const SOURCE = "src/router.zig";
 
@@ -25,21 +27,29 @@ pub fn handleRequest(app: *app_mod.App, request: *std.http.Server.Request) !void
     if (request.head.method == .GET and std.mem.eql(u8, path, "/")) {
         return try home_handler.handleShell(app, request);
     }
+    if (request.head.method == .POST and std.mem.eql(u8, path, "/api/users")) {
+        return try users_handler.handleCreateUser(app, request);
+    }
     if (request.head.method == .POST and std.mem.eql(u8, path, "/api/auth/ensure")) {
-        return try auth_proxy_handler.handleEnsure(app, request);
+        return try auth_handler.handleEnsure(app, request);
     }
     if (request.head.method == .POST and std.mem.eql(u8, path, "/api/auth/login")) {
-        return try auth_proxy_handler.handleLogin(app, request);
+        return try auth_handler.handleLogin(app, request);
     }
     if (request.head.method == .POST and std.mem.eql(u8, path, "/api/auth/logout")) {
-        return try auth_proxy_handler.handleLogout(app, request);
+        return try auth_handler.handleLogout(app, request);
     }
     if (request.head.method == .POST and std.mem.eql(u8, path, "/api/auth/refresh")) {
-        return try auth_proxy_handler.handleRefresh(app, request);
+        return try auth_handler.handleRefresh(app, request);
     }
     if (request.head.method == .GET and std.mem.eql(u8, path, "/api/auth/session")) {
-        return try auth_proxy_handler.handleSession(app, request);
+        return try auth_handler.handleSession(app, request);
     }
+
+    if (!auth_guard.isPublicPath(request.head.method, path)) {
+        if (!try auth_guard.requireLoggedIn(app, request)) return;
+    }
+
     if (request.head.method == .GET and std.mem.eql(u8, path, "/htmx/view/home")) {
         return try home_handler.handleView(request);
     }

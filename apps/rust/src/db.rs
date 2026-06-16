@@ -91,6 +91,13 @@ pub struct UserRow {
     pub email: String,
 }
 
+pub struct UserAuthRow {
+    pub id: i64,
+    pub name: String,
+    pub email: String,
+    pub password_hash: Option<String>,
+}
+
 pub async fn find_user_by_email(pool: &PgPool, email: &str) -> Result<Option<UserRow>, sqlx::Error> {
     let row: Option<(i64, String, String)> = sqlx::query_as(
         "SELECT id, name, email FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1",
@@ -99,6 +106,24 @@ pub async fn find_user_by_email(pool: &PgPool, email: &str) -> Result<Option<Use
     .fetch_optional(pool)
     .await?;
     Ok(row.map(|(id, name, email)| UserRow { id, name, email }))
+}
+
+pub async fn find_user_auth_by_email(
+    pool: &PgPool,
+    email: &str,
+) -> Result<Option<UserAuthRow>, sqlx::Error> {
+    let row: Option<(i64, String, String, Option<String>)> = sqlx::query_as(
+        "SELECT id, name, email, password_hash FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1",
+    )
+    .bind(email)
+    .fetch_optional(pool)
+    .await?;
+    Ok(row.map(|(id, name, email, password_hash)| UserAuthRow {
+        id,
+        name,
+        email,
+        password_hash,
+    }))
 }
 
 pub async fn find_user_by_id(pool: &PgPool, user_id: i64) -> Result<Option<UserRow>, sqlx::Error> {
@@ -116,13 +141,24 @@ pub async fn insert_user(
     email: &str,
     request_id: Option<&str>,
 ) -> Result<InsertedUser, sqlx::Error> {
+    insert_user_with_password(pool, name, email, None, request_id).await
+}
+
+pub async fn insert_user_with_password(
+    pool: &PgPool,
+    name: &str,
+    email: &str,
+    password_hash: Option<&str>,
+    request_id: Option<&str>,
+) -> Result<InsertedUser, sqlx::Error> {
     let mut conn = pool.acquire().await?;
     stamp_application_name(&mut conn, request_id).await?;
     let row: (i64, String, String, NaiveDateTime) = sqlx::query_as(
-        "INSERT INTO users (name, email, created_at) VALUES ($1, $2, NOW()) RETURNING id, name, email, created_at",
+        "INSERT INTO users (name, email, password_hash, created_at) VALUES ($1, $2, $3, NOW()) RETURNING id, name, email, created_at",
     )
     .bind(name)
     .bind(email)
+    .bind(password_hash)
     .fetch_one(&mut *conn)
     .await?;
 

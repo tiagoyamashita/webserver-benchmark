@@ -7,7 +7,7 @@ import {
   AuthServiceError,
   ensureSession,
   login,
-  logout,
+  logoutAndCreateGuest,
   refreshSession,
   resolveSharedSession,
 } from "./service.js";
@@ -18,7 +18,7 @@ import {
   toSessionResponse,
   type SharedSession,
 } from "./session.js";
-import { clearSessionCookieValue, sessionCookieValue } from "./cookies.js";
+import { sessionCookieValue, sessionIdCandidates } from "./cookies.js";
 
 const SOURCE = "server/auth/routes.ts";
 
@@ -91,7 +91,7 @@ export function registerAuthRoutes(app: Express, runtime: AuthRuntime): void {
       res.status(503).json({ error: "Redis session store not configured" });
       return;
     }
-    const body = (req.body ?? {}) as { email?: string; userId?: number };
+    const body = (req.body ?? {}) as { email?: string; userId?: number; password?: string };
     try {
       const session = await login(runtime.auth, runtime.auth.config, body, req.requestId);
       const payload = toSessionResponse(session, redisKey(runtime.auth.config, session.sessionId));
@@ -125,25 +125,27 @@ export function registerAuthRoutes(app: Express, runtime: AuthRuntime): void {
       res.status(503).json({ error: "Redis session store not configured" });
       return;
     }
-    const session = req.sharedSession;
-    if (!session) {
-      res.status(401).json({ error: "No active session" });
-      return;
-    }
+    const candidates = sessionIdCandidates(req, runtime.auth.config.cookieName);
+    const previousSessionId = candidates[0] ?? null;
     try {
-      await logout(runtime.auth, session.sessionId);
-    } catch (error) {
-      logWarn("authLogout", SOURCE, "authLogout redis delete failed", {
-        error: error instanceof Error ? error.message : String(error),
+      const session = await logoutAndCreateGuest(runtime.auth, previousSessionId);
+      const payload = toSessionResponse(
+        session,
+        redisKey(runtime.auth.config, session.sessionId),
+      );
+      res
+        .status(200)
+        .setHeader("Set-Cookie", sessionCookieValue(runtime.auth.config, session.sessionId))
+        .json(payload);
+      logSucceeded("authLogout", SOURCE, {
+        previous_session_id: previousSessionId,
+        session_id: session.sessionId,
       });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logError("authLogout", SOURCE, "authLogout failed", { error: message });
+      res.status(503).json({ error: message });
     }
-    res
-      .status(204)
-      .setHeader("Set-Cookie", clearSessionCookieValue(runtime.auth.config))
-      .end();
-    logSucceeded("authLogout", SOURCE, {
-      session_id: session.sessionId,
-    });
   });
 
   app.post("/api/auth/refresh", async (req, res) => {

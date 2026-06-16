@@ -160,6 +160,9 @@ services:
       DB_NAME: demo
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_URL: redis://redis:6379
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8083/health"]
       interval: 15s

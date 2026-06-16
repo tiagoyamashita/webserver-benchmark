@@ -85,6 +85,7 @@ pub struct EnsureSessionRequest {
 pub struct LoginRequest {
     pub email: Option<String>,
     pub user_id: Option<i64>,
+    pub password: Option<String>,
 }
 
 pub fn read_env(key: &str, default: &str) -> String {

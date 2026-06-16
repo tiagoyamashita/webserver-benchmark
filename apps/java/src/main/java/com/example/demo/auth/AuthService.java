@@ -66,6 +66,14 @@ public class AuthService {
     sessions.delete(sessionId);
   }
 
+  /** Delete the cookie session id (if any) and issue a fresh guest session in Redis. */
+  public SharedSession logoutAndCreateGuest(String sessionId) {
+    if (sessionId != null && !sessionId.isBlank()) {
+      sessions.delete(sessionId.trim());
+    }
+    return createAnonymousSession();
+  }
+
   /** Delete the current Redis session (if any) and issue a new session id with fresh payload. */
   public SharedSession refreshSession(SharedSession current) {
     if (current != null) {

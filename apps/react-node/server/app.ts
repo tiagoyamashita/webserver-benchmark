@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   logError,
+  logReceived,
   logReceivedFromRequest,
   logSucceeded,
   logTrace,
@@ -15,6 +16,7 @@ import {
   insertItemIntoPostgres,
   listItemsFromPostgres,
 } from "./postgres-items.js";
+import { createUser } from "./postgres-users.js";
 import { registerAuthRoutes, sessionMiddleware, type AuthRuntime } from "./auth/routes.js";
 import { requireApiSession } from "./auth/require-api-session.js";
 import {
@@ -179,6 +181,29 @@ export function createApp(options: CreateAppOptions = {}): Express {
     res.json({ ok: true, service: "react-node" });
   });
 
+  app.post("/api/users", async (req: Request, res: Response) => {
+    const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
+    const email = typeof req.body?.email === "string" ? req.body.email.trim() : "";
+    const password = typeof req.body?.password === "string" ? req.body.password : "";
+    logReceivedFromRequest(req, "create_user", SOURCE, "POST", "/api/users", { email });
+    if (!name || !email || password.length < 8) {
+      res.status(400).json({ error: "name, email, and password (min 8 chars) are required" });
+      return;
+    }
+    try {
+      const user = await createUser(name, email, password, req.requestId);
+      logSucceeded("create_user", SOURCE, { user_id: user.id, email: user.email });
+      res.status(201).json(user);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const status = /unique|duplicate/i.test(message) ? 409 : 500;
+      logError("create_user", SOURCE, "create_user failed", { error: message });
+      res.status(status).json({
+        error: status === 409 ? "Email already registered" : message,
+      });
+    }
+  });
+
   app.get("/api/observability/sample-log", (_req: Request, res: Response) => {
     logReceived("observabilitySampleLog", SOURCE, "GET", "/api/observability/sample-log");
     writeLog(
@@ -190,7 +215,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
     res.send("logged");
   });
 
-  app.get("/api/probe/:id", async (req: Request, res: Response) => {
+  app.get("/api/probe/:id", protectApiSession, async (req: Request, res: Response) => {
     const rawId = req.params.id;
     const id = Array.isArray(rawId) ? rawId[0] : rawId;
     const target = id ?? "";

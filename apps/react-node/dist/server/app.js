@@ -2,9 +2,10 @@ import express from "express";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { logError, logReceivedFromRequest, logSucceeded, logTrace, logWarn, } from "./controller-logging.js";
+import { logError, logReceived, logReceivedFromRequest, logSucceeded, logTrace, logWarn, } from "./controller-logging.js";
 import { createItem, fetchItems } from "./items.js";
 import { DatabaseNotConfiguredError, insertItemIntoPostgres, listItemsFromPostgres, } from "./postgres-items.js";
+import { createUser } from "./postgres-users.js";
 import { registerAuthRoutes, sessionMiddleware } from "./auth/routes.js";
 import { requireApiSession } from "./auth/require-api-session.js";
 import { observabilityEnabled, writeLog, } from "./observability-logging.js";
@@ -126,13 +127,36 @@ export function createApp(options = {}) {
     app.get("/api/health", (_req, res) => {
         res.json({ ok: true, service: "react-node" });
     });
+    app.post("/api/users", async (req, res) => {
+        const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
+        const email = typeof req.body?.email === "string" ? req.body.email.trim() : "";
+        const password = typeof req.body?.password === "string" ? req.body.password : "";
+        logReceivedFromRequest(req, "create_user", SOURCE, "POST", "/api/users", { email });
+        if (!name || !email || password.length < 8) {
+            res.status(400).json({ error: "name, email, and password (min 8 chars) are required" });
+            return;
+        }
+        try {
+            const user = await createUser(name, email, password, req.requestId);
+            logSucceeded("create_user", SOURCE, { user_id: user.id, email: user.email });
+            res.status(201).json(user);
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            const status = /unique|duplicate/i.test(message) ? 409 : 500;
+            logError("create_user", SOURCE, "create_user failed", { error: message });
+            res.status(status).json({
+                error: status === 409 ? "Email already registered" : message,
+            });
+        }
+    });
     app.get("/api/observability/sample-log", (_req, res) => {
         logReceived("observabilitySampleLog", SOURCE, "GET", "/api/observability/sample-log");
         writeLog("INFO", "Observability sample event (JSON log file -> Filebeat -> Logstash -> Elasticsearch)", { source: SOURCE, controller: "observabilitySampleLog" });
         logSucceeded("observabilitySampleLog", SOURCE);
         res.send("logged");
     });
-    app.get("/api/probe/:id", async (req, res) => {
+    app.get("/api/probe/:id", protectApiSession, async (req, res) => {
         const rawId = req.params.id;
         const id = Array.isArray(rawId) ? rawId[0] : rawId;
         const target = id ?? "";

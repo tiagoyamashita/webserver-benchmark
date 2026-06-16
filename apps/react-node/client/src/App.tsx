@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { createItem, fetchItems, probeService } from "./api";
-import { subscribeLastRequestId } from "./api-request";
+import { subscribeLastRequestId, apiRequest } from "./api-request";
 import { formatProbeResult, probeResultClassName } from "./formatResult";
 import {
   ensureSession,
@@ -44,7 +44,11 @@ export default function App() {
   const [headerAuthLoading, setHeaderAuthLoading] = useState(true);
   const [headerLoginEmail, setHeaderLoginEmail] = useState("");
   const [headerLoginPassword, setHeaderLoginPassword] = useState("");
-  const [headerLoginError, setHeaderLoginError] = useState<string | null>(null);
+  const [gateError, setGateError] = useState<string | null>(null);
+  const [authTab, setAuthTab] = useState<"login" | "register">("login");
+  const [registerName, setRegisterName] = useState("");
+  const [registerEmail, setRegisterEmail] = useState("");
+  const [registerPassword, setRegisterPassword] = useState("");
   const [loggedInUser, setLoggedInUser] = useState<{ name: string; email: string } | null>(null);
   const [lastRequestId, setLastRequestId] = useState("—");
   const [sessionStatus, setSessionStatus] = useState("Loading session…");
@@ -76,7 +80,7 @@ export default function App() {
       loggedIn && data.email ? { name: data.name || "User", email: data.email } : null,
     );
     setHeaderAuthLoading(false);
-    setHeaderLoginError(null);
+    setGateError(null);
   }
 
   const refreshSessionHeader = useCallback(async () => {
@@ -93,7 +97,7 @@ export default function App() {
         setSessionStatus("Session unavailable.");
         setLoggedInUser(null);
         setHeaderAuthLoading(false);
-        setHeaderLoginError("Session unavailable (is Redis up?)");
+        setGateError("Session unavailable (is Redis up?)");
       }
     }
   }, []);
@@ -166,9 +170,7 @@ export default function App() {
     setSessionPending(true);
     setSessionResult("Logging out…");
     try {
-      await logoutSession();
-      renderSessionStatus(null);
-      const session = await ensureSession();
+      const session = await logoutSession();
       renderSessionStatus(session);
       setSessionResult(`Logged out. New guest session:\n${JSON.stringify(session, null, 2)}`);
     } catch (error) {
@@ -178,29 +180,67 @@ export default function App() {
     }
   }, []);
 
-  const submitHeaderLogin = useCallback(
+  const performGateLogin = useCallback(async (email: string, password: string) => {
+    setGateError(null);
+    setSessionPending(true);
+    try {
+      const body: { email: string; password?: string } = { email };
+      if (password) body.password = password;
+      const session = await loginSession(body);
+      renderSessionStatus(session);
+      setHeaderLoginPassword("");
+    } catch (error) {
+      setGateError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSessionPending(false);
+    }
+  }, []);
+
+  const submitGateLogin = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       const email = headerLoginEmail.trim();
       if (!email) {
-        setHeaderLoginError("Email is required.");
+        setGateError("Email is required.");
         return;
       }
-      setHeaderLoginError(null);
+      await performGateLogin(email, headerLoginPassword);
+    },
+    [headerLoginEmail, headerLoginPassword, performGateLogin],
+  );
+
+  const submitGateRegister = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      const name = registerName.trim();
+      const email = registerEmail.trim();
+      if (!name || !email || registerPassword.length < 8) {
+        setGateError("Name, email, and password (min 8 characters) are required.");
+        return;
+      }
+      setGateError(null);
       setSessionPending(true);
       try {
-        const body: { email: string; password?: string } = { email };
-        if (headerLoginPassword) body.password = headerLoginPassword;
-        const session = await loginSession(body);
-        renderSessionStatus(session);
-        setHeaderLoginPassword("");
+        const { headers } = apiRequest({ "Content-Type": "application/json" });
+        const response = await fetch("/api/users", {
+          method: "POST",
+          credentials: "same-origin",
+          headers,
+          body: JSON.stringify({ name, email, password: registerPassword }),
+        });
+        const data = (await response.json().catch(() => ({}))) as { error?: string };
+        if (!response.ok) {
+          throw new Error(data.error ?? response.statusText);
+        }
+        await performGateLogin(email, registerPassword);
+        setRegisterPassword("");
       } catch (error) {
-        setHeaderLoginError(error instanceof Error ? error.message : String(error));
+        setGateError(error instanceof Error ? error.message : String(error));
       } finally {
         setSessionPending(false);
       }
     },
-    [headerLoginEmail, headerLoginPassword],
+    [performGateLogin, registerEmail, registerName, registerPassword],
   );
 
   const submitHeaderLogout = useCallback(async () => {
@@ -270,6 +310,121 @@ export default function App() {
     return <span className={probeResultClassName(state)}>{formatProbeResult(state)}</span>;
   }
 
+  if (headerAuthLoading) {
+    return (
+      <main>
+        <p className="header-auth-loading">Loading session…</p>
+      </main>
+    );
+  }
+
+  if (!loggedInUser) {
+    return (
+      <main className="auth-gate">
+        <div className="auth-gate-card">
+          <h1>React Node</h1>
+          <p className="auth-gate-lead">Sign in or create an account to open the dashboard.</p>
+          <div className="auth-gate-tabs" role="tablist">
+            <button
+              type="button"
+              className={`auth-tab${authTab === "login" ? " active" : ""}`}
+              role="tab"
+              aria-selected={authTab === "login"}
+              onClick={() => {
+                setAuthTab("login");
+                setGateError(null);
+              }}
+            >
+              Sign in
+            </button>
+            <button
+              type="button"
+              className={`auth-tab${authTab === "register" ? " active" : ""}`}
+              role="tab"
+              aria-selected={authTab === "register"}
+              onClick={() => {
+                setAuthTab("register");
+                setGateError(null);
+              }}
+            >
+              Create account
+            </button>
+          </div>
+          {authTab === "login" ? (
+            <form className="gate-form" onSubmit={(e) => void submitGateLogin(e)} autoComplete="on">
+              <div className="field-row">
+                <label htmlFor="gate-login-email">Email</label>
+                <input
+                  id="gate-login-email"
+                  type="email"
+                  required
+                  autoComplete="username"
+                  value={headerLoginEmail}
+                  onChange={(e) => setHeaderLoginEmail(e.target.value)}
+                />
+              </div>
+              <div className="field-row">
+                <label htmlFor="gate-login-password">Password</label>
+                <input
+                  id="gate-login-password"
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  value={headerLoginPassword}
+                  onChange={(e) => setHeaderLoginPassword(e.target.value)}
+                />
+              </div>
+              <button type="submit" className="btn primary gate-submit" disabled={sessionPending}>
+                Sign in
+              </button>
+            </form>
+          ) : (
+            <form className="gate-form" onSubmit={(e) => void submitGateRegister(e)} autoComplete="on">
+              <div className="field-row">
+                <label htmlFor="gate-register-name">Name</label>
+                <input
+                  id="gate-register-name"
+                  type="text"
+                  required
+                  autoComplete="name"
+                  value={registerName}
+                  onChange={(e) => setRegisterName(e.target.value)}
+                />
+              </div>
+              <div className="field-row">
+                <label htmlFor="gate-register-email">Email</label>
+                <input
+                  id="gate-register-email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={registerEmail}
+                  onChange={(e) => setRegisterEmail(e.target.value)}
+                />
+              </div>
+              <div className="field-row">
+                <label htmlFor="gate-register-password">Password</label>
+                <input
+                  id="gate-register-password"
+                  type="password"
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  value={registerPassword}
+                  onChange={(e) => setRegisterPassword(e.target.value)}
+                />
+              </div>
+              <button type="submit" className="btn primary gate-submit" disabled={sessionPending}>
+                Create account
+              </button>
+            </form>
+          )}
+          {gateError ? <p className="gate-auth-error">{gateError}</p> : null}
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main>
       <header className="page-top-bar">
@@ -281,48 +436,20 @@ export default function App() {
           </p>
         </div>
         <div className="page-top-bar-right" id="header-auth-panel">
-          {headerAuthLoading ? (
-            <p className="header-auth-loading">Loading session…</p>
-          ) : loggedInUser ? (
-            <div className="header-user-panel">
-              <span className="header-user-label">
-                {loggedInUser.name} · {loggedInUser.email}
-              </span>
-              <button
-                type="button"
-                className="btn"
-                disabled={sessionPending}
-                aria-label="Sign out"
-                onClick={() => void submitHeaderLogout()}
-              >
-                Logout
-              </button>
-            </div>
-          ) : (
-            <form className="header-login-form" onSubmit={(e) => void submitHeaderLogin(e)} autoComplete="on">
-              <input
-                type="email"
-                name="email"
-                placeholder="Email"
-                autoComplete="username"
-                required
-                value={headerLoginEmail}
-                onChange={(e) => setHeaderLoginEmail(e.target.value)}
-              />
-              <input
-                type="password"
-                name="password"
-                placeholder="Password"
-                autoComplete="current-password"
-                value={headerLoginPassword}
-                onChange={(e) => setHeaderLoginPassword(e.target.value)}
-              />
-              <button type="submit" className="btn primary" disabled={sessionPending}>
-                Sign in
-              </button>
-              {headerLoginError ? <span className="header-login-error">{headerLoginError}</span> : null}
-            </form>
-          )}
+          <div className="header-user-panel">
+            <span className="header-user-label">
+              {loggedInUser.name} · {loggedInUser.email}
+            </span>
+            <button
+              type="button"
+              className="btn"
+              disabled={sessionPending}
+              aria-label="Sign out"
+              onClick={() => void submitHeaderLogout()}
+            >
+              Logout
+            </button>
+          </div>
         </div>
       </header>
       <p className="page-subtitle page-meta">

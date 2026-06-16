@@ -83,17 +83,33 @@ export async function loginSession(body: {
   return data;
 }
 
-export async function logoutSession(): Promise<void> {
+export async function logoutSession(): Promise<SessionData> {
   const { headers } = apiRequest();
   const response = await fetch("/api/auth/logout", {
     method: "POST",
     credentials: "same-origin",
     headers,
   });
-  if (!response.ok && response.status !== 204) {
-    const data = (await response.json().catch(() => ({}))) as { error?: string };
-    throw new Error(data.error ?? response.statusText);
+  const text = await response.text();
+  let data: unknown = text;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    /* plain error */
   }
+  if (
+    response.ok &&
+    data &&
+    typeof data === "object" &&
+    "sessionId" in data
+  ) {
+    return data as SessionData;
+  }
+  if (!response.ok) {
+    const err = data as { error?: string };
+    throw new Error(err.error ?? response.statusText);
+  }
+  return ensureSession();
 }
 
 export async function refreshSessionId(): Promise<SessionData> {

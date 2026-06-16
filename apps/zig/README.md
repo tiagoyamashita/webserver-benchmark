@@ -1,284 +1,485 @@
 # Exercises — Zig
 
-Zig stack dashboard with **htmx** UI, shared **Postgres `items`** CRUD, stack connectivity probes, and Prometheus metrics.
+Zig stack dashboard with **htmx** UI, shared **Postgres `items`** CRUD, stack connectivity probes, Prometheus metrics, and **native Redis session auth** (shared with Java/Rust).
 
 **Port:** http://127.0.0.1:8083/
 
-This README has two guides:
+This document explains four cross-cutting concerns:
 
-1. [MVC + htmx in Zig](#mvc--htmx-in-zig) — how this app is structured
-2. [Zig for web developers](#zig-for-web-developers) — language and patterns used here
+1. [htmx page loading](#htmx-page-loading) — how the dashboard shell and sections load without full page reloads
+2. [How a request is resolved](#how-a-request-is-resolved)
+3. [How logs are created and filtered](#how-logs-are-created-and-filtered)
+4. [How users are authenticated](#how-users-are-authenticated)
+
+See also [Running the app](#running-the-app) and [Endpoints](#endpoints).
 
 ---
 
-## MVC + htmx in Zig
+## htmx page loading
 
-Zig has no Rails/Spring-style framework. MVC here means **clear file roles** and **thin HTTP handlers** that call into models and views. htmx replaces most client-side JavaScript: the server returns HTML fragments and the browser swaps them in.
+The UI is a **persistent shell** (`shell.html`) with a sidebar and a `#main-panel` content area. htmx swaps HTML fragments from the server; there is no client-side router and almost no custom JavaScript for navigation.
 
-### Request flow
+### Page structure (component view)
+
+```mermaid
+flowchart TB
+    subgraph shell["GET / — shell.html (full page, embedded at compile time)"]
+        header["Header + auth panel (static)"]
+        sidebar["Sidebar nav buttons"]
+        main["#main-panel (htmx target)"]
+    end
+
+    subgraph views["GET /htmx/view/* — HTML sections"]
+        home["views/home.html"]
+        stack["views/stack.html"]
+        items["views/items.html"]
+        obs["views/observability.html"]
+    end
+
+    subgraph data["GET/POST /htmx/* — HTML fragments"]
+        stackRows["GET /htmx/stack → probe &lt;tr&gt; rows"]
+        itemRows["GET/POST /htmx/items → &lt;tbody&gt; rows"]
+    end
+
+    sidebar -->|"hx-get /htmx/view/{section}"| main
+    main --> views
+    items -->|"hx-trigger load on #items-body"| itemRows
+    stack -->|"manual Refresh"| stackRows
+```
+
+| Layer | Route pattern | Returns | Swapped into |
+|-------|---------------|---------|--------------|
+| **Shell** | `GET /` | Full HTML document | browser (initial navigation) |
+| **View** | `GET /htmx/view/{home,stack,items,observability}` | `<section>…</section>` | `#main-panel` (`innerHTML`) |
+| **Data** | `GET /htmx/stack` | `<tr>…</tr>` rows | `#stack-body` (`innerHTML`) |
+| **Data** | `GET/POST /htmx/items` | `<tbody id="items-body">…</tbody>` | `#items-body` (`outerHTML`) |
+
+View templates are embedded in `templates.zig` (`@embedFile`). Data partials are built at runtime in `html.zig` (items rows) or `stack_ping.zig` (probe rows).
+
+### 1 — Initial page load
 
 ```mermaid
 sequenceDiagram
     participant Browser
-    participant server.zig as Controller (server.zig)
-    participant db.zig as Model (db.zig)
-    participant html.zig as View (html.zig)
+    participant htmx
+    participant Zig as Zig server
+    participant Redis as Redis
 
-    Browser->>server.zig: GET /htmx/items
-    server.zig->>db.zig: listItems()
-    db.zig-->>server.zig: []Item
-    server.zig->>html.zig: renderItemsRows()
-    html.zig-->>server.zig: HTML fragment
-    server.zig-->>Browser: 200 text/html (table rows)
-    Note over Browser: htmx swaps #items-body innerHTML
+    Browser->>Zig: GET /
+    Zig->>Browser: 200 shell.html (header, sidebar, empty #main-panel)
+
+    Note over Browser: Parse HTML, load htmx.js from CDN
+
+    par Session bootstrap (fetch, not htmx)
+        Browser->>Zig: POST /api/auth/ensure
+        Zig->>Redis: SET session JSON
+        Zig-->>Browser: session JSON + Set-Cookie
+        Browser->>Zig: GET /api/auth/session
+        Zig-->>Browser: update header + footer session labels
+    and Main panel (htmx)
+        htmx->>Zig: GET /htmx/view/home (hx-trigger=load on #main-panel)
+        Zig->>Browser: 200 views/home.html fragment
+        htmx->>Browser: swap innerHTML into #main-panel
+        Note over Browser: htmx:after-settle → htmx.process(new nodes)
+    end
 ```
 
-### Directory layout
+On first load, `#main-panel` has `hx-get="/htmx/view/home"` and `hx-trigger="load"`, so the Home section appears automatically after the shell arrives.
 
-```
-apps/zig/
-  build.zig              # compile flags, link libpq
-  build.zig.zon          # package manifest (Zig 0.13+)
-  src/
-    main.zig             # entry: allocator, config, DB connect, start server
-    config.zig           # env vars → Config struct
-    server.zig           # HTTP server + routing (controller)
-    db.zig               # Postgres access (model)
-    html.zig             # HTML fragments + form parsing (view helpers)
-    stack_ping.zig       # service probes (extra model/service)
-    metrics.zig          # Prometheus counters
-    templates/
-      dashboard.html     # full page shell (embedded at compile time)
-  docker-entrypoint-dev.sh
-  Dockerfile / Dockerfile.dev
-```
+### 2 — Sidebar navigation (view swap)
 
-| MVC role | File | Responsibility |
-|----------|------|----------------|
-| **Bootstrap** | `main.zig` | Wire allocator, load config, open DB, call `server.run` |
-| **Controller** | `server.zig` | Accept TCP, parse HTTP, route by path/method, call model/view, write response |
-| **Model** | `db.zig` | `Item` struct, `listItems`, `insertItem`, `getItem`, `deleteItem` via libpq |
-| **View (shell)** | `src/templates/dashboard.html` | Page chrome, CSS, htmx attributes; embedded with `@embedFile` |
-| **View (partials)** | `html.zig` | Row HTML, HTML escaping, URL/form decoding |
-| **Config** | `config.zig` | Read `DB_*`, `APP_STACK_*`, `EXERCISES_WEB_*` from environment |
-
-Keep **routing and HTTP status codes** in `server.zig`. Keep **SQL and domain types** in `db.zig`. Keep **string/HTML building** in `html.zig`.
-
-### Controller pattern (`server.zig`)
-
-1. **Listen** on a TCP port (`std.net`).
-2. Per connection, create `std.http.Server` and loop while `state == .ready`.
-3. **`receiveHead()`** (Zig 0.13) — read request line + headers.
-4. **`handleRequest`** — match `request.head.method` + `request.head.target`.
-5. Delegate to a named handler (`handleHtmxItems`, `handleApiCreateItem`, …).
-6. **`request.respond(body, .{ .status = …, .extra_headers = … })`** — send response.
-
-Handlers follow the same shape:
-
-```zig
-fn handleHtmxItems(app: *App, request: *std.http.Server.Request) !void {
-    var database = app.db orelse {
-        return try writeTextResponse(request, .service_unavailable, "text/html; charset=utf-8",
-            "<tr><td colspan=\"3\">Postgres not configured.</td></tr>");
-    };
-    const items = database.listItems(app.allocator) catch { /* 500 partial */ };
-    defer db_mod.Db.freeItems(items, app.allocator);
-    const rows = try html_mod.renderItemsRows(app.allocator, items);
-    defer app.allocator.free(rows);
-    try writeTextResponse(request, .ok, "text/html; charset=utf-8", rows);
-}
-```
-
-Use **`var database`** (not `const`) when unwrapping `app.db` — method calls need a mutable receiver.
-
-### Model pattern (`db.zig`)
-
-- Define a **struct** for rows (`Item`) and a **struct** for the connection (`Db`).
-- Return a **typed error set** (`DbError`) instead of throwing strings.
-- **Allocate** strings that outlive the query with the passed-in `std.mem.Allocator`; document who frees them (`freeItems`, `deinit`).
-- Use **parameterized SQL** (`PQexecParams`) — never interpolate user input into SQL strings.
-
-### View pattern: full page vs htmx partial
-
-**Full page** — compile-time embed (must live under `src/` for Zig 0.13):
-
-```zig
-const dashboard_html = @embedFile("templates/dashboard.html");
-// GET / → return dashboard_html
-```
-
-**htmx partial** — build HTML in Zig at runtime:
-
-```zig
-// html.zig
-try list.writer().print(
-    "<tr><td>{d}</td><td>{s}</td><td><code>{s}</code></td></tr>",
-    .{ item.id, safe_name, safe_created },
-);
-```
-
-Always **escape** user-controlled text (`escapeHtml`) before inserting into HTML.
-
-### htmx conventions in this app
-
-| Endpoint | Method | Returns | htmx usage |
-|----------|--------|---------|------------|
-| `/` | GET | Full dashboard HTML | Initial load |
-| `/htmx/items` | GET | `<tr>…</tr>` rows | `hx-get`, `hx-target="#items-body"`, `hx-swap="innerHTML"` |
-| `/htmx/items` | POST | Same rows after create | Form `hx-post` → swap table body |
-| `/htmx/stack` | GET | Probe rows | `hx-trigger="load"` on tbody |
-
-Example from `dashboard.html`:
+Each sidebar button requests a **view partial** and replaces the entire main panel:
 
 ```html
-<tbody id="items-body"
-       hx-get="/htmx/items"
-       hx-trigger="load"
-       hx-swap="innerHTML">
-  <tr><td colspan="3" class="muted">Loading…</td></tr>
-</tbody>
+hx-get="/htmx/view/items"
+hx-target="#main-panel"
+hx-swap="innerHTML"
 ```
 
-The server never returns JSON for htmx routes — only HTML fragments. JSON lives under `/api/*` for machines and the “JSON” link on the dashboard.
+```mermaid
+sequenceDiagram
+    participant User
+    participant htmx
+    participant Zig as Zig server
 
-### REST alongside htmx
+    User->>htmx: Click "Items (Postgres)"
+    htmx->>Zig: GET /htmx/view/items
+    Zig->>htmx: 200 views/items.html (&lt;section&gt; + form + table skeleton)
+    htmx->>User: Replace #main-panel innerHTML
+    Note over htmx: after-settle → htmx.process(#main-panel)
 
-Same model, two response shapes:
+    Note over htmx,User: New #items-body has hx-trigger=load
+    htmx->>Zig: GET /htmx/items (automatic)
+    Zig->>htmx: 200 &lt;tbody id="items-body"&gt;… rows …&lt;/tbody&gt;
+    htmx->>User: outerHTML swap on #items-body
+```
 
-| Concern | htmx route | REST route |
-|---------|------------|------------|
-| List items | `GET /htmx/items` → HTML rows | `GET /api/items` → JSON array |
-| Create | `POST /htmx/items` (form `name=`) | `POST /api/items` (`{"name":"…"}`) |
-| Get one | — | `GET /api/items/{id}` |
-| Delete | — | `DELETE /api/items/{id}` |
+The sidebar `hx-on:htmx:after-request` handler sets `aria-current="page"` on the active button.
 
-### Adding a new feature (checklist)
+**Stack** and **Observability** views load the section only — stack probes run when the user clicks **Refresh probes**; observability links open `/health` and `/metrics` in new tabs.
 
-1. **Model** — add function to `db.zig` (or a new `*_service.zig`).
-2. **View** — add `render…` in `html.zig` if the UI needs a new partial.
-3. **Controller** — add route branch in `handleRequest` + handler in `server.zig`.
-4. **Template** — add htmx attributes in `dashboard.html` if the shell needs a new section.
-5. **Rebuild** — `zig build` (or restart the dev container).
+### 3 — Items: nested htmx (view + data)
 
-### Zig 0.13 HTTP notes
+The Items view uses **two htmx levels**:
 
-This app targets **Zig 0.13** (see `Dockerfile`). Newer Zig versions changed `std.http.Server` again. Here:
+```mermaid
+sequenceDiagram
+    participant User
+    participant htmx
+    participant Zig as Zig server
+    participant PG as Postgres
 
-- Use `receiveHead()`, not `wait()`.
-- Request fields are on `request.head` (`target`, `method`, `content_length`).
-- Respond with `request.respond(content, .{ .status = .ok, .extra_headers = &headers })`.
+    Note over User,PG: Already on Items view (#items-body visible)
+
+    User->>htmx: Submit create form (hx-post="/htmx/items")
+    htmx->>Zig: POST /htmx/items (body: name=…)
+    Zig->>PG: INSERT item
+    PG-->>Zig: new row
+    Zig->>Zig: html.renderItemsRows + status row
+    Zig->>htmx: 200 &lt;tbody id="items-body"&gt;…&lt;/tbody&gt;
+    htmx->>User: outerHTML swap #items-body
+    Note over User: Form reset if status row shows .ok
+
+    User->>htmx: Click Reload
+    htmx->>Zig: GET /htmx/items
+    Zig->>PG: SELECT items
+    Zig->>htmx: 200 fresh &lt;tbody&gt;
+    htmx->>User: outerHTML swap #items-body
+```
+
+Create and reload both return the **same shape** (`<tbody id="items-body">`) so `hx-swap="outerHTML"` keeps the element id stable for the next request.
+
+### 4 — htmx route map
+
+```mermaid
+flowchart LR
+    subgraph triggers["Browser triggers"]
+        T0["Page load"]
+        T1["Sidebar click"]
+        T2["#items-body load"]
+        T3["Form POST / Reload"]
+        T4["Refresh probes"]
+    end
+
+    subgraph routes["Zig routes"]
+        R0["GET /"]
+        R1["GET /htmx/view/*"]
+        R2["GET /htmx/items"]
+        R3["POST /htmx/items"]
+        R4["GET /htmx/stack"]
+    end
+
+    T0 --> R0
+    T0 --> R1
+    T1 --> R1
+    T2 --> R2
+    T3 --> R3
+    T3 --> R2
+    T4 --> R4
+```
+
+### Why `htmx.process` on `#main-panel`
+
+View HTML injected into `#main-panel` contains **new** `hx-*` attributes (e.g. `#items-body` with `hx-trigger="load"`). The shell listens for:
+
+```html
+hx-on::after-settle="htmx.process(event.detail.elt)"
+```
+
+That registers htmx behaviour on freshly swapped nodes so nested triggers (items table load, stack refresh, form POST) work without a full page reload.
 
 ---
 
-## Zig for web developers
+## How a request is resolved
 
-Short primer on Zig concepts as used in this project. Official docs: https://ziglang.org/learn/
+Zig has no web framework. Each TCP connection is handled in a thread; routing is explicit `method + path` matching in `router.zig`, with handlers in `src/handlers/`.
 
-### Build and run
+### High-level flow
+
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant server.zig
+    participant request_snapshot
+    participant http_access_log
+    participant router.zig
+    participant handler
+
+    Browser->>server.zig: TCP connect
+    server.zig->>server.zig: receiveHead() (HTTP request line + headers)
+    server.zig->>request_snapshot: begin() — capture headers/body, request_id
+    server.zig->>http_access_log: logReceived()
+    server.zig->>router.zig: handleRequest()
+    router.zig->>handler: match method + path
+    handler-->>router.zig: write response via http_response.zig
+    server.zig->>http_access_log: logCompleted()
+    server.zig->>request_snapshot: end()
+    server.zig-->>Browser: HTTP response (+ X-Request-ID)
+```
+
+### Server loop (`server.zig`)
+
+1. **`main.zig`** loads config, optionally connects Postgres, calls `server.run`.
+2. **`run`** listens on `EXERCISES_WEB_HOST` / `EXERCISES_WEB_PORT` (default `0.0.0.0:8083`).
+3. Each accepted connection spawns a **detached thread** (`handleConnectionThread`).
+4. Inside the connection loop:
+   - `http_server.receiveHead()` reads one request (Zig 0.13 API).
+   - `request_snapshot.begin()` builds observability context (see [Logging](#how-logs-are-created-and-filtered)).
+   - `http_access_log.logReceived()` may emit an inbound access line.
+   - `router.handleRequest()` dispatches to a handler.
+   - On handler error: log + `500 internal server error`.
+   - `http_access_log.logCompleted()` emits completion line with status and duration.
+   - `request_snapshot.end()` frees snapshot memory.
+
+Prometheus counter: every received head increments `metrics.incRequests()` via `router.recordRequest()`.
+
+### Router (`router.zig`)
+
+The router strips the query string with `http.targetOnly()` then matches **exact path + method** in order:
+
+| Match | Handler |
+|-------|---------|
+| `GET /health` | `health.handleHealth` |
+| `GET /metrics` | `health.handleMetrics` |
+| `GET /` | `home.handleShell` — full dashboard HTML |
+| `POST /api/users` | `users.handleCreateUser` |
+| `POST /api/auth/*`, `GET /api/auth/session` | `auth.*` |
+| `GET /htmx/view/*` | view partials (home, stack, items, observability) |
+| `GET/POST /htmx/items`, `GET /htmx/stack` | items / stack htmx |
+| `GET/POST /api/items`, `GET/DELETE /api/items/{id}` | REST items API |
+| no match | `404 not found` |
+
+Dynamic REST paths parse the numeric suffix: `/api/items/42` → `item_id = 42`.
+
+Handlers live in `src/handlers/` (`home.zig`, `items.zig`, `api_items.zig`, `stack.zig`, `auth.zig`, `users.zig`, …). They call into `db.zig`, `redis_client.zig`, `auth/service.zig`, `stack_ping.zig`, or `outbound_http.zig` and write responses through `http_response.zig`.
+
+### Response writing (`http_response.zig`)
+
+All handlers should use helpers here so the request snapshot records status and (for JSON) response body:
+
+- `writeTextResponse` — HTML/plain
+- `writeJsonResponse` / `writeJsonResponseExtra` — JSON (+ optional extra headers, e.g. `Set-Cookie`)
+- `writeNoContentResponse` — 204
+
+Each successful write calls `request_snapshot.recordResponse()` and adds **`X-Request-ID`** to the response when a snapshot is active.
+
+### Request body reuse
+
+For `POST`/`PUT`/`PATCH`, `request_snapshot.begin()` may read up to **64 KiB** of body into the snapshot for logging. Handlers then use `http.readBody()`, which returns the **pre-read copy** via `request_snapshot.preReadBody()` when available — so the body is not consumed twice.
+
+---
+
+## How logs are created and filtered
+
+Logging has three layers: **stdout** (`std.log`), **structured JSON file** (ELK/Filebeat), and **Prometheus** (request counter only).
+
+Enable JSON file logging with:
 
 ```bash
-cd apps/zig
-zig build                    # output: zig-out/bin/exercises-zig
-./zig-out/bin/exercises-zig
-zig build test               # run tests in build.zig
+EXERCISES_OBSERVABILITY=1
+LOG_PATH=/app/logs   # writes LOG_PATH/demo-app.json.log
 ```
 
-`build.zig` declares the executable, include paths (libpq), and linked libraries. `build.zig.zon` names the package for Zig’s module system.
+### Layer 1 — HTTP access logs (`http_access_log.zig`)
 
-### Types and memory
+One **received** and one **completed** line per inbound HTTP request (when not filtered).
 
-| Concept | In this app |
-|---------|-------------|
-| `[]const u8` | Read-only string slice (HTTP path, env value, row name) |
-| `[]u8` | Mutable buffer |
-| `?T` | Optional (`app.db` may be null if `DB_HOST` unset) |
-| `!T` | Value or error (`try`, `catch`) |
-| `*T` / `*const T` | Pointer; methods on structs often take `*Self` |
-| `std.mem.Allocator` | Heap allocation; pass through handlers, free what you allocate |
+| Field | Source |
+|-------|--------|
+| `logger` | `"http.request"` |
+| `phase` | `"received"` or `"completed"` |
+| `method`, `path` | request line |
+| `status`, `ms` | completed only |
+| `request_id` | from snapshot |
+| `headers`, `url_params`, `body` | received only (filtered — see below) |
+| `body` (response) | completed only, JSON responses capped at 4 KiB |
 
-**Pattern:** anything allocated with `allocator.dupe`, `allocPrint`, or `ArrayList.toOwnedSlice` must be `defer allocator.free(…)` (or freed in `deinit`).
+**Filtering — quiet paths** (`shouldLogHttpAccess`):
+
+- `GET /metrics` is **suppressed** unless the response status is **not 200** (avoids Prometheus scrape noise).
+- All other routes log normally.
+
+### Layer 2 — Request snapshot (`request_snapshot.zig`)
+
+Built at the start of each request; drives access logs and enriches controller logs.
+
+**Header allow-list** (only these are logged):
+
+`x-request-id`, `x-request-origin`, `x-dashboard-page`, `x-session-id`, `content-type`, `accept`, `user-agent`, `host`
+
+**Body capture:**
+
+- Methods: `POST`, `PUT`, `PATCH` only
+- Max size: **65 536 bytes**
+- Parsed to JSON: raw JSON objects pass through; `application/x-www-form-urlencoded` becomes key/value JSON; other text becomes `{"_raw":"…"}`
+
+**Request ID** (`request_id.zig`):
+
+- Reuse inbound `X-Request-ID` if it matches `^[a-zA-Z0-9._-]{8,64}$` or is a UUID
+- Otherwise generate `{nano}-{seq}`
+
+The active snapshot is stored in **`threadlocal var active`** and copied into `request_context` for outbound calls on the same thread.
+
+### Layer 3 — Controller logs (`controller_logging.zig`)
+
+Handlers call named helpers:
 
 ```zig
-const rows = try html_mod.renderItemsRows(app.allocator, items);
-defer app.allocator.free(rows);
+ctrl_log.logReceived("handleApiListItems", SOURCE, "GET", "/api/items");
+ctrl_log.logSucceeded("handleApiListItems", SOURCE, "item_count={d}", .{items.len});
+ctrl_log.logWarn(...);
+ctrl_log.logError(...);
 ```
 
-### Errors, not exceptions
+Each call:
 
-Functions return `DbError![]Item` or `!void`. Propagate with `try`; handle with `catch`:
+1. Writes a human line to **stdout** via `std.log`.
+2. Writes a JSON line to **`demo-app.json.log`** via `observability_log.zig` with:
+   - `controller` = handler name
+   - `source` = file path constant (e.g. `src/handlers/api_items.zig`)
+   - merged snapshot fields: `request_id`, `method`, `path`, `headers`, `url_params`, `body` (on receive)
+   - response `body` JSON fragment on success (when recorded)
 
-```zig
-const items = database.listItems(app.allocator) catch {
-    return try writeTextResponse(request, .internal_server_error, ...);
-};
-```
+### Layer 4 — Outbound HTTP logs (`outbound_http_log.zig`)
 
-Define narrow error sets on modules (`DbError`) instead of a single global error type.
+Stack probes use `outbound_http.fetch()`, which logs:
 
-### Structs and methods
+| Phase | Logger | When |
+|-------|--------|------|
+| `outbound_request` | `http.client` | before fetch |
+| `outbound_response` | `http.client` | after fetch (INFO if 2xx, WARN otherwise) |
+| `outbound_failed` | `http.client` | network/parse failure |
 
-```zig
-pub const Db = struct {
-    conn: ?*c.PGconn,
+Includes `relay_target`, `relay_origin` (`exercises-zig`), `request_id`, and **`origin_method` / `origin_path`** linking back to the inbound request.
 
-    pub fn listItems(self: *Db, allocator: std.mem.Allocator) DbError![]Item { ... }
-    pub fn deinit(self: *Db) void { ... }
-};
-```
+Response bodies for outbound calls are capped at **4096 bytes** for logging.
 
-`pub` exports the symbol to other files in the package. Import with `@import("db.zig")`.
+### Layer 5 — Postgres query logs (`postgres_log.zig`)
 
-### Comptime embed
+`db.zig` calls `postgres_log.logQuery` / `logQueryFailed` around SQL. Lines include:
 
-```zig
-const dashboard_html = @embedFile("templates/dashboard.html");
-```
+- `target_service=postgres`, host/port/dbname
+- `request_id` and `application_name` (`exercises-zig;req={id}`) for correlation in Postgres logs
 
-The file is baked into the binary at compile time. Path must be **inside** `src/` (e.g. `src/templates/…`).
+### JSON line format (`observability_log.zig`)
 
-### C interop (libpq)
+All structured lines share:
 
-```zig
-const c = @cImport({ @cInclude("libpq-fe.h"); });
-```
-
-`build.zig` adds `-I/usr/include/postgresql` and links `-lpq`. Use `&buf[0]` (not slice `.ptr`) when C APIs expect `*const u8`.
-
-### Logging
-
-```zig
-std.log.info("connected to postgres at {s}", .{config.db_host.?});
-std.log.err("request failed: {}", .{err});
-```
-
-Set log level at build/runtime via Zig’s log config; container logs go to stdout.
-
-### Testing
-
-Add tests in any file:
-
-```zig
-test "escapeHtml ampersand" {
-    const a = std.testing.allocator;
-    const out = try escapeHtml(a, "a & b");
-    defer a.free(out);
-    try std.testing.expectEqualStrings("a &amp; b", out);
+```json
+{
+  "timestamp": "2026-06-16T04:50:49.221Z",
+  "level": "INFO",
+  "service": "exercises-zig",
+  "controller": "handleApiListItems",
+  "source": "src/handlers/api_items.zig",
+  "message": "handleApiListItems succeeded item_count=3",
+  "log_seq": 42,
+  "request_id": "…",
+  "method": "GET",
+  "path": "/api/items"
 }
 ```
 
-Run with `zig build test`.
+HTTP access lines use `"logger": "http.request"` instead of `controller`/`source`.
 
-### Common pitfalls (we hit these building this app)
+If `EXERCISES_OBSERVABILITY` is unset, JSON file logging is disabled; stdout logging still works.
 
-| Issue | Fix |
-|-------|-----|
-| `@embedFile("../outside/src")` | Keep assets under `src/` |
-| `const x = app.db orelse …` then `x.listItems()` | Use `var database` so receiver is `*Db` |
-| `slice.ptr` for C `*const u8` | Use `&slice[0]` |
-| `std.http.Server.wait()` on 0.13 | Use `receiveHead()` + `request.head.*` |
-| `uri.host.?.schemeless` on 0.13 | `Uri.Component` uses `.raw` / `.percent_encoded` |
-| Windows CRLF in shell entrypoints | `sed -i 's/\r$//'` in Dockerfile; `.gitattributes` `eol=lf` |
-| `.zig-cache` on Windows bind mount | Dev compose uses named Podman volumes for cache |
+---
+
+## How users are authenticated
+
+Zig implements **native Redis session auth** compatible with Java and Rust. Sessions are stored at `exercises:session:{sessionId}` in Redis as JSON; the browser holds an **`exercises_session` HttpOnly cookie**. User registration and login verify passwords against Postgres via vendored **bcrypt** (same `$2b$` hashes as the other stacks).
+
+### Architecture
+
+```mermaid
+flowchart LR
+    Browser -->|"/api/auth/*, POST /api/users"| Zig
+    Zig --> Postgres
+    Zig --> Redis
+    Zig -->|Set-Cookie exercises_session| Browser
+```
+
+Redis connection: `REDIS_URL` or `REDIS_HOST` + `REDIS_PORT` (Compose default `redis://redis:6379`).
+
+### Auth routes (`handlers/auth.zig`, `handlers/users.zig`)
+
+| Zig route | Handler | Cookie behaviour |
+|-----------|---------|------------------|
+| `POST /api/users` | `users.handleCreateUser` | none (registration) |
+| `POST /api/auth/ensure` | `auth.handleEnsure` | **Set** cookie on success |
+| `POST /api/auth/login` | `auth.handleLogin` | **Set** cookie on success |
+| `POST /api/auth/logout` | `auth.handleLogout` | **Delete** Redis key for cookie session id; **Set** cookie to new guest session |
+| `POST /api/auth/refresh` | `auth.handleRefresh` | **Set** cookie on success |
+| `GET /api/auth/session` | `auth.handleSession` | reads existing cookie |
+
+Session JSON matches the shared format: `sessionId`, `userId`, `email`, `name`, `issuedAt`, `expiresAt`, `issuer` (`zig`), plus `redisKey` in API responses.
+
+Core modules:
+
+- `redis_client.zig` — minimal RESP client (`PING`, `GET`, `SET EX`, `DEL`)
+- `auth/session.zig` — session config, JSON serialize/parse, TTL (24h default)
+- `auth/repository.zig` — Redis read/write/delete
+- `auth/service.zig` — ensure, login, logout, refresh, resolve
+- `auth/cookies.zig` — cookie parse + `Set-Cookie` helpers
+- `auth/password.zig` — bcrypt hash/verify via `vendor/bcrypt/`
+
+If Redis is not configured, auth endpoints return **503**. Login and registration also require Postgres.
+
+### Browser session (`templates/shell.html`)
+
+On page load, inline JavaScript:
+
+1. Calls `POST /api/auth/ensure` (creates guest session if needed).
+2. Calls `GET /api/auth/session` to refresh UI.
+3. Header login form → `POST /api/auth/login`.
+4. Logout button → `POST /api/auth/logout` → new guest session via ensure.
+
+**Logged-in check (client-side):** `userId > 0` and `email` present on session JSON.
+
+Session metadata (session id, Redis key) is shown in the page footer.
+
+### What Zig enforces
+
+Server-side **`auth/guard.zig`** blocks `/htmx/*` and `/api/items*` with **401** `{"error":"Sign in required"}` until the session has `userId > 0` and an email (registered user, not guest). Public routes: `GET /`, `/health`, `/metrics`, `/api/auth/*`, and `POST /api/users`.
+
+The shell shows a full-page **auth gate** (sign in / create account) until logged in; `#app-shell` (sidebar + htmx panel) stays hidden until then.
+
+---
+
+## Source layout (request / log / auth)
+
+```
+src/
+  main.zig                 # bootstrap, observability_log.init
+  server.zig               # TCP accept, snapshot wrap, call router
+  router.zig               # method + path dispatch
+  http_response.zig        # respond + recordResponse + X-Request-ID
+  request_snapshot.zig     # inbound capture, header allow-list, body limits
+  request_id.zig           # generate / validate request IDs
+  request_context.zig      # thread-local origin + request_id for outbound
+  http_access_log.zig      # inbound access lines + quiet GET filter
+  controller_logging.zig   # handler INFO/WARN/ERROR → JSON file
+  observability_log.zig    # JSON line writer (demo-app.json.log)
+  redis_client.zig         # RESP client for session storage
+  auth/
+    session.zig            # SharedSession JSON + config
+    repository.zig         # Redis CRUD
+    service.zig            # ensure / login / logout / refresh
+    cookies.zig            # Cookie header helpers
+    password.zig           # bcrypt via vendor/bcrypt
+    guard.zig              # require logged-in user for protected routes
+  outbound_http.zig        # HTTP client for stack probes
+  outbound_http_log.zig    # outbound request/response/failure lines
+  postgres_log.zig         # SQL correlation fields
+  handlers/
+    auth.zig               # /api/auth/* + Set-Cookie
+    users.zig              # POST /api/users registration
+    api_items.zig          # example controller logging
+    home.zig, items.zig, stack.zig, …
+  templates/
+    shell.html             # dashboard shell + client session JS
+```
 
 ---
 
@@ -286,63 +487,27 @@ Run with `zig build test`.
 
 ### Compose (recommended on Windows)
 
-Prod image:
-
 ```bash
 podman compose -f docker-compose.apps.yml up -d --build zig
 ```
 
-Dev (rebuild on container start; caches in Podman volumes):
+Dev overlay (rebuild on container start):
 
 ```bash
 podman compose -f docker-compose.apps.yml -f docker-compose.dev.yml up -d --build zig
 ```
 
-Reset corrupt zig cache:
-
-```bash
-podman volume rm exercises_zig-cache exercises_zig-global-cache exercises_zig-out
-podman compose -f docker-compose.apps.yml -f docker-compose.dev.yml up -d --build zig
-```
-
-After `src/` changes in dev, restart the container to re-run `zig build`.
+Zig depends on **Redis** for sessions and **Postgres** for items/users. Stack probes still use `APP_STACK_*` URLs (including Rust). Set observability env in Compose: `EXERCISES_OBSERVABILITY=1`, `LOG_PATH=/app/logs`.
 
 ### Local build
 
-Install Zig **0.13** from https://ziglang.org/download/ (matches the Docker image).
+Requires **Zig 0.13** and `libpq`. On Windows, prefer Podman (see existing WSL notes in git history).
 
 ```bash
 cd apps/zig
 zig build
 ./zig-out/bin/exercises-zig
 ```
-
-On Windows, linking libpq locally is awkward — prefer Podman unless you have Postgres dev libraries installed. Set `DB_HOST=127.0.0.1` when not using Compose.
-
-#### WSL (`/mnt/c/...`)
-
-Building on a Windows-mounted path (`/mnt/c/Users/...`) often fails with **`error: AccessDenied`** because Zig must **execute** helpers from `.zig-cache`, and `/mnt/c` does not support Unix execute permissions.
-
-**Option A — redirect cache to the Linux filesystem (keep sources on `/mnt/c`):**
-
-```bash
-cd /mnt/c/Users/owner/Documents/Git/exercises/apps/zig
-export ZIG_LOCAL_CACHE_DIR="$HOME/.cache/zig-exercises-local"
-export ZIG_GLOBAL_CACHE_DIR="$HOME/.cache/zig"
-mkdir -p "$ZIG_LOCAL_CACHE_DIR" "$ZIG_GLOBAL_CACHE_DIR"
-zig build
-```
-
-**Option B — clone under `~` (fastest, recommended):**
-
-```bash
-git clone /mnt/c/Users/owner/Documents/Git/exercises ~/exercises
-cd ~/exercises/apps/zig
-sudo apt install -y libpq-dev
-zig build
-```
-
-Also install **Zig 0.13** and `libpq-dev` in WSL (`sudo apt install libpq-dev`).
 
 ---
 
@@ -351,16 +516,24 @@ Also install **Zig 0.13** and `libpq-dev` in WSL (`sudo apt install libpq-dev`).
 | Area | Routes |
 |------|--------|
 | Dashboard | `GET /` |
-| htmx | `GET/POST /htmx/items`, `GET /htmx/stack` |
-| REST | `GET/POST /api/items`, `GET/DELETE /api/items/{id}` |
+| htmx views | `GET /htmx/view/{home,stack,items,observability}` |
+| htmx data | `GET/POST /htmx/items`, `GET /htmx/stack` |
+| REST items | `GET/POST /api/items`, `GET/DELETE /api/items/{id}` |
+| Auth (native Redis) | `POST /api/users`, `POST /api/auth/{ensure,login,logout,refresh}`, `GET /api/auth/session` |
 | Ops | `GET /health`, `GET /metrics` |
 
 ---
 
 ## Environment
 
-Postgres (same as Java/Python/Rust): `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`.
-
-Stack probes: `APP_STACK_JAVA_BASE_URL`, `APP_STACK_PYTHON_BASE_URL`, `APP_STACK_RUST_BASE_URL`, `APP_STACK_REACT_NODE_BASE_URL`, `APP_STACK_PROMETHEUS_BASE_URL`, `APP_STACK_GRAFANA_BASE_URL`.
-
-Web: `EXERCISES_WEB_HOST`, `EXERCISES_WEB_PORT` (default `8083`).
+| Variable | Purpose |
+|----------|---------|
+| `EXERCISES_WEB_HOST`, `EXERCISES_WEB_PORT` | Listen address (default `0.0.0.0:8083`) |
+| `DB_*` | Postgres for `/api/items`, htmx items, and user registration |
+| `REDIS_HOST`, `REDIS_PORT`, `REDIS_URL` | Redis session store (Compose: `redis://redis:6379`) |
+| `EXERCISES_SESSION_REDIS_PREFIX` | Session key prefix (default `exercises:session:`) |
+| `EXERCISES_SESSION_COOKIE` | Cookie name (default `exercises_session`) |
+| `APP_STACK_*_BASE_URL` | Stack probe targets (Java, Python, Rust, …) |
+| `APP_STACK_*_BASE_URL` | Stack probe targets |
+| `EXERCISES_OBSERVABILITY` | `1` / `true` / `yes` enables JSON file logging |
+| `LOG_PATH` | Directory for `demo-app.json.log` |

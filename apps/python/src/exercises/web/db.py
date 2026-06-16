@@ -150,6 +150,21 @@ def find_user_by_email(conn: "psycopg.Connection", email: str) -> tuple[int, str
     return int(row[0]), str(row[1]), str(row[2])
 
 
+def find_user_auth_by_email(
+    conn: "psycopg.Connection", email: str
+) -> tuple[int, str, str, str | None] | None:
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT id, name, email, password_hash FROM users WHERE LOWER(email) = LOWER(%s) LIMIT 1",
+            (email,),
+        )
+        row = cur.fetchone()
+    if row is None:
+        return None
+    password_hash = str(row[3]) if row[3] is not None else None
+    return int(row[0]), str(row[1]), str(row[2]), password_hash
+
+
 def find_user_by_id(conn: "psycopg.Connection", user_id: int) -> tuple[int, str, str] | None:
     with conn.cursor() as cur:
         cur.execute(

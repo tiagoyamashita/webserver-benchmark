@@ -1,5 +1,5 @@
 use axum::extract::{Extension, State};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use chrono::Utc;
@@ -7,7 +7,7 @@ use chrono::Utc;
 use crate::app::AppState;
 use crate::request_id::RequestHttpSnapshot;
 
-use super::cookies::{append_clear_session_cookie, append_session_cookie};
+use super::cookies::{append_session_cookie, session_id_candidates};
 use super::service::{self, AuthServiceError};
 use super::session::{EnsureSessionRequest, LoginRequest, SessionResponse};
 use super::session::SharedSession;
@@ -138,37 +138,46 @@ pub async fn login(
 pub async fn logout(
     State(state): State<AppState>,
     Extension(http): Extension<RequestHttpSnapshot>,
-    current: Option<Extension<CurrentSession>>,
+    headers: HeaderMap,
 ) -> Response {
     log_controller_received("logout", "POST", "/api/auth/logout", &http);
     let Some(auth) = state.auth.as_ref() else {
         return auth_unavailable();
     };
-    let Some(Extension(CurrentSession(session))) = current else {
-        return (
-            StatusCode::UNAUTHORIZED,
-            Json(serde_json::json!({ "error": "No active session" })),
-        )
-            .into_response();
-    };
+    let previous_id = session_id_candidates(&headers, &auth.config.cookie_name)
+        .into_iter()
+        .next();
     let mut conn = auth.redis.clone();
-    if let Err(err) = service::logout(&mut conn, &auth.config, &session.session_id).await {
-        tracing::warn!(
-            source = SOURCE,
-            controller = "logout",
-            error = %err,
-            "logout redis delete failed"
-        );
+    match service::logout_and_create_guest(&mut conn, &auth.config, previous_id.as_deref()).await {
+        Ok(session) => {
+            let redis_key = auth.config.redis_key(&session.session_id);
+            let payload = SessionResponse::from_session(&session, redis_key);
+            tracing::info!(
+                source = SOURCE,
+                controller = "logout",
+                previous_session_id = previous_id.as_deref().unwrap_or(""),
+                session_id = %session.session_id,
+                user_id = session.user_id,
+                "logout succeeded"
+            );
+            let mut res = (StatusCode::OK, Json(payload)).into_response();
+            append_session_cookie(res.headers_mut(), &auth.config, &session.session_id);
+            res
+        }
+        Err(err) => {
+            tracing::warn!(
+                source = SOURCE,
+                controller = "logout",
+                error = %err,
+                "logout failed"
+            );
+            (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(serde_json::json!({ "error": "Redis error" })),
+            )
+                .into_response()
+        }
     }
-    tracing::info!(
-        source = SOURCE,
-        controller = "logout",
-        session_id = %session.session_id,
-        "logout succeeded"
-    );
-    let mut res = StatusCode::NO_CONTENT.into_response();
-    append_clear_session_cookie(res.headers_mut(), &auth.config);
-    res
 }
 
 pub async fn refresh_session(
@@ -274,6 +283,12 @@ fn map_auth_error(err: AuthServiceError, action: &str) -> Response {
             error = %msg,
             "auth user not found"
         ),
+        AuthServiceError::Unauthorized(msg) => tracing::warn!(
+            source = SOURCE,
+            action = action,
+            error = %msg,
+            "auth rejected"
+        ),
         AuthServiceError::Db(e) => tracing::warn!(
             source = SOURCE,
             action = action,
@@ -290,6 +305,7 @@ fn map_auth_error(err: AuthServiceError, action: &str) -> Response {
     let (status, message) = match err {
         AuthServiceError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg),
         AuthServiceError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
+        AuthServiceError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg),
         AuthServiceError::Db(_) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             "Database error".into(),

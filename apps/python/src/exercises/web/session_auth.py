@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from flask import Flask, Response, g, request
+from flask import Flask, Response, g, jsonify, request
 
 from exercises.web.auth_service import ensure_session
 from exercises.web.session_models import SharedSession, utc_now
@@ -104,3 +104,32 @@ def register_session_middleware(app: Flask, auth: AuthState | None) -> None:
         if bootstrap is not None and 200 <= response.status_code < 300:
             append_session_cookie(response, auth.config, bootstrap.session_id)
         return response
+
+
+def _is_public_request() -> bool:
+    path = request.path
+    method = request.method
+    if method == "GET" and path in {"/", "/health", "/metrics"}:
+        return True
+    if path.startswith("/api/auth/"):
+        return True
+    if method == "POST" and path == "/api/users":
+        return True
+    if path.startswith("/static/"):
+        return True
+    if path.endswith((".js", ".css", ".html", ".ico")):
+        return True
+    if path.startswith("/api-docs") or path.startswith("/swagger-ui"):
+        return True
+    return False
+
+
+def register_auth_guard(app: Flask) -> None:
+    @app.before_request
+    def _require_logged_in_user() -> Response | None:
+        if _is_public_request():
+            return None
+        session = getattr(g, "shared_session", None)
+        if session is not None and session.user_id > 0 and session.email:
+            return None
+        return jsonify(error="Sign in required"), 401

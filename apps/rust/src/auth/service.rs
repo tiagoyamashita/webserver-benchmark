@@ -77,6 +77,17 @@ pub async fn logout(
     repository::delete(conn, config, session_id).await
 }
 
+pub async fn logout_and_create_guest(
+    conn: &mut ConnectionManager,
+    config: &SessionConfig,
+    session_id: Option<&str>,
+) -> Result<SharedSession, redis::RedisError> {
+    if let Some(id) = session_id.map(str::trim).filter(|s| !s.is_empty()) {
+        repository::delete(conn, config, id).await?;
+    }
+    create_anonymous_session(conn, config).await
+}
+
 pub async fn refresh_session(
     conn: &mut ConnectionManager,
     config: &SessionConfig,
@@ -145,10 +156,23 @@ async fn create_anonymous_session(
 
 async fn resolve_user(pool: &sqlx::PgPool, body: &LoginRequest) -> Result<UserRow, AuthServiceError> {
     if let Some(email) = body.email.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
-        return crate::db::find_user_by_email(pool, email)
+        let auth_row = crate::db::find_user_auth_by_email(pool, email)
             .await
             .map_err(AuthServiceError::Db)?
-            .ok_or_else(|| AuthServiceError::NotFound(format!("No user with email {email}")));
+            .ok_or_else(|| AuthServiceError::NotFound(format!("No user with email {email}")))?;
+        if let Some(password) = body.password.as_deref().filter(|s| !s.is_empty()) {
+            let hash = auth_row.password_hash.as_deref().unwrap_or("");
+            if hash.is_empty() || !super::password::verify_password(password, hash) {
+                return Err(AuthServiceError::Unauthorized(
+                    "Invalid email or password".into(),
+                ));
+            }
+        }
+        return Ok(UserRow {
+            id: auth_row.id,
+            name: auth_row.name,
+            email: auth_row.email,
+        });
     }
     if let Some(user_id) = body.user_id {
         return crate::db::find_user_by_id(pool, user_id)
@@ -165,6 +189,7 @@ async fn resolve_user(pool: &sqlx::PgPool, body: &LoginRequest) -> Result<UserRo
 pub enum AuthServiceError {
     BadRequest(String),
     NotFound(String),
+    Unauthorized(String),
     Db(sqlx::Error),
     Redis(redis::RedisError),
 }

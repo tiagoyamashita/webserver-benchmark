@@ -580,6 +580,7 @@ pub fn build_router(state: AppState) -> Router {
         .route("/tests/run", post(run_tests_post))
         .route("/tests/source", get(test_source))
         .route("/api/items", get(list_items).post(create_item))
+        .route("/api/users", post(crate::users_api::create_user))
         .route(
             "/api/users/publish-create-user",
             post(publish_create_user_kafka),
@@ -599,6 +600,7 @@ pub fn build_router(state: AppState) -> Router {
             session_state,
             crate::auth::resolve_session,
         ))
+        .layer(middleware::from_fn(crate::auth::require_logged_in_user))
         .layer(middleware::from_fn(crate::auth::session_log_span))
         .layer(middleware::from_fn(crate::request_id::assign_request_id))
         .layer(tower_http::trace::TraceLayer::new_for_http())

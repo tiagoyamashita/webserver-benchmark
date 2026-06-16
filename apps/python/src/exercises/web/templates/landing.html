@@ -198,6 +198,48 @@
       .header-auth-loading { margin: 0; font-size: 0.85rem; color: var(--muted); }
       .header-login-error { width: 100%; font-size: 0.82rem; color: var(--err); text-align: right; }
       .page-meta { margin-top: 0; }
+      .auth-gate {
+        min-height: calc(100vh - 2rem);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem 0;
+      }
+      .auth-gate-card {
+        width: 100%;
+        max-width: 24rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 1.5rem 1.35rem;
+        background: rgba(128, 128, 128, 0.04);
+      }
+      .auth-gate-card h1 { margin: 0 0 0.35rem; font-size: 1.35rem; }
+      .auth-gate-lead { color: var(--muted); font-size: 0.9rem; margin: 0 0 1rem; line-height: 1.45; }
+      .auth-gate-tabs { display: flex; gap: 0.35rem; margin-bottom: 1rem; }
+      .auth-tab {
+        flex: 1 1 auto;
+        cursor: pointer;
+        padding: 0.45rem 0.6rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--muted);
+      }
+      .auth-tab.active { color: var(--text); background: var(--code-bg); border-color: var(--text); }
+      .gate-form .field-row { margin-bottom: 0.75rem; }
+      .gate-form label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.3rem; }
+      .gate-form input {
+        width: 100%;
+        padding: 0.45rem 0.55rem;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--code-bg);
+        color: var(--text);
+        font-size: 0.9rem;
+      }
+      .gate-auth-error { margin: 0.75rem 0 0; font-size: 0.85rem; color: var(--err); }
       .btn.primary { border-color: var(--ok); color: var(--ok); }
       .btn.grafana { border-color: #f46800; color: #f46800; }
       .btn.react-node { border-color: #60a5fa; color: #60a5fa; }
@@ -271,6 +313,30 @@
     </style>
   </head>
   <body>
+    <section id="auth-gate" class="auth-gate">
+      <div class="auth-gate-card">
+        <h1>Hello Python</h1>
+        <p class="auth-gate-lead">Sign in or create an account to open the dashboard.</p>
+        <div class="auth-gate-tabs" role="tablist">
+          <button type="button" class="auth-tab active" data-auth-tab="login" role="tab" aria-selected="true">Sign in</button>
+          <button type="button" class="auth-tab" data-auth-tab="register" role="tab" aria-selected="false">Create account</button>
+        </div>
+        <form id="gate-login-form" class="gate-form" autocomplete="on">
+          <div class="field-row"><label for="gate-login-email">Email</label><input type="email" id="gate-login-email" required autocomplete="username" /></div>
+          <div class="field-row"><label for="gate-login-password">Password</label><input type="password" id="gate-login-password" required autocomplete="current-password" /></div>
+          <button type="submit" class="btn primary" style="width:100%">Sign in</button>
+        </form>
+        <form id="gate-register-form" class="gate-form" hidden autocomplete="on">
+          <div class="field-row"><label for="gate-register-name">Name</label><input type="text" id="gate-register-name" required autocomplete="name" /></div>
+          <div class="field-row"><label for="gate-register-email">Email</label><input type="email" id="gate-register-email" required autocomplete="email" /></div>
+          <div class="field-row"><label for="gate-register-password">Password</label><input type="password" id="gate-register-password" required minlength="8" autocomplete="new-password" /></div>
+          <button type="submit" class="btn primary" style="width:100%">Create account</button>
+        </form>
+        <p id="gate-auth-error" class="gate-auth-error" hidden></p>
+      </div>
+    </section>
+
+    <div id="app-shell" hidden>
     <header class="page-top-bar">
       <div class="page-top-bar-left">
         <h1 id="stack-heading">Hello Python</h1>
@@ -278,13 +344,6 @@
         <p class="page-subtitle">Last request ID: <code id="page-request-id">—</code> (new id per API call — use to isolate actions in logs)</p>
       </div>
       <div class="page-top-bar-right" id="header-auth-panel">
-        <p class="header-auth-loading" id="header-auth-loading">Loading session…</p>
-        <form id="header-login-form" class="header-login-form" hidden autocomplete="on">
-          <input type="email" id="header-login-email" name="email" placeholder="Email" autocomplete="username" required />
-          <input type="password" id="header-login-password" name="password" placeholder="Password" autocomplete="current-password" />
-          <button type="submit" class="btn primary">Sign in</button>
-          <span id="header-login-error" class="header-login-error" hidden></span>
-        </form>
         <div id="header-user-panel" class="header-user-panel" hidden>
           <span id="header-user-label" class="header-user-label"></span>
           <button type="button" class="btn" id="header-logout-btn">Logout</button>
@@ -478,9 +537,11 @@
         </section>
       </div>
     </div>
+    </div>
 
     <script src="/static/session-bootstrap.js"></script>
     <script src="/static/header-auth.js"></script>
+    <script src="/static/auth-gate.js"></script>
     <script>
       window.exercisesSession.ensureSession().then(function (session) {
       (function () {
@@ -524,11 +585,11 @@
           window.exercisesHeaderAuth.updateHeaderAuthPanel(data);
         }
 
-        function performHeaderLogin(email, password) {
+        function performGateLogin(email, password) {
           var body = { email: email };
           if (password) body.password = password;
           var loginReq = apiRequest({ "Content-Type": "application/json" });
-          fetch("/api/auth/login", {
+          return fetch("/api/auth/login", {
             method: "POST",
             credentials: "same-origin",
             headers: loginReq.headers,
@@ -543,7 +604,7 @@
             })
             .then(function (r) {
               if (!r.ok) {
-                window.exercisesHeaderAuth.setLoginError(
+                window.exercisesAuthGate.setGateError(
                   "Sign in failed" + (r.data && r.data.error ? ": " + r.data.error : " (HTTP " + r.status + ")")
                 );
                 return;
@@ -551,12 +612,43 @@
               renderSessionStatus(r.data);
             })
             .catch(function (err) {
-              window.exercisesHeaderAuth.setLoginError(String(err.message || err));
+              window.exercisesAuthGate.setGateError(String(err.message || err));
             });
         }
 
-        window.exercisesHeaderAuth.wireLoginForm(performHeaderLogin);
+        function performGateRegister(name, email, password) {
+          var registerReq = apiRequest({ "Content-Type": "application/json" });
+          return fetch("/api/users", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: registerReq.headers,
+            body: JSON.stringify({ name: name, email: email, password: password })
+          })
+            .then(function (res) {
+              return res.text().then(function (text) {
+                var data = text;
+                try { data = JSON.parse(text); } catch (e) { /* plain */ }
+                return { ok: res.ok, status: res.status, data: data };
+              });
+            })
+            .then(function (r) {
+              if (!r.ok) {
+                var msg = r.data && r.data.error ? r.data.error : String(r.data || r.status);
+                window.exercisesAuthGate.setGateError("Create account failed: " + msg);
+                return;
+              }
+              return performGateLogin(email, password);
+            })
+            .catch(function (err) {
+              window.exercisesAuthGate.setGateError(String(err.message || err));
+            });
+        }
+
         window.exercisesHeaderAuth.wireLogoutButton(performLogout);
+        window.exercisesAuthGate.wireAuthGate({
+          onLogin: function (email, password) { performGateLogin(email, password); },
+          onRegister: function (name, email, password) { performGateRegister(name, email, password); }
+        });
 
         function refreshSessionHeader() {
           return fetch("/api/auth/session", {
@@ -609,6 +701,7 @@
             if (pageSessionIdEl) pageSessionIdEl.textContent = "—";
             if (redisKeyEl) redisKeyEl.textContent = "—";
             updateHeaderAuthButton(null);
+            window.exercisesAuthGate.applyAuthGate(null);
             return;
           }
           var who = sessionWhoLabel(data);
@@ -619,6 +712,7 @@
           if (pageSessionIdEl) pageSessionIdEl.textContent = data.sessionId;
           if (redisKeyEl) redisKeyEl.textContent = data.redisKey || "—";
           updateHeaderAuthButton(data);
+          window.exercisesAuthGate.applyAuthGate(data);
         }
 
         function performLogout() {
@@ -629,17 +723,22 @@
             credentials: "same-origin",
             headers: apiRequest().headers
           }).then(function (res) {
-            renderSessionStatus(null);
-            if (!res.ok) {
-              if (sessionResult) sessionResult.textContent = "HTTP " + res.status;
-              return;
-            }
-            return window.exercisesSession.ensureSession().then(function (s) {
-              renderSessionStatus(s);
-              if (sessionResult) {
-                sessionResult.textContent = "Logged out. New guest session:\n" + JSON.stringify(s, null, 2);
+            return res.text().then(function (text) {
+              var data = null;
+              if (text) {
+                try { data = JSON.parse(text); } catch (e) { /* plain */ }
               }
+              if (res.ok && data && data.sessionId) return data;
+              if (!res.ok) {
+                throw new Error("Logout failed (HTTP " + res.status + ")");
+              }
+              return window.exercisesSession.ensureSession();
             });
+          }).then(function (s) {
+            renderSessionStatus(s);
+            if (sessionResult) {
+              sessionResult.textContent = "Logged out. New guest session:\n" + JSON.stringify(s, null, 2);
+            }
           }).catch(function (err) {
             if (sessionResult) sessionResult.textContent = String(err.message || err);
           });
@@ -881,9 +980,9 @@
       })();
       }).catch(function (err) {
         console.error("[dashboard] session bootstrap failed", err);
-        if (window.exercisesHeaderAuth) {
-          window.exercisesHeaderAuth.updateHeaderAuthPanel(null);
-          window.exercisesHeaderAuth.setLoginError("Session unavailable (is Redis up?)");
+        if (window.exercisesAuthGate) {
+          window.exercisesAuthGate.applyAuthGate(null);
+          window.exercisesAuthGate.setGateError("Session unavailable (is Redis up?)");
         }
         var pageSessionIdEl = document.getElementById("page-session-id");
         if (pageSessionIdEl) pageSessionIdEl.textContent = "unavailable";
