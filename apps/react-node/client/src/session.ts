@@ -67,6 +67,7 @@ export async function fetchCurrentSession(): Promise<SessionData> {
 export async function loginSession(body: {
   email?: string;
   userId?: number;
+  password?: string;
 }): Promise<SessionData> {
   const { headers } = apiRequest({ "Content-Type": "application/json" });
   const response = await fetch("/api/auth/login", {

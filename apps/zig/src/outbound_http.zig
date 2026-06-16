@@ -15,6 +15,7 @@ pub const FetchResult = struct {
 pub const FetchOptions = struct {
     payload: ?[]const u8 = null,
     content_type: ?[]const u8 = null,
+    cookie: ?[]const u8 = null,
     /// Stack probes only need status; skip downloading large HTML landing pages.
     ignore_response_body: bool = false,
 };
@@ -42,12 +43,16 @@ pub fn fetch(
     var response_body = std.ArrayList(u8).init(allocator);
     errdefer response_body.deinit();
 
-    var extra_headers_buf: [3]http.Header = undefined;
+    var extra_headers_buf: [4]http.Header = undefined;
     var extra_count: usize = 2;
     extra_headers_buf[0] = .{ .name = "x-request-id", .value = request_id };
     extra_headers_buf[1] = .{ .name = "x-request-origin", .value = "exercises-zig" };
     if (options.content_type) |ct| {
         extra_headers_buf[extra_count] = .{ .name = "content-type", .value = ct };
+        extra_count += 1;
+    }
+    if (options.cookie) |cookie| {
+        extra_headers_buf[extra_count] = .{ .name = "cookie", .value = cookie };
         extra_count += 1;
     }
 

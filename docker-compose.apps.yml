@@ -331,6 +331,8 @@ services:
         condition: service_started
       java:
         condition: service_started
+      rust:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8083/health"]
       interval: 15s

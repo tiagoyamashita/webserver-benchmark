@@ -185,6 +185,79 @@ h1 {
   vertical-align: middle;
 }
 
+.page-top-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.page-top-bar-left {
+  flex: 1 1 20rem;
+  min-width: 0;
+}
+
+.page-top-bar-right {
+  flex: 0 1 auto;
+  margin-left: auto;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+
+.header-login-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.header-login-form input {
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--code-bg);
+  color: var(--text);
+  font-size: 0.85rem;
+  min-width: 8rem;
+}
+
+.header-user-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.header-user-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.header-auth-loading {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.header-login-error {
+  width: 100%;
+  font-size: 0.82rem;
+  color: var(--err);
+  text-align: right;
+}
+
+.page-meta {
+  margin-top: 0;
+}
+
 .btn.primary {
   border-color: var(--ok);
   color: var(--ok);

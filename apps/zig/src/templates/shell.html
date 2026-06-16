@@ -30,6 +30,55 @@
         padding: 1rem 1.15rem 0.5rem;
         border-bottom: 1px solid var(--border);
       }
+      .page-top-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem 1.5rem;
+      }
+      .page-top-bar-left { flex: 1 1 20rem; min-width: 0; }
+      .page-top-bar-right {
+        flex: 0 1 auto;
+        margin-left: auto;
+        text-align: right;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.35rem;
+      }
+      .header-login-form[hidden],
+      .header-user-panel[hidden],
+      .header-auth-loading[hidden] {
+        display: none !important;
+      }
+      .header-login-form:not([hidden]) {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        align-items: center;
+        justify-content: flex-end;
+      }
+      .header-login-form input {
+        padding: 0.35rem 0.5rem;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--code-bg);
+        color: var(--text);
+        font-size: 0.85rem;
+        min-width: 8rem;
+      }
+      .header-user-panel:not([hidden]) {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+        justify-content: flex-end;
+      }
+      .header-user-label { font-size: 0.88rem; font-weight: 600; }
+      .header-auth-loading { margin: 0; font-size: 0.85rem; color: var(--muted); }
+      .header-login-error { width: 100%; font-size: 0.82rem; color: var(--err); text-align: right; }
+      .page-meta { margin: 0.35rem 0 0; font-size: 0.88rem; color: var(--muted); }
       h1 { margin: 0 0 0.25rem; font-size: 1.5rem; }
       .subtitle { color: var(--muted); margin: 0; font-size: 0.92rem; }
       .dashboard {
@@ -129,8 +178,28 @@
   </head>
   <body>
     <header class="page-header">
-      <h1>Hello Zig</h1>
-      <p class="subtitle">Exercises stack dashboard — pick a section from the menu.</p>
+      <div class="page-top-bar">
+        <div class="page-top-bar-left">
+          <h1>Hello Zig</h1>
+          <p class="subtitle">Exercises stack dashboard — pick a section from the menu.</p>
+        </div>
+        <div class="page-top-bar-right" id="header-auth-panel">
+          <p class="header-auth-loading" id="header-auth-loading">Loading session…</p>
+          <form id="header-login-form" class="header-login-form" hidden autocomplete="on">
+            <input type="email" id="header-login-email" name="email" placeholder="Email" autocomplete="username" required />
+            <input type="password" id="header-login-password" name="password" placeholder="Password" autocomplete="current-password" />
+            <button type="submit" class="btn">Sign in</button>
+            <span id="header-login-error" class="header-login-error" hidden></span>
+          </form>
+          <div id="header-user-panel" class="header-user-panel" hidden>
+            <span id="header-user-label" class="header-user-label"></span>
+            <button type="button" class="btn" id="header-logout-btn">Logout</button>
+          </div>
+        </div>
+      </div>
+      <p class="page-meta">
+        Session ID: <code id="page-session-id">…</code> · Redis: <code id="page-session-redis-key">…</code>
+      </p>
     </header>
 
     <div class="dashboard">
@@ -184,5 +253,215 @@
         <p class="panel-loading">Loading…</p>
       </main>
     </div>
+    <script>
+      (function (global) {
+        var LEGACY_STORAGE_KEY = "exercises_session_id";
+        function clearLegacyStoredSessionId() {
+          try { global.localStorage.removeItem(LEGACY_STORAGE_KEY); } catch (e) { /* ignore */ }
+        }
+        function newRequestId() {
+          if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+          return "req-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+        }
+        function withSessionHeaders(headers) { return headers || {}; }
+        function ensureSession() {
+          clearLegacyStoredSessionId();
+          return global.fetch("/api/auth/ensure", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { Accept: "application/json", "Content-Type": "application/json", "X-Request-ID": newRequestId() },
+            body: "{}"
+          }).then(function (res) {
+            return res.text().then(function (text) {
+              var data = text;
+              try { data = JSON.parse(text); } catch (e) { /* plain */ }
+              return { ok: res.ok, status: res.status, data: data };
+            });
+          }).then(function (r) {
+            if (!r.ok || !r.data || !r.data.sessionId) throw new Error("Session ensure failed: HTTP " + r.status);
+            return r.data;
+          });
+        }
+        clearLegacyStoredSessionId();
+        global.exercisesSession = { withSessionHeaders: withSessionHeaders, ensureSession: ensureSession };
+      })(window);
+    </script>
+    <script>
+      (function (global) {
+        function isLoggedInSession(data) {
+          return !!(data && data.sessionId && data.userId > 0 && data.email);
+        }
+        function setVisible(el, visible, displayMode) {
+          if (!el) return;
+          el.hidden = !visible;
+          el.style.display = visible ? displayMode : "none";
+        }
+        function setLoginError(message) {
+          var el = document.getElementById("header-login-error");
+          if (!el) return;
+          if (!message) { el.textContent = ""; el.hidden = true; el.style.display = "none"; return; }
+          el.textContent = message;
+          el.hidden = false;
+          el.style.display = "block";
+        }
+        function updateHeaderAuthPanel(data) {
+          var form = document.getElementById("header-login-form");
+          var userPanel = document.getElementById("header-user-panel");
+          var loading = document.getElementById("header-auth-loading");
+          var label = document.getElementById("header-user-label");
+          if (!form || !userPanel) return;
+          setVisible(loading, false, "block");
+          if (isLoggedInSession(data)) {
+            setLoginError("");
+            setVisible(form, false, "flex");
+            setVisible(userPanel, true, "flex");
+            if (label) label.textContent = String(data.name || "User") + " · " + String(data.email);
+            return;
+          }
+          setVisible(userPanel, false, "flex");
+          setVisible(form, true, "flex");
+        }
+        function wireLoginForm(submitLogin) {
+          var form = document.getElementById("header-login-form");
+          if (!form || typeof submitLogin !== "function") return;
+          form.addEventListener("submit", function (ev) {
+            ev.preventDefault();
+            var emailEl = document.getElementById("header-login-email");
+            var passwordEl = document.getElementById("header-login-password");
+            var email = emailEl && emailEl.value ? emailEl.value.trim() : "";
+            var password = passwordEl && passwordEl.value ? passwordEl.value : "";
+            if (!email) { setLoginError("Email is required."); return; }
+            setLoginError("");
+            submitLogin(email, password);
+          });
+        }
+        function wireLogoutButton(performLogout) {
+          var btn = document.getElementById("header-logout-btn");
+          if (!btn || typeof performLogout !== "function") return;
+          btn.addEventListener("click", function () { performLogout(); });
+        }
+        global.exercisesHeaderAuth = {
+          isLoggedInSession: isLoggedInSession,
+          updateHeaderAuthPanel: updateHeaderAuthPanel,
+          setLoginError: setLoginError,
+          wireLoginForm: wireLoginForm,
+          wireLogoutButton: wireLogoutButton
+        };
+      })(window);
+    </script>
+    <script>
+      window.exercisesSession.ensureSession().then(function () {
+        (function () {
+          function newRequestId() {
+            if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+            return "req-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+          }
+          function apiRequest(extra) {
+            var headers = window.exercisesSession.withSessionHeaders({
+              "X-Request-ID": newRequestId(),
+              Accept: "application/json"
+            });
+            if (extra) Object.keys(extra).forEach(function (key) { headers[key] = extra[key]; });
+            return { headers: headers };
+          }
+          function renderSessionStatus(data) {
+            var pageSessionIdEl = document.getElementById("page-session-id");
+            var redisKeyEl = document.getElementById("page-session-redis-key");
+            if (!data || !data.sessionId) {
+              if (pageSessionIdEl) pageSessionIdEl.textContent = "—";
+              if (redisKeyEl) redisKeyEl.textContent = "—";
+              window.exercisesHeaderAuth.updateHeaderAuthPanel(null);
+              return;
+            }
+            if (pageSessionIdEl) pageSessionIdEl.textContent = data.sessionId;
+            if (redisKeyEl) redisKeyEl.textContent = data.redisKey || "—";
+            window.exercisesHeaderAuth.updateHeaderAuthPanel(data);
+          }
+          function refreshSessionHeader() {
+            return fetch("/api/auth/session", {
+              method: "GET",
+              credentials: "same-origin",
+              headers: apiRequest().headers
+            }).then(function (res) {
+              return res.text().then(function (text) {
+                var data = text;
+                try { data = JSON.parse(text); } catch (e) { /* plain */ }
+                return { ok: res.ok, status: res.status, data: data };
+              });
+            }).then(function (r) {
+              if (r.ok && r.data && r.data.sessionId) {
+                renderSessionStatus(r.data);
+                return r.data;
+              }
+              return window.exercisesSession.ensureSession().then(function (s) {
+                renderSessionStatus(s);
+                return s;
+              });
+            }).catch(function () {
+              return window.exercisesSession.ensureSession().then(function (s) {
+                renderSessionStatus(s);
+                return s;
+              });
+            });
+          }
+          function performHeaderLogin(email, password) {
+            var body = { email: email };
+            if (password) body.password = password;
+            fetch("/api/auth/login", {
+              method: "POST",
+              credentials: "same-origin",
+              headers: apiRequest({ "Content-Type": "application/json" }).headers,
+              body: JSON.stringify(body)
+            }).then(function (res) {
+              return res.text().then(function (text) {
+                var data = text;
+                try { data = JSON.parse(text); } catch (e) { /* plain */ }
+                return { ok: res.ok, status: res.status, data: data };
+              });
+            }).then(function (r) {
+              if (!r.ok) {
+                window.exercisesHeaderAuth.setLoginError(
+                  "Sign in failed" + (r.data && r.data.error ? ": " + r.data.error : " (HTTP " + r.status + ")")
+                );
+                return;
+              }
+              renderSessionStatus(r.data);
+            }).catch(function (err) {
+              window.exercisesHeaderAuth.setLoginError(String(err.message || err));
+            });
+          }
+          function performLogout() {
+            fetch("/api/auth/logout", {
+              method: "POST",
+              credentials: "same-origin",
+              headers: apiRequest().headers
+            }).then(function () {
+              renderSessionStatus(null);
+              return window.exercisesSession.ensureSession();
+            }).then(function (s) {
+              if (s) renderSessionStatus(s);
+            }).catch(function (err) {
+              window.exercisesHeaderAuth.setLoginError(String(err.message || err));
+            });
+          }
+          window.exercisesHeaderAuth.wireLoginForm(performHeaderLogin);
+          window.exercisesHeaderAuth.wireLogoutButton(performLogout);
+          document.addEventListener("visibilitychange", function () {
+            if (document.visibilityState === "visible") refreshSessionHeader();
+          });
+          refreshSessionHeader();
+        })();
+      }).catch(function (err) {
+        console.error("[zig] session bootstrap failed", err);
+        if (window.exercisesHeaderAuth) {
+          window.exercisesHeaderAuth.updateHeaderAuthPanel(null);
+          window.exercisesHeaderAuth.setLoginError("Session unavailable (is Redis up?)");
+        }
+        var pageSessionIdEl = document.getElementById("page-session-id");
+        if (pageSessionIdEl) pageSessionIdEl.textContent = "unavailable";
+        var redisKeyEl = document.getElementById("page-session-redis-key");
+        if (redisKeyEl) redisKeyEl.textContent = "—";
+      });
+    </script>
   </body>
 </html>

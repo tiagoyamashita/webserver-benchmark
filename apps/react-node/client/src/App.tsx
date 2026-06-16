@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { createItem, fetchItems, probeService } from "./api";
 import { subscribeLastRequestId } from "./api-request";
 import { formatProbeResult, probeResultClassName } from "./formatResult";
@@ -40,9 +40,12 @@ export default function App() {
   const [createMessage, setCreateMessage] = useState<string | null>(null);
   const [openapiSrc, setOpenapiSrc] = useState<string | null>(null);
   const [pageSessionId, setPageSessionId] = useState("…");
-  const [pageSessionSummary, setPageSessionSummary] = useState("Loading session…");
   const [pageRedisKey, setPageRedisKey] = useState("…");
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [headerAuthLoading, setHeaderAuthLoading] = useState(true);
+  const [headerLoginEmail, setHeaderLoginEmail] = useState("");
+  const [headerLoginPassword, setHeaderLoginPassword] = useState("");
+  const [headerLoginError, setHeaderLoginError] = useState<string | null>(null);
+  const [loggedInUser, setLoggedInUser] = useState<{ name: string; email: string } | null>(null);
   const [lastRequestId, setLastRequestId] = useState("—");
   const [sessionStatus, setSessionStatus] = useState("Loading session…");
   const [sessionResult, setSessionResult] = useState<string | null>(null);
@@ -55,10 +58,10 @@ export default function App() {
   function renderSessionStatus(data: SessionData | null) {
     if (!data?.sessionId) {
       setSessionStatus("No session.");
-      setPageSessionSummary("No session.");
       setPageSessionId("—");
       setPageRedisKey("—");
-      setIsLoggedIn(false);
+      setLoggedInUser(null);
+      setHeaderAuthLoading(false);
       return;
     }
     const who =
@@ -66,10 +69,14 @@ export default function App() {
         ? `${data.name || "Guest"} (guest — sign in to bind a user)`
         : `${data.name} (${data.email})`;
     setSessionStatus(`${who} — session ${data.sessionId} — Redis key ${data.redisKey}`);
-    setPageSessionSummary(who);
     setPageSessionId(data.sessionId);
     setPageRedisKey(data.redisKey || "—");
-    setIsLoggedIn(data.userId > 0 && Boolean(data.email));
+    const loggedIn = data.userId > 0 && Boolean(data.email);
+    setLoggedInUser(
+      loggedIn && data.email ? { name: data.name || "User", email: data.email } : null,
+    );
+    setHeaderAuthLoading(false);
+    setHeaderLoginError(null);
   }
 
   const refreshSessionHeader = useCallback(async () => {
@@ -82,10 +89,11 @@ export default function App() {
         renderSessionStatus(session);
       } catch {
         setPageSessionId("unavailable");
-        setPageSessionSummary("Session unavailable (is Redis up?)");
         setPageRedisKey("—");
         setSessionStatus("Session unavailable.");
-        setIsLoggedIn(false);
+        setLoggedInUser(null);
+        setHeaderAuthLoading(false);
+        setHeaderLoginError("Session unavailable (is Redis up?)");
       }
     }
   }, []);
@@ -170,13 +178,34 @@ export default function App() {
     }
   }, []);
 
-  const submitHeaderAuth = useCallback(async () => {
-    if (isLoggedIn) {
-      await submitSessionLogout();
-      return;
-    }
-    setActiveView("session");
-  }, [isLoggedIn, submitSessionLogout]);
+  const submitHeaderLogin = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      const email = headerLoginEmail.trim();
+      if (!email) {
+        setHeaderLoginError("Email is required.");
+        return;
+      }
+      setHeaderLoginError(null);
+      setSessionPending(true);
+      try {
+        const body: { email: string; password?: string } = { email };
+        if (headerLoginPassword) body.password = headerLoginPassword;
+        const session = await loginSession(body);
+        renderSessionStatus(session);
+        setHeaderLoginPassword("");
+      } catch (error) {
+        setHeaderLoginError(error instanceof Error ? error.message : String(error));
+      } finally {
+        setSessionPending(false);
+      }
+    },
+    [headerLoginEmail, headerLoginPassword],
+  );
+
+  const submitHeaderLogout = useCallback(async () => {
+    await submitSessionLogout();
+  }, [submitSessionLogout]);
 
   const pingOne = useCallback(async (id: string) => {
     setRows((prev) => ({ ...prev, [id]: { pending: true } }));
@@ -243,23 +272,61 @@ export default function App() {
 
   return (
     <main>
-      <h1>React Node</h1>
-      <p className="page-subtitle">Use the menu on the left to open connectivity checks or action forms.</p>
-      <p className="page-subtitle">
-        Last request ID: <code>{lastRequestId}</code> (new id per API call — use to isolate actions in logs)
-      </p>
-      <p className="page-subtitle">{pageSessionSummary}</p>
-      <p className="page-subtitle">
+      <header className="page-top-bar">
+        <div className="page-top-bar-left">
+          <h1>React Node</h1>
+          <p className="page-subtitle">Use the menu on the left to open connectivity checks or action forms.</p>
+          <p className="page-subtitle">
+            Last request ID: <code>{lastRequestId}</code> (new id per API call — use to isolate actions in logs)
+          </p>
+        </div>
+        <div className="page-top-bar-right" id="header-auth-panel">
+          {headerAuthLoading ? (
+            <p className="header-auth-loading">Loading session…</p>
+          ) : loggedInUser ? (
+            <div className="header-user-panel">
+              <span className="header-user-label">
+                {loggedInUser.name} · {loggedInUser.email}
+              </span>
+              <button
+                type="button"
+                className="btn"
+                disabled={sessionPending}
+                aria-label="Sign out"
+                onClick={() => void submitHeaderLogout()}
+              >
+                Logout
+              </button>
+            </div>
+          ) : (
+            <form className="header-login-form" onSubmit={(e) => void submitHeaderLogin(e)} autoComplete="on">
+              <input
+                type="email"
+                name="email"
+                placeholder="Email"
+                autoComplete="username"
+                required
+                value={headerLoginEmail}
+                onChange={(e) => setHeaderLoginEmail(e.target.value)}
+              />
+              <input
+                type="password"
+                name="password"
+                placeholder="Password"
+                autoComplete="current-password"
+                value={headerLoginPassword}
+                onChange={(e) => setHeaderLoginPassword(e.target.value)}
+              />
+              <button type="submit" className="btn primary" disabled={sessionPending}>
+                Sign in
+              </button>
+              {headerLoginError ? <span className="header-login-error">{headerLoginError}</span> : null}
+            </form>
+          )}
+        </div>
+      </header>
+      <p className="page-subtitle page-meta">
         Session ID: <code>{pageSessionId}</code> · Redis: <code>{pageRedisKey}</code>
-        <button
-          type="button"
-          className="btn header-auth-btn"
-          disabled={sessionPending}
-          aria-label={isLoggedIn ? "Sign out" : "Sign in"}
-          onClick={() => void submitHeaderAuth()}
-        >
-          {isLoggedIn ? "Logout" : "Login"}
-        </button>
       </p>
 
       <div className="dashboard">

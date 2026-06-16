@@ -35,8 +35,17 @@ pub fn writeTextResponse(request: *std.http.Server.Request, status: std.http.Sta
 }
 
 pub fn writeJsonResponse(request: *std.http.Server.Request, status: std.http.Status, body: []const u8) !void {
+    try writeJsonResponseExtra(request, status, body, &.{});
+}
+
+pub fn writeJsonResponseExtra(
+    request: *std.http.Server.Request,
+    status: std.http.Status,
+    body: []const u8,
+    extra: []const std.http.Header,
+) !void {
     snap.recordResponse(status, body, true);
-    var extra_headers_buf: [3]std.http.Header = undefined;
+    var extra_headers_buf: [6]std.http.Header = undefined;
     var extra_count: usize = 2;
     extra_headers_buf[0] = .{ .name = "content-type", .value = "application/json" };
     extra_headers_buf[1] = .{ .name = "connection", .value = "close" };
@@ -44,8 +53,32 @@ pub fn writeJsonResponse(request: *std.http.Server.Request, status: std.http.Sta
         extra_headers_buf[extra_count] = .{ .name = "x-request-id", .value = request_id };
         extra_count += 1;
     }
+    for (extra) |header| {
+        extra_headers_buf[extra_count] = header;
+        extra_count += 1;
+    }
     try request.respond(body, .{
         .status = status,
+        .extra_headers = extra_headers_buf[0..extra_count],
+        .keep_alive = false,
+    });
+}
+
+pub fn writeNoContentResponse(request: *std.http.Server.Request, extra: []const std.http.Header) !void {
+    snap.recordResponse(.no_content, "", false);
+    var extra_headers_buf: [5]std.http.Header = undefined;
+    var extra_count: usize = 1;
+    extra_headers_buf[0] = .{ .name = "connection", .value = "close" };
+    if (snap.activeRequestId()) |request_id| {
+        extra_headers_buf[extra_count] = .{ .name = "x-request-id", .value = request_id };
+        extra_count += 1;
+    }
+    for (extra) |header| {
+        extra_headers_buf[extra_count] = header;
+        extra_count += 1;
+    }
+    try request.respond("", .{
+        .status = .no_content,
         .extra_headers = extra_headers_buf[0..extra_count],
         .keep_alive = false,
     });

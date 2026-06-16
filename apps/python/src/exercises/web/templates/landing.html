@@ -148,6 +148,56 @@
       }
       .btn:hover { filter: brightness(1.08); }
       .header-auth-btn { margin-left: 0.65rem; vertical-align: middle; }
+      .page-top-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem 1.5rem;
+        margin-bottom: 0.35rem;
+      }
+      .page-top-bar-left { flex: 1 1 20rem; min-width: 0; }
+      .page-top-bar-right {
+        flex: 0 1 auto;
+        margin-left: auto;
+        text-align: right;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.35rem;
+      }
+      .header-login-form[hidden],
+      .header-user-panel[hidden],
+      .header-auth-loading[hidden] {
+        display: none !important;
+      }
+      .header-login-form:not([hidden]) {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        align-items: center;
+        justify-content: flex-end;
+      }
+      .header-login-form input {
+        padding: 0.35rem 0.5rem;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--code-bg);
+        color: var(--text);
+        font-size: 0.85rem;
+        min-width: 8rem;
+      }
+      .header-user-panel:not([hidden]) {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+        justify-content: flex-end;
+      }
+      .header-user-label { font-size: 0.88rem; font-weight: 600; color: var(--text); }
+      .header-auth-loading { margin: 0; font-size: 0.85rem; color: var(--muted); }
+      .header-login-error { width: 100%; font-size: 0.82rem; color: var(--err); text-align: right; }
+      .page-meta { margin-top: 0; }
       .btn.primary { border-color: var(--ok); color: var(--ok); }
       .btn.grafana { border-color: #f46800; color: #f46800; }
       .btn.react-node { border-color: #60a5fa; color: #60a5fa; }
@@ -221,13 +271,28 @@
     </style>
   </head>
   <body>
-    <h1 id="stack-heading">Hello Python</h1>
-    <p class="page-subtitle">Use the menu on the left to open connectivity checks or action forms.</p>
-    <p class="page-subtitle">Last request ID: <code id="page-request-id">—</code> (new id per API call — use to isolate actions in logs)</p>
-    <p class="page-subtitle" id="page-session-summary">Loading session…</p>
-    <p class="page-subtitle">
+    <header class="page-top-bar">
+      <div class="page-top-bar-left">
+        <h1 id="stack-heading">Hello Python</h1>
+        <p class="page-subtitle">Use the menu on the left to open connectivity checks or action forms.</p>
+        <p class="page-subtitle">Last request ID: <code id="page-request-id">—</code> (new id per API call — use to isolate actions in logs)</p>
+      </div>
+      <div class="page-top-bar-right" id="header-auth-panel">
+        <p class="header-auth-loading" id="header-auth-loading">Loading session…</p>
+        <form id="header-login-form" class="header-login-form" hidden autocomplete="on">
+          <input type="email" id="header-login-email" name="email" placeholder="Email" autocomplete="username" required />
+          <input type="password" id="header-login-password" name="password" placeholder="Password" autocomplete="current-password" />
+          <button type="submit" class="btn primary">Sign in</button>
+          <span id="header-login-error" class="header-login-error" hidden></span>
+        </form>
+        <div id="header-user-panel" class="header-user-panel" hidden>
+          <span id="header-user-label" class="header-user-label"></span>
+          <button type="button" class="btn" id="header-logout-btn">Logout</button>
+        </div>
+      </div>
+    </header>
+    <p class="page-subtitle page-meta">
       Session ID: <code id="page-session-id">…</code> · Redis: <code id="page-session-redis-key">…</code>
-      <button type="button" class="btn header-auth-btn" id="header-auth-btn">Login</button>
     </p>
 
     <div class="dashboard">
@@ -415,6 +480,7 @@
     </div>
 
     <script src="/static/session-bootstrap.js"></script>
+    <script src="/static/header-auth.js"></script>
     <script>
       window.exercisesSession.ensureSession().then(function (session) {
       (function () {
@@ -455,16 +521,42 @@
         }
 
         function updateHeaderAuthButton(data) {
-          var btn = document.getElementById("header-auth-btn");
-          if (!btn) return;
-          if (isLoggedInSession(data)) {
-            btn.textContent = "Logout";
-            btn.setAttribute("aria-label", "Sign out");
-          } else {
-            btn.textContent = "Login";
-            btn.setAttribute("aria-label", "Sign in");
-          }
+          window.exercisesHeaderAuth.updateHeaderAuthPanel(data);
         }
+
+        function performHeaderLogin(email, password) {
+          var body = { email: email };
+          if (password) body.password = password;
+          var loginReq = apiRequest({ "Content-Type": "application/json" });
+          fetch("/api/auth/login", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: loginReq.headers,
+            body: JSON.stringify(body)
+          })
+            .then(function (res) {
+              return res.text().then(function (text) {
+                var data = text;
+                try { data = JSON.parse(text); } catch (e) { /* plain */ }
+                return { ok: res.ok, status: res.status, data: data };
+              });
+            })
+            .then(function (r) {
+              if (!r.ok) {
+                window.exercisesHeaderAuth.setLoginError(
+                  "Sign in failed" + (r.data && r.data.error ? ": " + r.data.error : " (HTTP " + r.status + ")")
+                );
+                return;
+              }
+              renderSessionStatus(r.data);
+            })
+            .catch(function (err) {
+              window.exercisesHeaderAuth.setLoginError(String(err.message || err));
+            });
+        }
+
+        window.exercisesHeaderAuth.wireLoginForm(performHeaderLogin);
+        window.exercisesHeaderAuth.wireLogoutButton(performLogout);
 
         function refreshSessionHeader() {
           return fetch("/api/auth/session", {
@@ -510,12 +602,10 @@
         function renderSessionStatus(data) {
           lastKnownSession = data && data.sessionId ? data : null;
           var el = document.getElementById("session-status");
-          var summaryEl = document.getElementById("page-session-summary");
           var pageSessionIdEl = document.getElementById("page-session-id");
           var redisKeyEl = document.getElementById("page-session-redis-key");
           if (!data || !data.sessionId) {
             if (el) el.textContent = "No session.";
-            if (summaryEl) summaryEl.textContent = "No session.";
             if (pageSessionIdEl) pageSessionIdEl.textContent = "—";
             if (redisKeyEl) redisKeyEl.textContent = "—";
             updateHeaderAuthButton(null);
@@ -526,7 +616,6 @@
             el.textContent =
               who + " — session " + data.sessionId + " — Redis key " + data.redisKey;
           }
-          if (summaryEl) summaryEl.textContent = who;
           if (pageSessionIdEl) pageSessionIdEl.textContent = data.sessionId;
           if (redisKeyEl) redisKeyEl.textContent = data.redisKey || "—";
           updateHeaderAuthButton(data);
@@ -777,16 +866,6 @@
             performLogout();
           });
         }
-        var headerAuthBtn = document.getElementById("header-auth-btn");
-        if (headerAuthBtn) {
-          headerAuthBtn.addEventListener("click", function () {
-            if (isLoggedInSession(lastKnownSession)) {
-              performLogout();
-              return;
-            }
-            showView("view-session", "nav-session");
-          });
-        }
 
         document.addEventListener("visibilitychange", function () {
           if (document.visibilityState === "visible") {
@@ -802,8 +881,10 @@
       })();
       }).catch(function (err) {
         console.error("[dashboard] session bootstrap failed", err);
-        var summaryEl = document.getElementById("page-session-summary");
-        if (summaryEl) summaryEl.textContent = "Session unavailable (is Redis up?)";
+        if (window.exercisesHeaderAuth) {
+          window.exercisesHeaderAuth.updateHeaderAuthPanel(null);
+          window.exercisesHeaderAuth.setLoginError("Session unavailable (is Redis up?)");
+        }
         var pageSessionIdEl = document.getElementById("page-session-id");
         if (pageSessionIdEl) pageSessionIdEl.textContent = "unavailable";
         var redisKeyEl = document.getElementById("page-session-redis-key");
