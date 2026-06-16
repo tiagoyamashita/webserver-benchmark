@@ -18,7 +18,7 @@ pub fn handleRows(app: *app_mod.App, request: *std.http.Server.Request) !void {
     ctrl_log.logReceived("handleItemsRows", SOURCE, @tagName(request.head.method), "/htmx/items");
     var database = app.db orelse {
         ctrl_log.logWarn("handleItemsRows", SOURCE, "error=postgres_not_configured", .{});
-        return try writeMessageBody(app, request, .service_unavailable, "Postgres not configured (set DB_HOST).");
+        return try writeMessageBody(app, request, "Postgres not configured (set DB_HOST).");
     };
     app.db_mutex.lock();
     defer app.db_mutex.unlock();
@@ -28,7 +28,7 @@ pub fn handleRows(app: *app_mod.App, request: *std.http.Server.Request) !void {
 pub fn handleCreate(app: *app_mod.App, request: *std.http.Server.Request) !void {
     ctrl_log.logReceived("handleItemsCreate", SOURCE, "POST", "/htmx/items");
     var database = app.db orelse {
-        return try writeMessageBody(app, request, .service_unavailable, "Postgres not configured.");
+        return try writeMessageBody(app, request, "Postgres not configured.");
     };
     const body = try http.readBody(app.allocator, request);
     defer app.allocator.free(body);
@@ -38,36 +38,70 @@ pub fn handleCreate(app: *app_mod.App, request: *std.http.Server.Request) !void 
     const trimmed = std.mem.trim(u8, decoded, " \t\r\n");
     if (trimmed.len == 0) {
         ctrl_log.logWarn("handleItemsCreate", SOURCE, "reason=blank-name", .{});
-        return try writeMessageBody(app, request, .bad_request, "Name must not be blank.");
+        app.db_mutex.lock();
+        defer app.db_mutex.unlock();
+        return try renderRowsWithStatus(app, request, &database, .{
+            .kind = .failure,
+            .message = "Name must not be blank.",
+        });
     }
     app.db_mutex.lock();
     defer app.db_mutex.unlock();
     const inserted = database.insertItem(app.allocator, trimmed) catch {
-        return try writeMessageBody(app, request, .internal_server_error, "Insert failed.");
+        return try renderRowsWithStatus(app, request, &database, .{
+            .kind = .failure,
+            .message = "Insert failed.",
+        });
     };
     defer {
         app.allocator.free(inserted.name);
         app.allocator.free(inserted.created_at);
     }
-    try renderRowsLocked(app, request, &database);
+    const safe_name = try html_mod.escapeHtml(app.allocator, trimmed);
+    defer app.allocator.free(safe_name);
+    const message = try std.fmt.allocPrint(
+        app.allocator,
+        "Created item \"{s}\" (id {d}).",
+        .{ safe_name, inserted.id },
+    );
+    defer app.allocator.free(message);
+    try renderRowsWithStatus(app, request, &database, .{
+        .kind = .success,
+        .message = message,
+    });
     ctrl_log.logSucceeded("handleItemsCreate", SOURCE, "item_id={d}", .{inserted.id});
 }
 
 fn writeMessageBody(
     app: *app_mod.App,
     request: *std.http.Server.Request,
-    status: std.http.Status,
     message: []const u8,
 ) !void {
-    const body = try html_mod.renderItemsMessageBody(app.allocator, message);
+    const body = try html_mod.renderItemsMessageBody(app.allocator, .failure, message);
     defer app.allocator.free(body);
-    try http.writeTextResponse(request, status, "text/html; charset=utf-8", body);
+    try http.writeTextResponse(request, .ok, "text/html; charset=utf-8", body);
+}
+
+fn renderRowsWithStatus(
+    app: *app_mod.App,
+    request: *std.http.Server.Request,
+    database: *db_mod.Db,
+    status: html_mod.ItemsStatus,
+) !void {
+    const items = database.listItems(app.allocator) catch {
+        ctrl_log.logWarn("handleItemsRows", SOURCE, "error=list_items_failed", .{});
+        return try writeMessageBody(app, request, "Failed to load items.");
+    };
+    defer db_mod.Db.freeItems(items, app.allocator);
+    const body = try html_mod.renderItemsBodyWithStatus(app.allocator, items, status);
+    defer app.allocator.free(body);
+    try http.writeTextResponse(request, .ok, "text/html; charset=utf-8", body);
 }
 
 fn renderRowsLocked(app: *app_mod.App, request: *std.http.Server.Request, database: *db_mod.Db) !void {
     const items = database.listItems(app.allocator) catch {
         ctrl_log.logWarn("handleItemsRows", SOURCE, "error=list_items_failed", .{});
-        return try writeMessageBody(app, request, .internal_server_error, "Failed to load items.");
+        return try writeMessageBody(app, request, "Failed to load items.");
     };
     defer db_mod.Db.freeItems(items, app.allocator);
     const body = try html_mod.renderItemsBody(app.allocator, items);

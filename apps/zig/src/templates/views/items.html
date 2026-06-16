@@ -9,7 +9,7 @@
     hx-post="/htmx/items"
     hx-target="#items-body"
     hx-swap="outerHTML"
-    hx-on::after-request="if(event.detail.successful) this.reset()"
+    hx-on::after-request="if(event.detail.successful && document.querySelector('#items-status-row .ok')) this.reset()"
   >
     <input type="text" name="name" placeholder="Item name" required maxlength="255" autocomplete="off" />
     <button type="submit">Create item</button>

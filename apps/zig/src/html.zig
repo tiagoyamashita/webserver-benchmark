@@ -6,6 +6,16 @@ pub const items_tbody_open =
     \\<tbody id="items-body">
 ;
 
+pub const ItemsStatus = struct {
+    kind: Kind,
+    message: []const u8,
+
+    pub const Kind = enum {
+        success,
+        failure,
+    };
+};
+
 pub fn escapeHtml(allocator: std.mem.Allocator, input: []const u8) ![]u8 {
     var list = std.ArrayList(u8).init(allocator);
     errdefer list.deinit();
@@ -20,6 +30,20 @@ pub fn escapeHtml(allocator: std.mem.Allocator, input: []const u8) ![]u8 {
         }
     }
     return list.toOwnedSlice();
+}
+
+pub fn renderStatusRow(allocator: std.mem.Allocator, kind: ItemsStatus.Kind, message: []const u8) ![]u8 {
+    const safe = try escapeHtml(allocator, message);
+    defer allocator.free(safe);
+    const class_name: []const u8 = switch (kind) {
+        .success => "ok",
+        .failure => "err",
+    };
+    return std.fmt.allocPrint(
+        allocator,
+        "<tr id=\"items-status-row\"><td colspan=\"3\" class=\"{s}\">{s}</td></tr>",
+        .{ class_name, safe },
+    );
 }
 
 pub fn renderItemsRows(allocator: std.mem.Allocator, items: []const @import("db.zig").Item) ![]u8 {
@@ -43,19 +67,29 @@ pub fn renderItemsRows(allocator: std.mem.Allocator, items: []const @import("db.
 }
 
 pub fn renderItemsBody(allocator: std.mem.Allocator, items: []const @import("db.zig").Item) ![]u8 {
-    const rows = try renderItemsRows(allocator, items);
-    defer allocator.free(rows);
-    return std.fmt.allocPrint(allocator, "{s}{s}</tbody>", .{ items_tbody_open, rows });
+    return renderItemsBodyWithStatus(allocator, items, null);
 }
 
-pub fn renderItemsMessageBody(allocator: std.mem.Allocator, message: []const u8) ![]u8 {
-    const row = try std.fmt.allocPrint(
-        allocator,
-        "<tr><td colspan=\"3\">{s}</td></tr>",
-        .{message},
-    );
-    defer allocator.free(row);
-    return std.fmt.allocPrint(allocator, "{s}{s}</tbody>", .{ items_tbody_open, row });
+pub fn renderItemsBodyWithStatus(
+    allocator: std.mem.Allocator,
+    items: []const @import("db.zig").Item,
+    status: ?ItemsStatus,
+) ![]u8 {
+    const status_row_owned = if (status) |s|
+        try renderStatusRow(allocator, s.kind, s.message)
+    else
+        @as([]u8, "");
+    defer if (status_row_owned.len > 0) allocator.free(status_row_owned);
+
+    const rows = try renderItemsRows(allocator, items);
+    defer allocator.free(rows);
+    return std.fmt.allocPrint(allocator, "{s}{s}{s}</tbody>", .{ items_tbody_open, status_row_owned, rows });
+}
+
+pub fn renderItemsMessageBody(allocator: std.mem.Allocator, kind: ItemsStatus.Kind, message: []const u8) ![]u8 {
+    const status_row = try renderStatusRow(allocator, kind, message);
+    defer allocator.free(status_row);
+    return std.fmt.allocPrint(allocator, "{s}{s}</tbody>", .{ items_tbody_open, status_row });
 }
 
 pub fn parseFormName(body: []const u8) ?[]const u8 {
