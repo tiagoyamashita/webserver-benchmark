@@ -22,7 +22,7 @@ describe("createApp", () => {
     await request(app).get("/api/health");
     const response = await request(app).get("/metrics");
     expect(response.status).toBe(200);
-    expect(response.text).toContain("exercises_http_requests_total");
+    expect(response.text).toContain("webserver_benchmark_http_requests_total");
     expect(response.text).toContain('endpoint="/api/health"');
   });
 

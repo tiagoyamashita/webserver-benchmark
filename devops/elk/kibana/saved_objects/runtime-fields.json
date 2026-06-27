@@ -2,19 +2,19 @@
   "correlation.origin": {
     "type": "keyword",
     "script": {
-      "source": "def appName = ''; if (doc.containsKey('application_name.keyword') && doc['application_name.keyword'].size() > 0) { appName = doc['application_name.keyword'].value; } if (appName.length() > 0) { def m = /^(exercises-[^;]+);req=([^;]+)(?:;(?:sid|s)=(.+))?$/.matcher(appName); if (m.find()) { emit(m.group(1)); } }"
+      "source": "def appName = ''; if (doc.containsKey('application_name.keyword') && doc['application_name.keyword'].size() > 0) { appName = doc['application_name.keyword'].value; } if (appName.length() > 0) { def m = /^(webserver-benchmark-[^;]+);req=([^;]+)(?:;(?:sid|s)=(.+))?$/.matcher(appName); if (m.find()) { emit(m.group(1)); } }"
     }
   },
   "correlation.request_id": {
     "type": "keyword",
     "script": {
-      "source": "def appName = ''; if (doc.containsKey('application_name.keyword') && doc['application_name.keyword'].size() > 0) { appName = doc['application_name.keyword'].value; } if (appName.length() > 0) { def m = /^(exercises-[^;]+);req=([^;]+)(?:;(?:sid|s)=(.+))?$/.matcher(appName); if (m.find()) { emit(m.group(2)); } }"
+      "source": "def appName = ''; if (doc.containsKey('application_name.keyword') && doc['application_name.keyword'].size() > 0) { appName = doc['application_name.keyword'].value; } if (appName.length() > 0) { def m = /^(webserver-benchmark-[^;]+);req=([^;]+)(?:;(?:sid|s)=(.+))?$/.matcher(appName); if (m.find()) { emit(m.group(2)); } }"
     }
   },
   "correlation.session_id": {
     "type": "keyword",
     "script": {
-      "source": "def appName = ''; if (doc.containsKey('application_name.keyword') && doc['application_name.keyword'].size() > 0) { appName = doc['application_name.keyword'].value; } if (appName.length() > 0) { def m = /^(exercises-[^;]+);req=([^;]+)(?:;(?:sid|s)=(.+))?$/.matcher(appName); if (m.find() && m.group(3) != null) { emit(m.group(3)); } }"
+      "source": "def appName = ''; if (doc.containsKey('application_name.keyword') && doc['application_name.keyword'].size() > 0) { appName = doc['application_name.keyword'].value; } if (appName.length() > 0) { def m = /^(webserver-benchmark-[^;]+);req=([^;]+)(?:;(?:sid|s)=(.+))?$/.matcher(appName); if (m.find() && m.group(3) != null) { emit(m.group(3)); } }"
     }
   },
   "sql.op": {
@@ -44,7 +44,7 @@
   "session_id_resolved": {
     "type": "keyword",
     "script": {
-      "source": "def sid = null; if (doc.containsKey('session_id.keyword') && doc['session_id.keyword'].size() > 0) { sid = doc['session_id.keyword'].value; } if (sid == null && doc.containsKey('headers.keyword') && doc['headers.keyword'].size() > 0) { def h = doc['headers.keyword'].value; def xsKey = '\"x-session-id\":\"'; def xsStart = h.indexOf(xsKey); if (xsStart >= 0) { def from = xsStart + xsKey.length(); def end = h.indexOf('\"', from); if (end > from) { sid = h.substring(from, end); } } if (sid == null) { def ckKey = 'exercises_session='; def ckStart = h.indexOf(ckKey); if (ckStart >= 0) { def from = ckStart + ckKey.length(); def end = h.indexOf(';', from); sid = end > from ? h.substring(from, end) : h.substring(from); } } if (sid == null) { def baKey = '\"authorization\":\"Bearer '; def baStart = h.indexOf(baKey); if (baStart >= 0) { def from = baStart + baKey.length(); def end = h.indexOf('\"', from); if (end > from) { sid = h.substring(from, end); } } } } if (sid != null && sid.length() > 0) { emit(sid); }"
+      "source": "def sid = null; if (doc.containsKey('session_id.keyword') && doc['session_id.keyword'].size() > 0) { sid = doc['session_id.keyword'].value; } if (sid == null && doc.containsKey('headers.keyword') && doc['headers.keyword'].size() > 0) { def h = doc['headers.keyword'].value; def xsKey = '\"x-session-id\":\"'; def xsStart = h.indexOf(xsKey); if (xsStart >= 0) { def from = xsStart + xsKey.length(); def end = h.indexOf('\"', from); if (end > from) { sid = h.substring(from, end); } } if (sid == null) { def ckKey = 'webserver_benchmark_session='; def ckStart = h.indexOf(ckKey); if (ckStart >= 0) { def from = ckStart + ckKey.length(); def end = h.indexOf(';', from); sid = end > from ? h.substring(from, end) : h.substring(from); } } if (sid == null) { def baKey = '\"authorization\":\"Bearer '; def baStart = h.indexOf(baKey); if (baStart >= 0) { def from = baStart + baKey.length(); def end = h.indexOf('\"', from); if (end > from) { sid = h.substring(from, end); } } } } if (sid != null && sid.length() > 0) { emit(sid); }"
     }
   }
 }

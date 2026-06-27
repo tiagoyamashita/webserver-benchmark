@@ -1,5 +1,5 @@
 {
-  "name": "exercises-react-node",
+  "name": "webserver-benchmark-react-node",
   "private": true,
   "version": "0.1.0",
   "type": "module",

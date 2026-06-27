@@ -54,7 +54,7 @@ Official GUI ([`redis/redisinsight`](https://hub.docker.com/r/redis/redisinsight
 podman compose -f docker-compose.apps.yml up -d redisinsight
 ```
 
-Open **http://127.0.0.1:5540/** and browse keys (e.g. `exercises:session:*` after Java login).
+Open **http://127.0.0.1:5540/** and browse keys (e.g. `webserver-benchmark:session:*` after Java login).
 
 ### Iframe embed (dashboards)
 

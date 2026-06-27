@@ -248,7 +248,7 @@
       <div class="page-top-bar">
         <div class="page-top-bar-left">
           <h1>Hello Zig</h1>
-          <p class="subtitle">Exercises stack dashboard — pick a section from the menu.</p>
+          <p class="subtitle">WebServer BenchMark stack dashboard — pick a section from the menu.</p>
         </div>
         <div class="page-top-bar-right" id="header-auth-panel">
           <div id="header-user-panel" class="header-user-panel" hidden>
@@ -316,7 +316,7 @@
     </div>
     <script>
       (function (global) {
-        var LEGACY_STORAGE_KEY = "exercises_session_id";
+        var LEGACY_STORAGE_KEY = "webserver_benchmark_session_id";
         function clearLegacyStoredSessionId() {
           try { global.localStorage.removeItem(LEGACY_STORAGE_KEY); } catch (e) { /* ignore */ }
         }
@@ -344,7 +344,7 @@
           });
         }
         clearLegacyStoredSessionId();
-        global.exercisesSession = { withSessionHeaders: withSessionHeaders, ensureSession: ensureSession };
+        global.webserverBenchmarkSession = { withSessionHeaders: withSessionHeaders, ensureSession: ensureSession };
       })(window);
     </script>
     <script>
@@ -373,7 +373,7 @@
           if (!btn || typeof performLogout !== "function") return;
           btn.addEventListener("click", function () { performLogout(); });
         }
-        global.exercisesHeaderAuth = {
+        global.webserverBenchmarkHeaderAuth = {
           isLoggedInSession: isLoggedInSession,
           updateHeaderAuthPanel: updateHeaderAuthPanel,
           wireLogoutButton: wireLogoutButton
@@ -416,7 +416,7 @@
           var loggedIn = isLoggedInSession(data);
           setVisible(gate, !loggedIn, "flex");
           setVisible(shell, loggedIn, "block");
-          if (loggedIn && global.exercisesHeaderAuth) global.exercisesHeaderAuth.updateHeaderAuthPanel(data);
+          if (loggedIn && global.webserverBenchmarkHeaderAuth) global.webserverBenchmarkHeaderAuth.updateHeaderAuthPanel(data);
         }
         function wireAuthGate(handlers) {
           document.querySelectorAll("[data-auth-tab]").forEach(function (btn) {
@@ -453,7 +453,7 @@
             });
           }
         }
-        global.exercisesAuthGate = {
+        global.webserverBenchmarkAuthGate = {
           isLoggedInSession: isLoggedInSession,
           applyAuthGate: applyAuthGate,
           setGateError: setGateError,
@@ -462,14 +462,14 @@
       })(window);
     </script>
     <script>
-      window.exercisesSession.ensureSession().then(function () {
+      window.webserverBenchmarkSession.ensureSession().then(function () {
         (function () {
           function newRequestId() {
             if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
             return "req-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
           }
           function apiRequest(extra) {
-            var headers = window.exercisesSession.withSessionHeaders({
+            var headers = window.webserverBenchmarkSession.withSessionHeaders({
               "X-Request-ID": newRequestId(),
               Accept: "application/json"
             });
@@ -482,12 +482,12 @@
             if (!data || !data.sessionId) {
               if (pageSessionIdEl) pageSessionIdEl.textContent = "—";
               if (redisKeyEl) redisKeyEl.textContent = "—";
-              if (window.exercisesAuthGate) window.exercisesAuthGate.applyAuthGate(null);
+              if (window.webserverBenchmarkAuthGate) window.webserverBenchmarkAuthGate.applyAuthGate(null);
               return;
             }
             if (pageSessionIdEl) pageSessionIdEl.textContent = data.sessionId;
             if (redisKeyEl) redisKeyEl.textContent = data.redisKey || "—";
-            if (window.exercisesAuthGate) window.exercisesAuthGate.applyAuthGate(data);
+            if (window.webserverBenchmarkAuthGate) window.webserverBenchmarkAuthGate.applyAuthGate(data);
           }
           function refreshSessionHeader() {
             return fetch("/api/auth/session", {
@@ -505,12 +505,12 @@
                 renderSessionStatus(r.data);
                 return r.data;
               }
-              return window.exercisesSession.ensureSession().then(function (s) {
+              return window.webserverBenchmarkSession.ensureSession().then(function (s) {
                 renderSessionStatus(s);
                 return s;
               });
             }).catch(function () {
-              return window.exercisesSession.ensureSession().then(function (s) {
+              return window.webserverBenchmarkSession.ensureSession().then(function (s) {
                 renderSessionStatus(s);
                 return s;
               });
@@ -532,14 +532,14 @@
               });
             }).then(function (r) {
               if (!r.ok) {
-                window.exercisesAuthGate.setGateError(
+                window.webserverBenchmarkAuthGate.setGateError(
                   "Sign in failed" + (r.data && r.data.error ? ": " + r.data.error : " (HTTP " + r.status + ")")
                 );
                 return;
               }
               renderSessionStatus(r.data);
             }).catch(function (err) {
-              window.exercisesAuthGate.setGateError(String(err.message || err));
+              window.webserverBenchmarkAuthGate.setGateError(String(err.message || err));
             });
           }
           function performGateRegister(name, email, password) {
@@ -557,12 +557,12 @@
             }).then(function (r) {
               if (!r.ok) {
                 var msg = r.data && r.data.error ? r.data.error : String(r.data || r.status);
-                window.exercisesAuthGate.setGateError("Create account failed: " + msg);
+                window.webserverBenchmarkAuthGate.setGateError("Create account failed: " + msg);
                 return;
               }
               return performGateLogin(email, password);
             }).catch(function (err) {
-              window.exercisesAuthGate.setGateError(String(err.message || err));
+              window.webserverBenchmarkAuthGate.setGateError(String(err.message || err));
             });
           }
           function performLogout() {
@@ -580,16 +580,16 @@
                 if (!res.ok) {
                   throw new Error("Logout failed (HTTP " + res.status + ")");
                 }
-                return window.exercisesSession.ensureSession();
+                return window.webserverBenchmarkSession.ensureSession();
               });
             }).then(function (s) {
               renderSessionStatus(s);
             }).catch(function (err) {
-              window.exercisesAuthGate.setGateError(String(err.message || err));
+              window.webserverBenchmarkAuthGate.setGateError(String(err.message || err));
             });
           }
-          window.exercisesHeaderAuth.wireLogoutButton(performLogout);
-          window.exercisesAuthGate.wireAuthGate({
+          window.webserverBenchmarkHeaderAuth.wireLogoutButton(performLogout);
+          window.webserverBenchmarkAuthGate.wireAuthGate({
             onLogin: function (email, password) { performGateLogin(email, password); },
             onRegister: function (name, email, password) { performGateRegister(name, email, password); }
           });
@@ -600,7 +600,7 @@
         })();
       }).catch(function (err) {
         console.error("[zig] session bootstrap failed", err);
-        if (window.exercisesAuthGate) window.exercisesAuthGate.setGateError("Session unavailable (is Redis up?)");
+        if (window.webserverBenchmarkAuthGate) window.webserverBenchmarkAuthGate.setGateError("Session unavailable (is Redis up?)");
         var pageSessionIdEl = document.getElementById("page-session-id");
         if (pageSessionIdEl) pageSessionIdEl.textContent = "unavailable";
         var redisKeyEl = document.getElementById("page-session-redis-key");

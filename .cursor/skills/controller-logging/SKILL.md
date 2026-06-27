@@ -168,7 +168,7 @@ logReceived("createItem", SOURCE, "POST", "/api/items", { name });
 logSucceeded("createItem", SOURCE, { id: item.id, name: item.name });
 ```
 
-Logs emit structured JSON to stdout and to `${LOG_PATH}/demo-app.json.log` when `EXERCISES_OBSERVABILITY=true`.
+Logs emit structured JSON to stdout and to `${LOG_PATH}/demo-app.json.log` when `WEBSERVER_BENCHMARK_OBSERVABILITY=true`.
 
 ## Verify in Kibana
 

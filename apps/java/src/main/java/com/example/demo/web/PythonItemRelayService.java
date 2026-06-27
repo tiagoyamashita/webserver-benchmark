@@ -27,7 +27,7 @@ public class PythonItemRelayService {
   private static final String SOURCE =
       "src/main/java/com/example/demo/web/PythonItemRelayService.java";
   private static final Logger log = LoggerFactory.getLogger(PythonItemRelayService.class);
-  private static final String RELAY_TARGET = "exercises-python";
+  private static final String RELAY_TARGET = "webserver-benchmark-python";
 
   private final RestClient restClient;
   private final StackPingProperties properties;

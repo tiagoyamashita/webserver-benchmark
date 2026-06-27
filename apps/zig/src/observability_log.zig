@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const SERVICE = "exercises-zig";
+const SERVICE = "webserver-benchmark-zig";
 
 var log_file: ?std.fs.File = null;
 var log_mutex: std.Thread.Mutex = .{};
@@ -19,7 +19,7 @@ pub const Field = union(enum) {
 };
 
 pub fn observabilityEnabled() bool {
-    const v = std.posix.getenv("EXERCISES_OBSERVABILITY") orelse return false;
+    const v = std.posix.getenv("WEBSERVER_BENCHMARK_OBSERVABILITY") orelse return false;
     return std.ascii.eqlIgnoreCase(v, "1") or
         std.ascii.eqlIgnoreCase(v, "true") or
         std.ascii.eqlIgnoreCase(v, "yes");

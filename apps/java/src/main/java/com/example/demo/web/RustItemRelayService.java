@@ -67,14 +67,14 @@ public class RustItemRelayService {
         kv("method", "POST"),
         kv("path", "/dashboard/items/add-via-rust"),
         kv("dashboard_page", DashboardPageContext.get()),
-        kv("relay_target", "exercises-rust"),
+        kv("relay_target", "webserver-benchmark-rust"),
         kv("relay_origin", RequestIdRelay.SERVICE),
         kv("name", trimmed),
         kv("ui_event", "dashboard.ui"),
         kv("action", "add-item-via-rust"));
     String base = properties.getRustBaseUrl().trim().replaceAll("/+$", "");
     URI uri = URI.create(base + "/api/items");
-    OutboundHttpLogger.logRequest("POST", uri, "exercises-rust", Map.of("name", trimmed));
+    OutboundHttpLogger.logRequest("POST", uri, "webserver-benchmark-rust", Map.of("name", trimmed));
     long start = System.nanoTime();
     try {
       ResponseEntity<String> res =
@@ -94,7 +94,7 @@ public class RustItemRelayService {
           uri,
           res.getStatusCode().value(),
           ms,
-          "exercises-rust",
+          "webserver-benchmark-rust",
           res.getHeaders(),
           rawBody);
       Map<String, Object> out = new LinkedHashMap<>();
@@ -110,7 +110,7 @@ public class RustItemRelayService {
             "RustItemRelayService.addItemViaRust succeeded",
             kv("source", SOURCE),
             kv("controller", "RustItemRelayService"),
-            kv("relay_target", "exercises-rust"),
+            kv("relay_target", "webserver-benchmark-rust"),
             kv("relay_origin", RequestIdRelay.SERVICE),
             kv("name", trimmed),
             kv("rustStatus", res.getStatusCode().value()),
@@ -141,7 +141,7 @@ public class RustItemRelayService {
           uri,
           e.getStatusCode().value(),
           ms,
-          "exercises-rust",
+          "webserver-benchmark-rust",
           e.getResponseHeaders(),
           rawBody);
       log.warn(
@@ -169,7 +169,7 @@ public class RustItemRelayService {
     } catch (RestClientException e) {
       long ms = (System.nanoTime() - start) / 1_000_000L;
       String error = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-      OutboundHttpLogger.logFailure("POST", uri, ms, "exercises-rust", error);
+      OutboundHttpLogger.logFailure("POST", uri, ms, "webserver-benchmark-rust", error);
       log.warn(
           "RustItemRelayService.addItemViaRust failed",
           kv("source", SOURCE),

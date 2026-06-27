@@ -30,7 +30,7 @@ function mockRes(): Response & { statusCode: number; body: unknown } {
   return res as Response & { statusCode: number; body: unknown };
 }
 
-const auth = { config: { cookieName: "exercises_session", redisKeyPrefix: "p:", ttlSecs: 3600 } } as AuthState;
+const auth = { config: { cookieName: "webserver_benchmark_session", redisKeyPrefix: "p:", ttlSecs: 3600 } } as AuthState;
 
 describe("requireApiSession", () => {
   it("allows requests when auth is not configured", () => {
@@ -50,7 +50,7 @@ describe("requireApiSession", () => {
   it("allows trusted stack relay origin without session", () => {
     const next = vi.fn();
     requireApiSession(auth)(
-      mockReq({ headers: { "x-request-origin": "exercises-java" } }),
+      mockReq({ headers: { "x-request-origin": "webserver-benchmark-java" } }),
       mockRes(),
       next,
     );

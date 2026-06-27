@@ -1,11 +1,11 @@
 # Grafana unified alerting — log pipeline (Filebeat → Logstash → Elasticsearch).
-# Alerts appear under Alerting → Alert rules → Exercises; history is kept for later review.
+# Alerts appear under Alerting → Alert rules → WebServer BenchMark; history is kept for later review.
 # No contact point is provisioned (local/lab); add email/Slack in Grafana UI if needed.
 apiVersion: 1
 groups:
   - orgId: 1
-    name: exercises-log-pipeline
-    folder: Exercises
+    name: webserver-benchmark-log-pipeline
+    folder: WebServer BenchMark
     interval: 1m
     rules:
       - uid: ex-logpipe-filebeat-down
@@ -18,7 +18,7 @@ groups:
               to: 0
             datasourceUid: prometheus
             model:
-              expr: up{job="exercises-filebeat"}
+              expr: up{job="webserver-benchmark-filebeat"}
               instant: true
               intervalMs: 1000
               maxDataPoints: 43200
@@ -71,7 +71,7 @@ groups:
               to: 0
             datasourceUid: prometheus
             model:
-              expr: up{job="exercises-logstash"}
+              expr: up{job="webserver-benchmark-logstash"}
               instant: true
               intervalMs: 1000
               maxDataPoints: 43200

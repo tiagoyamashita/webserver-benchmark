@@ -2,7 +2,7 @@
 
 Optional **Elastic Stack** layout for **local experiments**: ship logs through **Logstash** into **Elasticsearch**, explore them in **Kibana**.
 
-The **root** `docker-compose.yml` includes a **`filebeat`** service that tails **Java**, **Python**, **Rust**, and **Postgres** JSON logs. Apps write **`*/logs/demo-app.json.log`** (Java **`observability`** profile; Python / Rust **`EXERCISES_OBSERVABILITY=1`**). Postgres writes **`postgres/logs/postgresql-*.json`** (`log_destination=jsonlog`; see [../postgres/README.md](../postgres/README.md)).
+The **root** `docker-compose.yml` includes a **`filebeat`** service that tails **Java**, **Python**, **Rust**, and **Postgres** JSON logs. Apps write **`*/logs/demo-app.json.log`** (Java **`observability`** profile; Python / Rust **`WEBSERVER_BENCHMARK_OBSERVABILITY=1`**). Postgres writes **`postgres/logs/postgresql-*.json`** (`log_destination=jsonlog`; see [../postgres/README.md](../postgres/README.md)).
 
 ## What “ELK” means here
 
@@ -21,7 +21,7 @@ Modern deployments often add **Beats** (for example **Filebeat**) in front of Lo
 | Path | Purpose |
 |------|---------|
 | `docker-compose.yml` | Single-node Elasticsearch + Logstash + **Kibana** |
-| `kibana/kibana.yml` | **Kibana** server + Elasticsearch host; **`server.defaultRoute`** opens the exercises dashboard |
+| `kibana/kibana.yml` | **Kibana** server + Elasticsearch host; **`server.defaultRoute`** opens the WebServer BenchMark dashboard |
 | `kibana/provision-kibana.sh` | Imports data view, dashboards, and default route (run by **`kibana-setup`** on Compose up) |
 | `kibana/build-dashboards.py` | Builds dashboards that link panels to library saved searches |
 | `kibana/build-ndjson.py` | Bundles data view, searches, and dashboards for `_import` |
@@ -50,7 +50,7 @@ docker compose up -d
 Then:
 
 - **Elasticsearch:** `http://localhost:9200/` (JSON API; expect a small cluster-health payload).
-- **Kibana:** `http://localhost:5601/` — security is **disabled** in this Compose file **for trusted local use only**. The **`kibana-setup`** service imports the **`logstash-*`** data view, saved searches, and dashboards, then sets the default landing page to **Exercises — HTTP & Postgres logs** (`/app/dashboards#/view/exercises-requests-logs-kibana`). Open `http://localhost:5601/` after `compose up` — no manual data-view wizard required.
+- **Kibana:** `http://localhost:5601/` — security is **disabled** in this Compose file **for trusted local use only**. The **`kibana-setup`** service imports the **`logstash-*`** data view, saved searches, and dashboards, then sets the default landing page to **WebServer BenchMark — HTTP & Postgres logs** (`/app/dashboards#/view/webserver-benchmark-requests-logs-kibana`). Open `http://localhost:5601/` after `compose up` — no manual data-view wizard required.
 
 ### Using Kibana after logs arrive
 
@@ -61,7 +61,7 @@ Then:
    curl -s http://127.0.0.1:8082/api/observability/sample-log
    ```
 2. Confirm indices exist: `curl -s http://127.0.0.1:9200/_cat/indices?v` — look for **`logstash-YYYY.MM.dd`**.
-3. Open **Kibana** at `http://127.0.0.1:5601/` — you should land on **Exercises — HTTP & Postgres logs** (last 6 hours). If the dashboard is empty, wait for **`kibana-setup`** to finish (`podman compose logs kibana-setup`) or run `.\devops\elk\kibana\provision-kibana.ps1` manually.
+3. Open **Kibana** at `http://127.0.0.1:5601/` — you should land on **WebServer BenchMark — HTTP & Postgres logs** (last 6 hours). If the dashboard is empty, wait for **`kibana-setup`** to finish (`podman compose logs kibana-setup`) or run `.\devops\elk\kibana\provision-kibana.ps1` manually.
 4. **Discover** uses the pre-provisioned **`logstash-*`** data view (**Logstash pipeline**); timestamp field **`@timestamp`**.
 
 Until Filebeat (or another Beat) sends events through Logstash, indices may not exist yet; Elasticsearch will create **`logstash-YYYY.MM.dd`** on first ingest.
@@ -74,7 +74,7 @@ Logstash normalizes Rust tracing JSON (flattens nested `fields` to top-level key
 
 **Logs stopped appearing in Kibana/Grafana?** Check `podman compose -f docker-compose.observability.yml logs logstash --tail 30` for `document_parsing_exception` on `body` or `headers`. After updating `logstash.conf`, restart Logstash and Filebeat. Expand the time picker (dashboard default is **Last 6 hours**).
 
-**Filter by app in Discover:** `service: "exercises-java"` · `service: "exercises-python"` · `service: "exercises-rust"` · `service: "exercises-react-node"` · `service: "exercises-postgres"` · `service: "exercises-kafka"`. By file path: `log.file.path: *react-node*` · `log.file.path: *postgresql*` · `log.file.path: *kafka*`.
+**Filter by app in Discover:** `service: "webserver-benchmark-java"` · `service: "webserver-benchmark-python"` · `service: "webserver-benchmark-rust"` · `service: "webserver-benchmark-react-node"` · `service: "webserver-benchmark-postgres"` · `service: "webserver-benchmark-kafka"`. By file path: `log.file.path: *react-node*` · `log.file.path: *postgresql*` · `log.file.path: *kafka*`.
 
 **Find one request in Kibana Discover** (normal search only matches `message` text — paste the UUID as a field query):
 
@@ -91,11 +91,11 @@ For Postgres SQL lines use **`request_id`** (copied from stamped `application_na
 Postgres logs often **are** in Elasticsearch while saved searches hide them. Verify layer by layer:
 
 1. **Postgres file** (inside container): `podman compose -f docker-compose.apps.yml exec postgres tail -3 /var/log/postgresql/postgresql-$(date -u +%Y-%m-%d).json` — expect `"message":"execute … select …"`.
-2. **Elasticsearch** (browser or curl): `service.keyword:exercises-postgres AND message:*execute*` on index `logstash-*`, time **Last 15 minutes**.
-3. **Kibana Discover** (simplest query): `service: exercises-postgres and message: *execute* and not message: *SELECT 1*`
+2. **Elasticsearch** (browser or curl): `service.keyword:webserver-benchmark-postgres AND message:*execute*` on index `logstash-*`, time **Last 15 minutes**.
+3. **Kibana Discover** (simplest query): `service: webserver-benchmark-postgres and message: *execute* and not message: *SELECT 1*`
 4. **Re-import** saved objects after query changes: `.\devops\elk\kibana\provision-kibana.ps1`
 
-Common traps: time range too narrow; **`log_statement=mod`** (SELECT not logged — need **`all`** in Compose + postgres recreate); saved search requiring `application_name: *exercises*` while viewing unstamped JDBC lines; panel that only matched `_exists_:detail` (INSERT params only, not SELECT).
+Common traps: time range too narrow; **`log_statement=mod`** (SELECT not logged — need **`all`** in Compose + postgres recreate); saved search requiring `application_name: *webserver-benchmark*` while viewing unstamped JDBC lines; panel that only matched `_exists_:detail` (INSERT params only, not SELECT).
 
 ### HTTP ↔ Postgres correlation (Kibana)
 
@@ -105,7 +105,7 @@ After logs are flowing, the stack provisions correlation objects automatically v
 .\devops\elk\kibana\provision-kibana.ps1
 ```
 
-Open **`http://127.0.0.1:5601/`** (default route) or **`http://127.0.0.1:5601/app/dashboards#/view/exercises-requests-logs-kibana`**.
+Open **`http://127.0.0.1:5601/`** (default route) or **`http://127.0.0.1:5601/app/dashboards#/view/webserver-benchmark-requests-logs-kibana`**.
 
 | Panel | What |
 |-------|------|
@@ -118,7 +118,7 @@ Click **`correlation.request_id`** in the SQL table (URL link on the data view) 
 
 ### Kafka logs (Kibana)
 
-Dashboard **`Exercises — Kafka logs`**: [http://127.0.0.1:5601/app/dashboards#/view/exercises-kafka-logs-kibana](http://127.0.0.1:5601/app/dashboards#/view/exercises-kafka-logs-kibana)
+Dashboard **`WebServer BenchMark — Kafka logs`**: [http://127.0.0.1:5601/app/dashboards#/view/webserver-benchmark-kafka-logs-kibana](http://127.0.0.1:5601/app/dashboards#/view/webserver-benchmark-kafka-logs-kibana)
 
 Re-import after JSON changes:
 
@@ -128,11 +128,11 @@ Re-import after JSON changes:
 
 | Panel | What |
 |-------|------|
-| **Kafka — broker logs** | `service: exercises-kafka` — broker JSON from `apps/kafka/logs/` |
+| **Kafka — broker logs** | `service: webserver-benchmark-kafka` — broker JSON from `apps/kafka/logs/` |
 | **Kafka — app publish & consume** | Java `CreateItem*`, `CreateUser*`, Python `create_item_consumer`, Rust `create_user_consumer` |
 | **Kafka — correlate by request_id** | Filter `request_id: "your-uuid"` to stack Java publish → consumer → Postgres for one dashboard action |
 
-Saved searches live under **`devops/elk/kibana/saved_objects/kafka-logs/`** and ship in **`exercises-kibana.ndjson`**.
+Saved searches live under **`devops/elk/kibana/saved_objects/kafka-logs/`** and ship in **`webserver-benchmark-kibana.ndjson`**.
 
 ### Log pipeline monitoring (Filebeat → Logstash)
 
@@ -140,8 +140,8 @@ Saved searches live under **`devops/elk/kibana/saved_objects/kafka-logs/`** and 
 |-------|------|--------|
 | **Filebeat** | HTTP stats on `:5066` (Compose internal) | `filebeat/filebeat-compose.yml` (`http.enabled`) |
 | **Prometheus** | `beat-exporter` + `logstash-exporter` scrape jobs | `prometheus/prometheus.yml` |
-| **Grafana** | “Log pipeline” row on apps dashboard + **`exercises-log-pipeline.json`** | Alert rules in `grafana/provisioning/alerting/log-pipeline.yaml` |
-| **Kibana** | Dashboard + saved searches | Auto on Compose up via **`kibana-setup`** (`provision-kibana.sh`); manual: `kibana/provision-kibana.ps1` → **Exercises — HTTP & Postgres logs** (default) and **Exercises — Log pipeline (Kibana)** |
+| **Grafana** | “Log pipeline” row on apps dashboard + **`webserver-benchmark-log-pipeline.json`** | Alert rules in `grafana/provisioning/alerting/log-pipeline.yaml` |
+| **Kibana** | Dashboard + saved searches | Auto on Compose up via **`kibana-setup`** (`provision-kibana.sh`); manual: `kibana/provision-kibana.ps1` → **WebServer BenchMark — HTTP & Postgres logs** (default) and **WebServer BenchMark — Log pipeline (Kibana)** |
 
 When Grafana alerts fire, unshipped lines remain on disk under **`apps/*/logs/`** until the pipeline recovers. Use the alert time window to grep those files and compare with Kibana **`logstash-*`**.
 

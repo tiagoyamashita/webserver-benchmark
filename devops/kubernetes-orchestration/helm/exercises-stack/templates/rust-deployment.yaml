@@ -45,11 +45,11 @@ spec:
             - name: http
               containerPort: {{ .Values.rust.service.port }}
           env:
-            - name: EXERCISES_WEB_HOST
+            - name: WEBSERVER_BENCHMARK_WEB_HOST
               value: "0.0.0.0"
-            - name: EXERCISES_WEB_PORT
+            - name: WEBSERVER_BENCHMARK_WEB_PORT
               value: {{ .Values.rust.service.port | quote }}
-            - name: EXERCISES_RUST_ROOT
+            - name: WEBSERVER_BENCHMARK_RUST_ROOT
               value: /app
           {{- with .Values.rust.resources }}
           resources:

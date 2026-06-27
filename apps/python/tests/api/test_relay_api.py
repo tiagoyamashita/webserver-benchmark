@@ -62,7 +62,7 @@ def test_post_relay_react_forwards_json_body(client):
     assert captured["method"] == "POST"
     assert json.loads(captured["data"].decode("utf-8")) == {"name": "Relayed"}
     headers = {k.lower(): v for k, v in captured["headers"].items()}
-    assert headers["x-request-origin"] == "exercises-python"
+    assert headers["x-request-origin"] == "webserver-benchmark-python"
     assert "x-request-id" in headers
 
 

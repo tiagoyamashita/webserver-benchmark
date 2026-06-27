@@ -17,7 +17,7 @@
     ],
     "sort": [["@timestamp", "asc"]],
     "kibanaSavedObjectMeta": {
-      "searchSourceJSON": "{\"query\":{\"query\":\"_exists_: request_id and (kafka_event: * or service: exercises-kafka or controller: (*Kafka* or create_item_consumer or create_user_consumer) or message: (*create-user* or *create-item* or *Kafka*))\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
+      "searchSourceJSON": "{\"query\":{\"query\":\"_exists_: request_id and (kafka_event: * or service: webserver-benchmark-kafka or controller: (*Kafka* or create_item_consumer or create_user_consumer) or message: (*create-user* or *create-item* or *Kafka*))\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
     }
   },
   "references": [

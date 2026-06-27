@@ -1,4 +1,4 @@
-# Exercises — Zig
+# WebServer BenchMark — Zig
 
 Zig stack dashboard with **htmx** UI, shared **Postgres `items`** CRUD, stack connectivity probes, Prometheus metrics, and **native Redis session auth** (shared with Java/Rust).
 
@@ -220,7 +220,7 @@ sequenceDiagram
 ### Server loop (`server.zig`)
 
 1. **`main.zig`** loads config, optionally connects Postgres, calls `server.run`.
-2. **`run`** listens on `EXERCISES_WEB_HOST` / `EXERCISES_WEB_PORT` (default `0.0.0.0:8083`).
+2. **`run`** listens on `WEBSERVER_BENCHMARK_WEB_HOST` / `WEBSERVER_BENCHMARK_WEB_PORT` (default `0.0.0.0:8083`).
 3. Each accepted connection spawns a **detached thread** (`handleConnectionThread`).
 4. Inside the connection loop:
    - `http_server.receiveHead()` reads one request (Zig 0.13 API).
@@ -276,7 +276,7 @@ Logging has three layers: **stdout** (`std.log`), **structured JSON file** (ELK/
 Enable JSON file logging with:
 
 ```bash
-EXERCISES_OBSERVABILITY=1
+WEBSERVER_BENCHMARK_OBSERVABILITY=1
 LOG_PATH=/app/logs   # writes LOG_PATH/demo-app.json.log
 ```
 
@@ -350,7 +350,7 @@ Stack probes use `outbound_http.fetch()`, which logs:
 | `outbound_response` | `http.client` | after fetch (INFO if 2xx, WARN otherwise) |
 | `outbound_failed` | `http.client` | network/parse failure |
 
-Includes `relay_target`, `relay_origin` (`exercises-zig`), `request_id`, and **`origin_method` / `origin_path`** linking back to the inbound request.
+Includes `relay_target`, `relay_origin` (`webserver-benchmark-zig`), `request_id`, and **`origin_method` / `origin_path`** linking back to the inbound request.
 
 Response bodies for outbound calls are capped at **4096 bytes** for logging.
 
@@ -359,7 +359,7 @@ Response bodies for outbound calls are capped at **4096 bytes** for logging.
 `db.zig` calls `postgres_log.logQuery` / `logQueryFailed` around SQL. Lines include:
 
 - `target_service=postgres`, host/port/dbname
-- `request_id` and `application_name` (`exercises-zig;req={id}`) for correlation in Postgres logs
+- `request_id` and `application_name` (`webserver-benchmark-zig;req={id}`) for correlation in Postgres logs
 
 ### JSON line format (`observability_log.zig`)
 
@@ -369,7 +369,7 @@ All structured lines share:
 {
   "timestamp": "2026-06-16T04:50:49.221Z",
   "level": "INFO",
-  "service": "exercises-zig",
+  "service": "webserver-benchmark-zig",
   "controller": "handleApiListItems",
   "source": "src/handlers/api_items.zig",
   "message": "handleApiListItems succeeded item_count=3",
@@ -382,13 +382,13 @@ All structured lines share:
 
 HTTP access lines use `"logger": "http.request"` instead of `controller`/`source`.
 
-If `EXERCISES_OBSERVABILITY` is unset, JSON file logging is disabled; stdout logging still works.
+If `WEBSERVER_BENCHMARK_OBSERVABILITY` is unset, JSON file logging is disabled; stdout logging still works.
 
 ---
 
 ## How users are authenticated
 
-Zig implements **native Redis session auth** compatible with Java and Rust. Sessions are stored at `exercises:session:{sessionId}` in Redis as JSON; the browser holds an **`exercises_session` HttpOnly cookie**. User registration and login verify passwords against Postgres via vendored **bcrypt** (same `$2b$` hashes as the other stacks).
+Zig implements **native Redis session auth** compatible with Java and Rust. Sessions are stored at `webserver-benchmark:session:{sessionId}` in Redis as JSON; the browser holds an **`webserver_benchmark_session` HttpOnly cookie**. User registration and login verify passwords against Postgres via vendored **bcrypt** (same `$2b$` hashes as the other stacks).
 
 ### Architecture
 
@@ -397,7 +397,7 @@ flowchart LR
     Browser -->|"/api/auth/*, POST /api/users"| Zig
     Zig --> Postgres
     Zig --> Redis
-    Zig -->|Set-Cookie exercises_session| Browser
+    Zig -->|Set-Cookie webserver_benchmark_session| Browser
 ```
 
 Redis connection: `REDIS_URL` or `REDIS_HOST` + `REDIS_PORT` (Compose default `redis://redis:6379`).
@@ -497,7 +497,7 @@ Dev overlay (rebuild on container start):
 podman compose -f docker-compose.apps.yml -f docker-compose.dev.yml up -d --build zig
 ```
 
-Zig depends on **Redis** for sessions and **Postgres** for items/users. Stack probes still use `APP_STACK_*` URLs (including Rust). Set observability env in Compose: `EXERCISES_OBSERVABILITY=1`, `LOG_PATH=/app/logs`.
+Zig depends on **Redis** for sessions and **Postgres** for items/users. Stack probes still use `APP_STACK_*` URLs (including Rust). Set observability env in Compose: `WEBSERVER_BENCHMARK_OBSERVABILITY=1`, `LOG_PATH=/app/logs`.
 
 ### Local build
 
@@ -506,7 +506,7 @@ Requires **Zig 0.13** and `libpq`. On Windows, prefer Podman (see existing WSL n
 ```bash
 cd apps/zig
 zig build
-./zig-out/bin/exercises-zig
+./zig-out/bin/webserver-benchmark-zig
 ```
 
 ---
@@ -528,12 +528,12 @@ zig build
 
 | Variable | Purpose |
 |----------|---------|
-| `EXERCISES_WEB_HOST`, `EXERCISES_WEB_PORT` | Listen address (default `0.0.0.0:8083`) |
+| `WEBSERVER_BENCHMARK_WEB_HOST`, `WEBSERVER_BENCHMARK_WEB_PORT` | Listen address (default `0.0.0.0:8083`) |
 | `DB_*` | Postgres for `/api/items`, htmx items, and user registration |
 | `REDIS_HOST`, `REDIS_PORT`, `REDIS_URL` | Redis session store (Compose: `redis://redis:6379`) |
-| `EXERCISES_SESSION_REDIS_PREFIX` | Session key prefix (default `exercises:session:`) |
-| `EXERCISES_SESSION_COOKIE` | Cookie name (default `exercises_session`) |
+| `WEBSERVER_BENCHMARK_SESSION_REDIS_PREFIX` | Session key prefix (default `webserver-benchmark:session:`) |
+| `WEBSERVER_BENCHMARK_SESSION_COOKIE` | Cookie name (default `webserver_benchmark_session`) |
 | `APP_STACK_*_BASE_URL` | Stack probe targets (Java, Python, Rust, …) |
 | `APP_STACK_*_BASE_URL` | Stack probe targets |
-| `EXERCISES_OBSERVABILITY` | `1` / `true` / `yes` enables JSON file logging |
+| `WEBSERVER_BENCHMARK_OBSERVABILITY` | `1` / `true` / `yes` enables JSON file logging |
 | `LOG_PATH` | Directory for `demo-app.json.log` |

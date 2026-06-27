@@ -1,6 +1,6 @@
 spring:
   application:
-    name: exercises-java
+    name: webserver-benchmark-java
   thymeleaf:
     cache: false
   # Default: in-memory H2 (no PostgreSQL required). Use profile "postgres" when ready.
@@ -69,12 +69,12 @@ management:
 
 app:
   session:
-    redis-key-prefix: "exercises:session:"
+    redis-key-prefix: "webserver-benchmark:session:"
     ttl: PT24H
-    cookie-name: exercises_session
+    cookie-name: webserver_benchmark_session
   kafka:
     create-user-topic: create-user
-    create-user-consumer-group: exercises-create-user
+    create-user-consumer-group: webserver-benchmark-create-user
     create-user-partitions: 1
     create-user-replicas: 1
     create-item-topic: create-item

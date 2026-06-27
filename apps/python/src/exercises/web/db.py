@@ -80,9 +80,9 @@ def connection(request_id: str | None = None) -> Iterator["psycopg.Connection"]:
         ) from exc
 
     app_name = (
-        postgres_application_name("exercises-python", resolved_request_id)
+        postgres_application_name("webserver-benchmark-python", resolved_request_id)
         if resolved_request_id
-        else "exercises-python"
+        else "webserver-benchmark-python"
     )
     try:
         conn = psycopg.connect(url, application_name=app_name)

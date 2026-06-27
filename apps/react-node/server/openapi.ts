@@ -6,7 +6,7 @@ import swaggerUi from "swagger-ui-express";
 export const openApiSpec = {
   openapi: "3.0.3",
   info: {
-    title: "Exercises React Node API",
+    title: "WebServer BenchMark React Node API",
     version: "1.0",
     description:
       "Direct Postgres items at `/api/items` and Java proxy at `/java/api/items`. Health, probe, and observability routes are excluded.",
@@ -225,6 +225,6 @@ export function registerOpenApiRoutes(app: Express): void {
     res.json(openApiSpec);
   });
   app.use("/swagger-ui", swaggerUi.serve, swaggerUi.setup(openApiSpec, {
-    customSiteTitle: "Exercises React Node API",
+    customSiteTitle: "WebServer BenchMark React Node API",
   }));
 }

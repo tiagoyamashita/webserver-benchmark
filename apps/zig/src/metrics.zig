@@ -10,9 +10,9 @@ pub fn render(allocator: std.mem.Allocator) ![]u8 {
     const value = @atomicLoad(u64, &request_total, .monotonic);
     return std.fmt.allocPrint(
         allocator,
-        "# HELP exercises_http_requests_total HTTP requests handled by the exercises Zig app\n" ++
-            "# TYPE exercises_http_requests_total counter\n" ++
-            "exercises_http_requests_total {d}\n",
+        "# HELP webserver_benchmark_http_requests_total HTTP requests handled by the exercises Zig app\n" ++
+            "# TYPE webserver_benchmark_http_requests_total counter\n" ++
+            "webserver_benchmark_http_requests_total {d}\n",
         .{value},
     );
 }

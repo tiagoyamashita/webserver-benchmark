@@ -42,7 +42,7 @@ impl StackLinks {
     pub fn from_env() -> Self {
         let java_base = read_env(
             "APP_STACK_JAVA_BASE_URL",
-            &read_env("EXERCISES_JAVA_BASE_URL", "http://127.0.0.1:8080"),
+            &read_env("WEBSERVER_BENCHMARK_JAVA_BASE_URL", "http://127.0.0.1:8080"),
         );
         Self {
             java_browser_url: read_env("APP_STACK_JAVA_BROWSER_URL", "http://127.0.0.1:8080/"),

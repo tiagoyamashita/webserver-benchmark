@@ -3,9 +3,9 @@ import type { AuthState } from "./repository.js";
 import { isSessionExpired } from "./session.js";
 
 const TRUSTED_ORIGINS = new Set([
-  "exercises-java",
-  "exercises-python",
-  "exercises-rust",
+  "webserver-benchmark-java",
+  "webserver-benchmark-python",
+  "webserver-benchmark-rust",
 ]);
 
 /** Require a registered user for browser `/api/*` data routes when auth is configured. */

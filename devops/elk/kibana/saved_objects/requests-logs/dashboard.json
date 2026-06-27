@@ -1,6 +1,6 @@
 {
   "attributes": {
-    "title": "Exercises \u2014 HTTP & Postgres logs",
+    "title": "WebServer BenchMark \u2014 HTTP & Postgres logs",
     "description": "All logs in the logstash-* data view (last 24h by default). session_id_resolved fills session from headers when needed; body and message show HTTP payload vs plain log text.",
     "panelsJSON": "[{\"version\":\"8.15.5\",\"type\":\"search\",\"gridData\":{\"x\":0,\"y\":0,\"w\":48,\"h\":28,\"i\":\"1\"},\"panelIndex\":\"1\",\"panelRefName\":\"panel_1\",\"embeddableConfig\":{\"savedObjectId\":\"requests-logs-http-postgres-dashboard\",\"enhancements\":{}}}]",
     "optionsJSON": "{\"useMargins\":true,\"syncColors\":false,\"syncCursor\":true,\"syncTooltips\":false,\"hidePanelTitles\":true}",

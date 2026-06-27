@@ -20,7 +20,7 @@
     ],
     "sort": [["@timestamp", "asc"]],
     "kibanaSavedObjectMeta": {
-      "searchSourceJSON": "{\"query\":{\"query\":\"(service: (exercises-java or exercises-rust or exercises-python or exercises-react-node or exercises-postgres or exercises-zig)) and (_exists_: request_id or _exists_: application_name or _exists_: controller) and not (service: exercises-postgres and message: duration*)\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
+      "searchSourceJSON": "{\"query\":{\"query\":\"(service: (webserver-benchmark-java or webserver-benchmark-rust or webserver-benchmark-python or webserver-benchmark-react-node or webserver-benchmark-postgres or webserver-benchmark-zig)) and (_exists_: request_id or _exists_: application_name or _exists_: controller) and not (service: webserver-benchmark-postgres and message: duration*)\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
     }
   },
   "references": [

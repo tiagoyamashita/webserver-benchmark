@@ -4,7 +4,7 @@ const request_id_mod = @import("request_id.zig");
 const snap = @import("request_snapshot.zig");
 
 const SOURCE = "src/postgres_log.zig";
-const SERVICE = "exercises-zig";
+const SERVICE = "webserver-benchmark-zig";
 
 fn targetFields() [4]observability_log.Field {
     const host = std.posix.getenv("DB_HOST") orelse "";

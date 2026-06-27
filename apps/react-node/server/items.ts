@@ -12,7 +12,7 @@ export type Item = {
   createdAt: string;
 };
 
-const RELAY_TARGET = "exercises-java";
+const RELAY_TARGET = "webserver-benchmark-java";
 
 function itemsBaseUrl(): string {
   const value = (process.env.ITEMS_BASE_URL ?? process.env.PROBE_JAVA_URL ?? "http://127.0.0.1:8080").trim();

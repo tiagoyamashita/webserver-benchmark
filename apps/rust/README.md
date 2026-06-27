@@ -158,7 +158,7 @@ If you want to avoid **MSVC**, **MinGW**, and **`link.exe` / `dlltool.exe`** on 
 
 6. Open the app in **Chrome or Edge on Windows** at [http://127.0.0.1:8082](http://127.0.0.1:8082). WSL2 forwards **localhost** to the Linux guest by default.
 
-Use the **WSL terminal** for all `cargo` commands; a separate Rust install in PowerShell is unrelated. Optional env vars (`EXERCISES_WEB_PORT`, `EXERCISES_RUST_ROOT`) work the same as in “Run the server” below.
+Use the **WSL terminal** for all `cargo` commands; a separate Rust install in PowerShell is unrelated. Optional env vars (`WEBSERVER_BENCHMARK_WEB_PORT`, `WEBSERVER_BENCHMARK_RUST_ROOT`) work the same as in “Run the server” below.
 
 ## Run the server
 
@@ -174,9 +174,9 @@ Open [http://localhost:8082](http://localhost:8082) or [http://127.0.0.1:8082](h
 
 Optional:
 
-- `EXERCISES_WEB_HOST` — bind address (default **`0.0.0.0`**; use **`127.0.0.1`** if you want loopback-only)
-- `EXERCISES_WEB_PORT` — listen port (default `8082`)
-- `EXERCISES_RUST_ROOT` — workspace root if the binary is not running from this crate’s directory (must contain `Cargo.toml`)
+- `WEBSERVER_BENCHMARK_WEB_HOST` — bind address (default **`0.0.0.0`**; use **`127.0.0.1`** if you want loopback-only)
+- `WEBSERVER_BENCHMARK_WEB_PORT` — listen port (default `8082`)
+- `WEBSERVER_BENCHMARK_RUST_ROOT` — workspace root if the binary is not running from this crate’s directory (must contain `Cargo.toml`)
 
 ## Troubleshooting: Rust server won’t build or won’t open
 
@@ -201,11 +201,11 @@ The default **MSVC** Rust target needs **Visual Studio** C++ build tools (`link.
 1. **`podman compose ps`** (or **`docker compose ps`**) — **`rust`** should be **running** and show **`8082`** published (e.g. `0.0.0.0:8082->8082/tcp`).
 2. **`podman compose logs rust --tail 100`** — confirm **`listening at http://0.0.0.0:8082/`** (or similar). If the container exits, read the panic / error at the end of the log.
 3. Try **`http://127.0.0.1:8082/health`** if **`http://localhost:8082`** fails (IPv6 / Podman on Windows — see root [DOCKER.md](../DOCKER.md)).
-4. **Port in use** — another program may already listen on **8082**. Free it or change the host mapping in **`docker-compose.yml`** and set **`EXERCISES_WEB_PORT`** inside the **`rust`** service to match.
+4. **Port in use** — another program may already listen on **8082**. Free it or change the host mapping in **`docker-compose.yml`** and set **`WEBSERVER_BENCHMARK_WEB_PORT`** inside the **`rust`** service to match.
 
 ### Page loads but looks empty
 
-Hard-refresh the tab. **`GET /`** is the **stack connectivity** page (GET probes to Java, Python, Prometheus, Grafana, ELK, React Node — same idea as React Node / Java home). **`GET /tests`** is the **cargo nextest** dashboard. **`/welcome`** redirects to **`/`**. If logs mention **templates**, ensure **`templates/`** exists under **`EXERCISES_RUST_ROOT`** (Compose sets **`/app`** in the image).
+Hard-refresh the tab. **`GET /`** is the **stack connectivity** page (GET probes to Java, Python, Prometheus, Grafana, ELK, React Node — same idea as React Node / Java home). **`GET /tests`** is the **cargo nextest** dashboard. **`/welcome`** redirects to **`/`**. If logs mention **templates**, ensure **`templates/`** exists under **`WEBSERVER_BENCHMARK_RUST_ROOT`** (Compose sets **`/app`** in the image).
 
 ## Reports
 

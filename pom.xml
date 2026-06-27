@@ -8,8 +8,8 @@
   <artifactId>exercises</artifactId>
   <version>1.0.0-SNAPSHOT</version>
   <packaging>pom</packaging>
-  <name>exercises</name>
-  <description>Aggregator — run Maven from this repo root</description>
+  <name>WebServer BenchMark</name>
+  <description>WebServer BenchMark — aggregator; run Maven from this repo root</description>
 
   <modules>
     <module>apps/java</module>

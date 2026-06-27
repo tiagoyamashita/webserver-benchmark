@@ -6,7 +6,7 @@ const postgres_log = @import("postgres_log.zig");
 const request_id_mod = @import("request_id.zig");
 const snap = @import("request_snapshot.zig");
 
-const SERVICE = "exercises-zig";
+const SERVICE = "webserver-benchmark-zig";
 
 pub const DbError = error{
     DatabaseNotConfigured,

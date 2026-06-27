@@ -21,6 +21,6 @@ RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint-dev.sh \
 
 ENV FLASK_RUN_HOST=0.0.0.0
 ENV FLASK_RUN_PORT=5000
-ENV EXERCISES_PROJECT_ROOT=/app
+ENV WEBSERVER_BENCHMARK_PROJECT_ROOT=/app
 EXPOSE 5000
 CMD ["exercises-web"]

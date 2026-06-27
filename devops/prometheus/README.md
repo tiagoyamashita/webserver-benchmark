@@ -1,21 +1,21 @@
 # Prometheus (Compose)
 
-This folder holds **`prometheus.yml`** used by the **root** `docker-compose.yml` **`prometheus`** service. Prometheus scrapes app metrics on the shared **`exercises`** network and **Podman container** stats via **podman-exporter** (optional).
+This folder holds **`prometheus.yml`** used by the **root** `docker-compose.yml` **`prometheus`** service. Prometheus scrapes app metrics on the shared **`webserver-benchmark`** network and **Podman container** stats via **podman-exporter** (optional).
 
 | Job | Target | Metrics |
 |-----|--------|---------|
-| `exercises-java` | `java:8080/actuator/prometheus` | JVM, HTTP, … |
-| `exercises-python` | `python:5000/metrics` | `exercises_http_requests_total`, … |
-| `exercises-rust` | `rust:8082/metrics` | same |
-| `exercises-zig` | `zig:8083/metrics` | same |
-| `exercises-react-node` | `react-node:5174/metrics` | same |
-| `exercises-kafka` | `kafka-exporter:9308/metrics` | broker / topic metrics |
-| `exercises-podman` | `podman-exporter:9882/metrics` | **`podman_container_mem_usage_bytes`**, CPU, … |
-| `exercises-gpu` | `exercises-gpu-exporter:9066/metrics` | **`exercises_container_gpu_memory_bytes`**, GPU util per container (optional NVIDIA) |
+| `webserver-benchmark-java` | `java:8080/actuator/prometheus` | JVM, HTTP, … |
+| `webserver-benchmark-python` | `python:5000/metrics` | `webserver_benchmark_http_requests_total`, … |
+| `webserver-benchmark-rust` | `rust:8082/metrics` | same |
+| `webserver-benchmark-zig` | `zig:8083/metrics` | same |
+| `webserver-benchmark-react-node` | `react-node:5174/metrics` | same |
+| `webserver-benchmark-kafka` | `kafka-exporter:9308/metrics` | broker / topic metrics |
+| `webserver-benchmark-podman` | `podman-exporter:9882/metrics` | **`podman_container_mem_usage_bytes`**, CPU, … |
+| `webserver-benchmark-gpu` | `webserver-benchmark-gpu-exporter:9066/metrics` | **`webserver_benchmark_container_gpu_memory_bytes`**, GPU util per container (optional NVIDIA) |
 
 - UI: **http://127.0.0.1:9090/** (after `podman compose up`)
 - **Grafana** is provisioned with a **Prometheus** datasource pointing at **`http://prometheus:9090`**.
-- Container memory dashboard: **Dashboards → Exercises → Exercises — Container memory (Podman)** (`exercises-containers.json`).
+- Container memory dashboard: **Dashboards → WebServer BenchMark → WebServer BenchMark — Container memory (Podman)** (`webserver-benchmark-containers.json`).
 
 **ELK (Elasticsearch / Logstash / Kibana)** is for **logs**, not Prometheus metrics.
 
@@ -34,7 +34,7 @@ From repo root (stack already up):
 curl -X POST http://127.0.0.1:9090/-/reload
 ```
 
-That SSHs into the VM and runs **`start-podman-exporter.sh`**, attaching the exporter to network **`exercises`** as container **`podman-exporter`**.
+That SSHs into the VM and runs **`start-podman-exporter.sh`**, attaching the exporter to network **`webserver-benchmark`** as container **`podman-exporter`**.
 
 ### Linux (native Podman, socket on host)
 
@@ -54,7 +54,7 @@ curl -X POST http://127.0.0.1:9090/-/reload
 
 ```bash
 curl -s http://127.0.0.1:9882/metrics | grep podman_container_mem_usage_bytes | head
-curl -s 'http://127.0.0.1:9090/api/v1/query?query=up{job="exercises-podman"}'
+curl -s 'http://127.0.0.1:9090/api/v1/query?query=up{job="webserver-benchmark-podman"}'
 ```
 
 ### Rootless Podman (Linux)
@@ -71,9 +71,9 @@ podman compose -f docker-compose.observability.yml -f docker-compose.podman-expo
    ```powershell
    .\devops\prometheus\start-podman-exporter.ps1
    ```
-   Do **not** use `-UseSudo` (root podman cannot see the `exercises` network on Podman Machine).
+   Do **not** use `-UseSudo` (root podman cannot see the `webserver-benchmark` network on Podman Machine).
 2. **Prometheus not scraping** — script reloads Prometheus; or `curl.exe -X POST http://127.0.0.1:9090/-/reload`.
-3. **Check targets** — http://127.0.0.1:9090/targets → `exercises-podman` should be **UP**.
+3. **Check targets** — http://127.0.0.1:9090/targets → `webserver-benchmark-podman` should be **UP**.
 4. **Grafana stale JSON** — `podman compose -f docker-compose.observability.yml restart grafana` then Ctrl+Shift+R.
 5. **After Podman Machine restart** — re-run the start script (exporter container is not in compose).
 
@@ -82,16 +82,16 @@ podman compose -f docker-compose.observability.yml -f docker-compose.podman-expo
 | Symptom | Fix |
 |---------|-----|
 | `permission denied` on `/run/podman/podman.sock` during **`compose up`** | Expected on Windows — exporter is **not** in default compose; use **`start-podman-exporter.ps1`**. |
-| `up{job="exercises-podman"} == 0` | Exporter not running; start with script or `--profile podman-metrics`. |
+| `up{job="webserver-benchmark-podman"} == 0` | Exporter not running; start with script or `--profile podman-metrics`. |
 | Scrape up but no `podman_container_*` | Socket wrong inside VM; `podman machine ssh` → `ls -l /run/podman/podman.sock`. |
-| Empty panels, scrape up | Filter is `name=~"exercises-.*"` — Compose project must be **`exercises`**. |
+| Empty panels, scrape up | Filter is `name=~"webserver-benchmark-.*"` — Compose project must be **`webserver-benchmark`**. |
 | Docker Engine instead of Podman | Use **`podman stats`** or cAdvisor. |
 
 Compare with CLI: `podman stats --no-stream --format "table {{.Name}}\t{{.MemUsage}}"`.
 
 ## GPU exporter (per-container VRAM — optional)
 
-**podman-exporter does not expose GPU metrics.** For **GPU memory and utilization per exercises container**, use **`exercises-gpu-exporter`** (maps `nvidia-smi` PIDs → Podman container names).
+**podman-exporter does not expose GPU metrics.** For **GPU memory and utilization per WebServer BenchMark container**, use **`webserver-benchmark-gpu-exporter`** (maps `nvidia-smi` PIDs → Podman container names).
 
 Requirements:
 
@@ -111,13 +111,13 @@ sh devops/prometheus/start-gpu-exporter.sh
 curl -X POST http://127.0.0.1:9090/-/reload
 ```
 
-Grafana: **Exercises — Container resources (Podman)** → **GPU by pod / container** section.
+Grafana: **WebServer BenchMark — Container resources (Podman)** → **GPU by pod / container** section.
 
 Quick check:
 
 ```bash
-curl -s http://127.0.0.1:9066/metrics | grep exercises_container_gpu
-curl -s 'http://127.0.0.1:9090/api/v1/query?query=up{job="exercises-gpu"}'
+curl -s http://127.0.0.1:9066/metrics | grep webserver_benchmark_container_gpu
+curl -s 'http://127.0.0.1:9090/api/v1/query?query=up{job="webserver-benchmark-gpu"}'
 ```
 
 **Windows Podman Desktop without GPU passthrough:** job stays down; RAM/CPU panels still work. GPU is opt-in for hosts with NVIDIA hardware.

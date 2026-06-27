@@ -34,7 +34,7 @@ podman compose -f docker-compose.apps.yml up -d --build
 podman compose -f docker-compose.apps.yml restart java rust
 ```
 
-All files share the **`exercises`** network (same Compose project name from the repo directory).
+All files share the **`webserver-benchmark`** network (same Compose project name from the repo directory).
 
 **Hot reload (dev):** overlay **`docker-compose.dev.yml`** on the **apps** file so Java runs **`spring-boot:run`**, Python uses **`FLASK_DEBUG=1`**, Rust uses **`cargo-watch`**, and **react-node** runs Express + Vite on **`http://127.0.0.1:5174/`**:
 
@@ -82,29 +82,29 @@ The **`unknown shorthand flag: 'd' in -d`** message usually means **`compose` wa
 
 ### Compose layout
 
-- **`postgres`** — database on host port **5432** (named volume `exercises_pg_data`). JSON server logs land in **`postgres/logs/`** for **Filebeat → ELK** (see [postgres/README.md](postgres/README.md)).
-- **`redis`** — cache on host port **6379** (named volume `exercises_redis_data`, AOF on). Apps receive **`REDIS_URL=redis://redis:6379`** (see [apps/redis/README.md](apps/redis/README.md)).
-- **`redisinsight`** — [RedisInsight](https://redis.io/docs/latest/operate/redisinsight/) on **5540** → container **5540**; pre-configured connection **exercises** at `redis:6379` (`RI_REDIS_HOST` / `RI_REDIS_ALIAS`).
+- **`postgres`** — database on host port **5432** (named volume `wsbm_pg_data`). JSON server logs land in **`postgres/logs/`** for **Filebeat → ELK** (see [postgres/README.md](postgres/README.md)).
+- **`redis`** — cache on host port **6379** (named volume `wsbm_redis_data`, AOF on). Apps receive **`REDIS_URL=redis://redis:6379`** (see [apps/redis/README.md](apps/redis/README.md)).
+- **`redisinsight`** — [RedisInsight](https://redis.io/docs/latest/operate/redisinsight/) on **5540** → container **5540**; pre-configured connection **webserver-benchmark** at `redis:6379` (`RI_REDIS_HOST` / `RI_REDIS_ALIAS`).
 - **`redisinsight-embed`** — nginx on **5541** proxies **`redisinsight`** and strips **`X-Frame-Options`** so dashboards can iframe RedisInsight (`apps/redis/embed-proxy/nginx.conf`).
-- **`kafka`** — single-node broker on host port **9092** (named volume `exercises_kafka_data`, KRaft). JSON broker logs land in **`apps/kafka/logs/`** for **Filebeat → ELK**; **`kafka-exporter`** exposes metrics for **Prometheus → Grafana** (see [apps/kafka/README.md](apps/kafka/README.md)).
-- **`kafka-exporter`** — Prometheus metrics for broker / topics / consumer groups (scraped as job **`exercises-kafka`**).
-- **`kafka-ui`** — [UI for Apache Kafka](https://github.com/provectus/kafka-ui) on **8090** → container **8080**; cluster **`exercises`** at `kafka:9092`.
+- **`kafka`** — single-node broker on host port **9092** (named volume `wsbm_kafka_data`, KRaft). JSON broker logs land in **`apps/kafka/logs/`** for **Filebeat → ELK**; **`kafka-exporter`** exposes metrics for **Prometheus → Grafana** (see [apps/kafka/README.md](apps/kafka/README.md)).
+- **`kafka-exporter`** — Prometheus metrics for broker / topics / consumer groups (scraped as job **`webserver-benchmark-kafka`**).
+- **`kafka-ui`** — [UI for Apache Kafka](https://github.com/provectus/kafka-ui) on **8090** → container **8080**; cluster **`webserver-benchmark`** at `kafka:9092`.
 - **`kafka-ui-embed`** — nginx on **8091** proxies **`kafka-ui`** and strips **`X-Frame-Options`** so dashboards can iframe Kafka UI (`apps/kafka/embed-proxy/nginx.conf`).
 - **`java`** — uses Spring **`postgres`** profile; connects to the `postgres` service (`DB_HOST=postgres`). The **Dockerfile** keeps `pom.xml`, `src`, `mvnw`, and `target/` (including **Surefire reports** from the image build when tests run at build time) so the **test dashboard** works inside Compose, not only when running `./mvnw` on the host. **Build time:** the default image build runs **`mvn package`** with **all tests**, which is slow but populates Surefire XML; dependencies are cached in a separate layer when only `src/` changes. For a **faster** image (no tests at build time): `docker compose build --build-arg SKIP_TESTS=true java` (then run tests from the UI or `mvnw` inside the container to refresh reports).
 - **`python`** / **`rust`** — listen on `0.0.0.0` inside the container (required for published ports). Both expose **`/metrics`** in Prometheus format for **`prometheus`** to scrape.
 - **`java`** — exposes **`/actuator/prometheus`** (Spring Boot Actuator + Micrometer) for **`prometheus`**.
 - **`prometheus`** — metrics TSDB and UI on **9090**; config in **`prometheus/prometheus.yml`** (scrapes **Java**, **Python**, **Rust**, **react-node**, **kafka-exporter**, **podman-exporter**, Filebeat, Logstash). **Grafana** uses this datasource (provisioned).
 - **`podman-exporter`** — optional (**Compose profile `podman-metrics`**); [prometheus-podman-exporter](https://github.com/containers/prometheus-podman-exporter) for Grafana **`exercises-containers.json`**. **Not started by default** — on Windows use **`devops/prometheus/start-podman-exporter.ps1`** (socket bind mount fails on the host). See **`devops/prometheus/README.md`**.
-- **`grafana`** — dashboards on **3000**; provisioning under **`grafana/`**. Starter dashboards include **`exercises-java-python-rust.json`**, **`exercises-kafka.json`** (broker metrics + ELK logs), **`exercises-containers.json`** (Podman memory), **`exercises-log-pipeline.json`**, etc. (folder **Exercises**). **`GF_SECURITY_ALLOW_EMBEDDING=true`** so it can load inside an **`<iframe>`** (dev-oriented; tighten for production).
+- **`grafana`** — dashboards on **3000**; provisioning under **`grafana/`**. Starter dashboards include **`exercises-java-python-rust.json`**, **`webserver-benchmark-kafka.json`** (broker metrics + ELK logs), **`exercises-containers.json`** (Podman memory), **`exercises-log-pipeline.json`**, etc. (folder **WebServer BenchMark**). **`GF_SECURITY_ALLOW_EMBEDDING=true`** so it can load inside an **`<iframe>`** (dev-oriented; tighten for production).
 - **`elasticsearch`** / **`logstash`** / **`kibana`** — ELK (lab defaults; security off). In **`docker-compose.observability.yml`**; config under **`elk/`**. **Heavy on RAM** — run apps without observability: `podman compose -f docker-compose.apps.yml up -d --build`.
 
 **Metrics vs ELK:** **Prometheus + Grafana** handle **metrics** (e.g. Python/Rust **`/metrics`**, Java **`/actuator/prometheus`**). **ELK** handles **logs** (Filebeat → Logstash → Elasticsearch → Kibana). Prometheus does not replace ELK; wire logs separately if you want both.
 
 Use **`elk/docker-compose.yml`** or **`grafana/docker-compose.yml`** only if you want those stacks **without** the app services — do **not** run them at the same time as the root file when the same ports are published (duplicate **3000** / ELK ports).
 
-### Inter-container network (`exercises`)
+### Inter-container network (`webserver-benchmark`)
 
-All root-compose services attach to a **named bridge network** `exercises`. From **inside** any of those containers, other services resolve by **Compose service name** and **internal port** (not `127.0.0.1`):
+All root-compose services attach to a **named bridge network** `webserver-benchmark`. From **inside** any of those containers, other services resolve by **Compose service name** and **internal port** (not `127.0.0.1`):
 
 - Postgres: `postgres:5432`
 - Redis: `redis:6379`
@@ -121,7 +121,7 @@ All root-compose services attach to a **named bridge network** `exercises`. From
 
 Example: `podman compose exec grafana wget -qO- http://java:8080/ | head` (or `curl` if present).
 
-**Browser vs container:** Your **browser on the host** uses **published** ports on `127.0.0.1` (see URLs below). If something “can’t reach” another service from **JavaScript in the browser** (e.g. Grafana front end calling `http://java:8080`), that is **not** fixed by Compose networking — the browser is not on `exercises`; you need **CORS** on the target app or a **server-side** proxy.
+**Browser vs container:** Your **browser on the host** uses **published** ports on `127.0.0.1` (see URLs below). If something “can’t reach” another service from **JavaScript in the browser** (e.g. Grafana front end calling `http://java:8080`), that is **not** fixed by Compose networking — the browser is not on `webserver-benchmark`; you need **CORS** on the target app or a **server-side** proxy.
 
 URLs (use **`127.0.0.1`** in the browser on Windows if **`localhost`** hangs or refuses — see troubleshooting below):
 
@@ -165,8 +165,8 @@ docker compose up postgres java
 Run the image without Compose wiring — override profile and DB settings:
 
 ```bash
-docker build -t exercises-java ./java
-docker run --rm -p 8080:8080 exercises-java
+docker build -t webserver-benchmark-java ./java
+docker run --rm -p 8080:8080 webserver-benchmark-java
 ```
 
 (Default Spring profile uses in-memory H2 when `SPRING_PROFILES_ACTIVE` is unset.)
@@ -177,4 +177,4 @@ See **`postgre/README.md`** for `podman` scripts that match this Compose databas
 
 ### Kubernetes image tags
 
-Push images to your registry using the same repository names as in **`kubernetes-orchestration/helm/exercises-stack/values.yaml`** (defaults: `exercises-java`, `exercises-python`, `exercises-rust`), then set **`global.imageRegistry`** in Helm. See **`kubernetes-orchestration/README.md`**.
+Push images to your registry using the same repository names as in **`kubernetes-orchestration/helm/exercises-stack/values.yaml`** (defaults: `webserver-benchmark-java`, `webserver-benchmark-python`, `webserver-benchmark-rust`), then set **`global.imageRegistry`** in Helm. See **`kubernetes-orchestration/README.md`**.

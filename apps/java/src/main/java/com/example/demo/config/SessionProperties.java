@@ -9,15 +9,15 @@ public class SessionProperties {
 
   /**
    * Redis key prefix. Full key is {@code {redisKeyPrefix}{sessionId}} (e.g.
-   * {@code exercises:session:550e8400-e29b-41d4-a716-446655440000}).
+   * {@code webserver-benchmark:session:550e8400-e29b-41d4-a716-446655440000}).
    */
-  private String redisKeyPrefix = "exercises:session:";
+  private String redisKeyPrefix = "webserver-benchmark:session:";
 
   /** Session TTL written to Redis (other apps should honour {@code expiresAt} in the JSON value). */
   private Duration ttl = Duration.ofHours(24);
 
   /** Cookie name issued on login ({@code Set-Cookie}) and accepted on subsequent requests. */
-  private String cookieName = "exercises_session";
+  private String cookieName = "webserver_benchmark_session";
 
   public String getRedisKeyPrefix() {
     return redisKeyPrefix;

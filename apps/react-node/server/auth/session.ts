@@ -25,9 +25,9 @@ export function readEnv(key: string, fallback: string): string {
 
 export function sessionConfigFromEnv(): SessionConfig {
   return {
-    redisKeyPrefix: readEnv("EXERCISES_SESSION_REDIS_PREFIX", "exercises:session:"),
+    redisKeyPrefix: readEnv("WEBSERVER_BENCHMARK_SESSION_REDIS_PREFIX", "webserver-benchmark:session:"),
     ttlSecs: 86_400,
-    cookieName: readEnv("EXERCISES_SESSION_COOKIE", "exercises_session"),
+    cookieName: readEnv("WEBSERVER_BENCHMARK_SESSION_COOKIE", "webserver_benchmark_session"),
   };
 }
 

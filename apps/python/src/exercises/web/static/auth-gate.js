@@ -45,8 +45,8 @@
     var loggedIn = isLoggedInSession(data);
     setVisible(gate, !loggedIn, "flex");
     setVisible(shell, loggedIn, "block");
-    if (loggedIn && global.exercisesHeaderAuth) {
-      global.exercisesHeaderAuth.updateHeaderAuthPanel(data);
+    if (loggedIn && global.webserverBenchmarkHeaderAuth) {
+      global.webserverBenchmarkHeaderAuth.updateHeaderAuthPanel(data);
     }
   }
 
@@ -95,7 +95,7 @@
     }
   }
 
-  global.exercisesAuthGate = {
+  global.webserverBenchmarkAuthGate = {
     isLoggedInSession: isLoggedInSession,
     applyAuthGate: applyAuthGate,
     setGateError: setGateError,

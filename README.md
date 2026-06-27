@@ -1,6 +1,6 @@
-# exercises
+# WebServer BenchMark
 
-Exercises (tiagoyamashita.com)
+WebServer BenchMark (tiagoyamashita.com)
 
 ## Application servers
 
@@ -36,7 +36,7 @@ flowchart LR
   J -->|Spring postgres profile| DB
 ```
 
-They are independent exercises; you can build, run, and deploy **any subset**. **PostgreSQL** is used when you wire the Java app to a real database (for example via Compose or Kubernetes); see **`apps/postgres/`** and [DOCKER.md](DOCKER.md).
+They are independent benchmarks; you can build, run, and deploy **any subset**. **PostgreSQL** is used when you wire the Java app to a real database (for example via Compose or Kubernetes); see **`apps/postgres/`** and [DOCKER.md](DOCKER.md).
 
 _Diagrams use [Mermaid](https://mermaid.js.org/); they render on GitHub. In other viewers you may see the source block only._
 
@@ -76,7 +76,7 @@ Use **Docker Engine** the same way with `docker compose` instead of `podman comp
 | **kafka** | `apps/kafka/` | Apache Kafka 3.9 (KRaft) | **9092** | apps | JSON logs → ELK; **kafka-exporter** → Prometheus |
 | **kafka-ui** | `apps/kafka/` | UI for Apache Kafka | **8090** | apps | Waits for healthy `kafka` |
 | **kafka-ui-embed** | `apps/kafka/embed-proxy/` | Kafka UI via nginx (iframe-safe) | **8091** | apps | Proxies `kafka-ui` |
-| **kafka-exporter** | `apps/kafka/` | Kafka metrics for Prometheus | *(internal)* | apps | Scraped as **`exercises-kafka`** |
+| **kafka-exporter** | `apps/kafka/` | Kafka metrics for Prometheus | *(internal)* | apps | Scraped as **`webserver-benchmark-kafka`** |
 | **java** | `apps/java/` | Spring Boot API + UI | **8080** | apps | `spring-boot:run`, source mounted |
 | **python** | `apps/python/` | Flask dashboard + `/api/items` | **5000** | apps | `FLASK_DEBUG=1` reloader |
 | **rust** | `apps/rust/` | Axum dashboard + `/api/items` | **8082** | apps | `cargo-watch` rebuild on change |
@@ -96,12 +96,12 @@ Use **Docker Engine** the same way with `docker compose` instead of `podman comp
 
 | Service | Host log file | Kibana filter (`service`) |
 |---------|---------------|---------------------------|
-| Java | `apps/java/logs/demo-app.json.log` | `exercises-java` |
-| Python | `apps/python/logs/demo-app.json.log` | `exercises-python` |
-| Rust | `apps/rust/logs/demo-app.json.log` | `exercises-rust` |
-| React Node | `apps/react-node/logs/demo-app.json.log` | `exercises-react-node` |
+| Java | `apps/java/logs/demo-app.json.log` | `webserver-benchmark-java` |
+| Python | `apps/python/logs/demo-app.json.log` | `webserver-benchmark-python` |
+| Rust | `apps/rust/logs/demo-app.json.log` | `webserver-benchmark-rust` |
+| React Node | `apps/react-node/logs/demo-app.json.log` | `webserver-benchmark-react-node` |
 | Postgres | `apps/postgres/logs/postgresql-*` | `exercises-postgres` |
-| Kafka | `apps/kafka/logs/kafka*.json.log` | `exercises-kafka` |
+| Kafka | `apps/kafka/logs/kafka*.json.log` | `webserver-benchmark-kafka` |
 
 **1. Start both stacks** (same Compose project / `exercises` network):
 
@@ -129,7 +129,7 @@ For Postgres, run DB activity (Java **Create user**, `/api/items`, `psql`, etc.)
 dir apps\java\logs, apps\react-node\logs, apps\postgres\logs
 ```
 
-Postgres writes `postgresql-YYYY-MM-DD` (and sometimes `.json` suffix). React Node writes `demo-app.json.log` when `EXERCISES_OBSERVABILITY=1` (set in Compose).
+Postgres writes `postgresql-YYYY-MM-DD` (and sometimes `.json` suffix). React Node writes `demo-app.json.log` when `WEBSERVER_BENCHMARK_OBSERVABILITY=1` (set in Compose).
 
 **4. Open Kibana** at **http://127.0.0.1:5601** → **Discover**. Data view: **`logstash-*`**, timestamp: **`@timestamp`**.
 
@@ -137,7 +137,7 @@ Postgres writes `postgresql-YYYY-MM-DD` (and sometimes `.json` suffix). React No
 
 ```
 service: "exercises-postgres"
-service: "exercises-react-node"
+service: "webserver-benchmark-react-node"
 ```
 
 Or by source path: `log.file.path: *postgresql*` · `log.file.path: *react-node*`

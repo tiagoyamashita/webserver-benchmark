@@ -28,6 +28,6 @@ async fn metrics_endpoint_exposes_prometheus_format() {
         .await
         .unwrap();
     let text = String::from_utf8(body.to_vec()).unwrap();
-    assert!(text.contains("exercises_http_requests_total"));
+    assert!(text.contains("webserver_benchmark_http_requests_total"));
     assert!(text.contains("# HELP") || text.contains("# TYPE"));
 }

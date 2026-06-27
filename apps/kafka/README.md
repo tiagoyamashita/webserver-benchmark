@@ -167,7 +167,7 @@ KAFKA_BOOTSTRAP_SERVERS=kafka:9092
 | **`config/log4j2.yaml`** | Broker JSON logs → **`logs/kafka.json.log`** (Compose mount) |
 | **`logs/`** | Tailed by **Filebeat** as **`service: exercises-kafka`** → Logstash → Elasticsearch |
 | **`kafka-exporter`** (Compose) | Prometheus job **`exercises-kafka`** — broker / topic / consumer-group metrics |
-| **Grafana** | Dashboard **Exercises — Kafka** (`devops/grafana/dashboards/exercises-kafka.json`) |
+| **Grafana** | Dashboard **WebServer BenchMark — Kafka** (`devops/grafana/dashboards/exercises-kafka.json`) |
 
 After changing broker logging or adding the exporter, rebuild/restart **kafka**, **kafka-exporter**, and **filebeat** (or full stacks). Reload Prometheus if needed:
 

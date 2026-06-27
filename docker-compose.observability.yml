@@ -6,7 +6,7 @@
 #   podman compose -f docker-compose.observability.yml up -d
 # After editing devops/grafana/dashboards/*.json (on Windows, auto-reload often fails):
 #   podman compose -f docker-compose.observability.yml restart grafana
-# Then hard-refresh the browser (Ctrl+Shift+R). Example: Exercises → Exercises — Container memory (Podman)
+# Example: WebServer BenchMark → WebServer BenchMark — Container memory (Podman)
 #
 # After editing prometheus/prometheus.yml (new scrape jobs), reload Prometheus:
 #   curl -X POST http://127.0.0.1:9090/-/reload
@@ -17,11 +17,11 @@
 # After editing filebeat/filebeat-compose.yml, restart Filebeat (HTTP :5066 for metrics):
 #   podman compose -f docker-compose.observability.yml restart filebeat beat-exporter
 #
-# Shares network "exercises" with docker-compose.apps.yml (same Compose project name).
+# Shares network "webserver-benchmark" with docker-compose.apps.yml (same Compose project name).
 services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.15.5
-    networks: [exercises]
+    networks: [webserver-benchmark]
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
@@ -31,7 +31,7 @@ services:
     ports:
       - "9200:9200"
     volumes:
-      - exercises_es_data:/usr/share/elasticsearch/data
+      - wsbm_es_data:/usr/share/elasticsearch/data
     ulimits:
       memlock:
         soft: -1
@@ -39,7 +39,7 @@ services:
 
   logstash:
     image: docker.elastic.co/logstash/logstash:8.15.5
-    networks: [exercises]
+    networks: [webserver-benchmark]
     depends_on:
       - elasticsearch
     ports:
@@ -52,7 +52,7 @@ services:
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.15.5
-    networks: [exercises]
+    networks: [webserver-benchmark]
     depends_on:
       - elasticsearch
     ports:
@@ -62,7 +62,7 @@ services:
 
   kibana-setup:
     image: docker.io/curlimages/curl:8.11.1
-    networks: [exercises]
+    networks: [webserver-benchmark]
     depends_on:
       - kibana
     volumes:
@@ -75,7 +75,7 @@ services:
   filebeat:
     image: docker.elastic.co/beats/filebeat:8.15.5
     user: root
-    networks: [exercises]
+    networks: [webserver-benchmark]
     depends_on:
       - logstash
     volumes:
@@ -92,7 +92,7 @@ services:
 
   beat-exporter:
     image: docker.io/trustpilot/beat-exporter:latest
-    networks: [exercises]
+    networks: [webserver-benchmark]
     depends_on:
       - filebeat
     command:
@@ -102,7 +102,7 @@ services:
 
   logstash-exporter:
     image: ghcr.io/sap/prometheus-logstash-exporter:latest
-    networks: [exercises]
+    networks: [webserver-benchmark]
     depends_on:
       - logstash
     command:
@@ -113,7 +113,7 @@ services:
 
   prometheus:
     image: docker.io/prom/prometheus:v2.55.1
-    networks: [exercises]
+    networks: [webserver-benchmark]
     ports:
       - "9090:9090"
     volumes:
@@ -128,7 +128,7 @@ services:
   podman-exporter:
     profiles: ["podman-metrics"]
     image: quay.io/navidys/prometheus-podman-exporter:v1.14.0
-    networks: [exercises]
+    networks: [webserver-benchmark]
     ports:
       - "9882:9882"
     environment:
@@ -145,7 +145,7 @@ services:
 
   grafana:
     image: docker.io/grafana/grafana-oss:11.5.2
-    networks: [exercises]
+    networks: [webserver-benchmark]
     init: true
     depends_on:
       - prometheus
@@ -163,7 +163,7 @@ services:
       GF_SECURITY_ALLOW_EMBEDDING: "true"
       GF_PANELS_DISABLE_SANITIZE_HTML: "true"
     volumes:
-      - exercises_grafana_data:/var/lib/grafana
+      - wsbm_grafana_data:/var/lib/grafana
       - ./devops/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./devops/grafana/dashboards:/var/lib/grafana/dashboards
     healthcheck:
@@ -174,10 +174,10 @@ services:
       start_period: 120s
 
 networks:
-  exercises:
-    name: exercises
+  webserver-benchmark:
+    name: webserver-benchmark
     driver: bridge
 
 volumes:
-  exercises_es_data:
-  exercises_grafana_data:
+  wsbm_es_data:
+  wsbm_grafana_data:

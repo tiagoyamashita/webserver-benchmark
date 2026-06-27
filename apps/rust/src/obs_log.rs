@@ -14,7 +14,7 @@ pub fn init_shared_log_file(shared: Arc<Mutex<File>>) {
 }
 
 pub fn observability_enabled() -> bool {
-    std::env::var("EXERCISES_OBSERVABILITY")
+    std::env::var("WEBSERVER_BENCHMARK_OBSERVABILITY")
         .map(|v| matches!(v.to_ascii_lowercase().as_str(), "1" | "true" | "yes"))
         .unwrap_or(false)
 }

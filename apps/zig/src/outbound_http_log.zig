@@ -4,7 +4,7 @@ const snap = @import("request_snapshot.zig");
 const req_ctx = @import("request_context.zig");
 
 const LOGGER = "http.client";
-const RELAY_ORIGIN = "exercises-zig";
+const RELAY_ORIGIN = "webserver-benchmark-zig";
 
 pub fn logRequest(
     method: []const u8,

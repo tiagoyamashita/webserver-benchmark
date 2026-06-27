@@ -42,7 +42,7 @@ Under a shared parent domain, a cookie with `Domain=.exercises.example.com` can 
 ```mermaid
 flowchart TB
   subgraph browser [Browser on exercises.example.com]
-    CK["HttpOnly cookie: exercises_session=uuid"]
+    CK["HttpOnly cookie: webserver_benchmark_session=uuid"]
   end
 
   subgraph apps [App tier]
@@ -53,7 +53,7 @@ flowchart TB
   end
 
   subgraph redis [Redis]
-    KEY["exercises:session:{sessionId}"]
+    KEY["webserver-benchmark:session:{sessionId}"]
   end
 
   CK --> J
@@ -77,7 +77,7 @@ flowchart TB
 
 ### Redis record
 
-- **Key:** `exercises:session:{sessionId}` (prefix configurable).
+- **Key:** `webserver-benchmark:session:{sessionId}` (prefix configurable).
 - **Value:** JSON `SharedSession` (camelCase fields, same contract in all languages).
 - **TTL:** 24 hours (`SETEX` / `setex`); apps also check `expiresAt` in the JSON.
 
@@ -99,19 +99,19 @@ flowchart TB
 | `issuer` | App that last wrote the session (`java`, `python`, `rust`, `react-node`) |
 | `expiresAt` | Authoritative expiry; delete key if past this time |
 
-Inspect keys in **RedisInsight** (`http://127.0.0.1:5540/`) under pattern `exercises:session:*`.
+Inspect keys in **RedisInsight** (`http://127.0.0.1:5540/`) under pattern `webserver-benchmark:session:*`.
 
 ## How the browser carries the session id
 
-**Dashboard clients (Java, Python, Rust, React Node):** session id is sent **only** via the HttpOnly `exercises_session` cookie. All `fetch` calls use `credentials: "same-origin"`. Client JS does **not** read or write `localStorage`, and does **not** set `Authorization` or `X-Session-ID` (avoids XSS session theft).
+**Dashboard clients (Java, Python, Rust, React Node):** session id is sent **only** via the HttpOnly `webserver_benchmark_session` cookie. All `fetch` calls use `credentials: "same-origin"`. Client JS does **not** read or write `localStorage`, and does **not** set `Authorization` or `X-Session-ID` (avoids XSS session theft).
 
-Legacy `localStorage` key `exercises_session_id` is cleared on load if present.
+Legacy `localStorage` key `webserver_benchmark_session_id` is cleared on load if present.
 
 **Server-side resolution** still accepts three sources (for API clients, curl, stack tooling), in priority order:
 
 1. `Authorization: Bearer {sessionId}`
 2. `X-Session-ID: {sessionId}`
-3. Cookie `exercises_session={sessionId}`
+3. Cookie `webserver_benchmark_session={sessionId}`
 
 Implementation references:
 
@@ -125,12 +125,12 @@ Implementation references:
 Every app sets the same cookie shape on auth responses:
 
 ```
-exercises_session={sessionId}; HttpOnly; Path=/; Max-Age=86400; SameSite=Lax
+webserver_benchmark_session={sessionId}; HttpOnly; Path=/; Max-Age=86400; SameSite=Lax
 ```
 
 | Attribute | Current value | Notes |
 |-----------|---------------|-------|
-| Name | `exercises_session` | Override: `EXERCISES_SESSION_COOKIE` |
+| Name | `webserver_benchmark_session` | Override: `WEBSERVER_BENCHMARK_SESSION_COOKIE` |
 | `HttpOnly` | yes | JS cannot read it (XSS mitigation) |
 | `Path` | `/` | Sent for all paths on that origin |
 | `SameSite` | `Lax` | Cross-site GET navigations still send cookie |
@@ -161,7 +161,7 @@ sequenceDiagram
   B->>A: POST /api/auth/ensure<br/>body: { sessionId? }<br/>+ cookie / headers
   A->>A: Resolve candidates (Bearer, X-Session-ID, cookie)
   alt Valid session in Redis
-    A->>R: GET exercises:session:{id}
+    A->>R: GET webserver-benchmark:session:{id}
     R-->>A: SharedSession JSON
     A-->>B: 200 + session + Set-Cookie
   else No valid session
@@ -197,8 +197,8 @@ This is **not** end-user cross-app auth; it is service-to-service bypass. User-f
 |----------|---------|---------|
 | `REDIS_URL` | `redis://redis:6379` | Redis connection (Compose) |
 | `REDIS_HOST` / `REDIS_PORT` | `redis` / `6379` | Host/port fallback |
-| `EXERCISES_SESSION_REDIS_PREFIX` | `exercises:session:` | Key prefix |
-| `EXERCISES_SESSION_COOKIE` | `exercises_session` | Cookie name |
+| `WEBSERVER_BENCHMARK_SESSION_REDIS_PREFIX` | `webserver-benchmark:session:` | Key prefix |
+| `WEBSERVER_BENCHMARK_SESSION_COOKIE` | `webserver_benchmark_session` | Cookie name |
 
 Java additionally uses `app.session.*` in `application.yml` (same defaults).
 
@@ -213,7 +213,7 @@ Use this when moving from local multi-port dev to one domain behind nginx/Traefi
 3. **Cookie `Secure`** — Set `Secure` on cookies when served over HTTPS.
 4. **Keep Redis contract** — No change to key prefix or JSON shape; all apps already share Redis on the `exercises` network.
 5. **CORS / SameSite** — With one site and `SameSite=Lax`, simple navigations share the cookie. If SPAs on subdomain A call APIs on subdomain B via `fetch`, evaluate `SameSite=None; Secure` or same-subdomain API routing.
-6. **Verify in RedisInsight** — Log in on one app, open another, confirm the same `exercises:session:{id}` key and matching `userId`.
+6. **Verify in RedisInsight** — Log in on one app, open another, confirm the same `webserver-benchmark:session:{id}` key and matching `userId`.
 7. **Logging** — Session id appears in request logs (`session_id` field) for correlation across apps in Kibana.
 
 ## Local dev: sharing a session across ports today
@@ -224,13 +224,13 @@ Because origins differ by port, use one of:
 |----------|-----|
 | **Manual copy** | Copy `sessionId` from `/api/auth/session` or RedisInsight; call another app with `curl -H "X-Session-ID: …"` |
 | **Same id, new cookie** | `POST /api/auth/ensure` on app B with body `{ "sessionId": "<from A>" }` — validates Redis and sets B’s host-only cookie |
-| **Redis only** | Confirm payload exists at `exercises:session:{id}`; any app will accept the id via headers |
+| **Redis only** | Confirm payload exists at `webserver-benchmark:session:{id}`; any app will accept the id via headers |
 
 Full automatic cookie sharing across `:8080` and `:5000` **requires** either a shared parent domain + `Domain` attribute or a dev proxy that serves all apps under one host (e.g. `localhost:9000/java`, `localhost:9000/python`).
 
 ## Server-side sessions in Redis
 
-The browser holds only a **session id** (locker number). **Redis holds the full record** (who you are, expiry, issuer). Every authenticated request does `GET exercises:session:{sessionId}` — there is no self-contained token for the client to decode.
+The browser holds only a **session id** (locker number). **Redis holds the full record** (who you are, expiry, issuer). Every authenticated request does `GET webserver-benchmark:session:{sessionId}` — there is no self-contained token for the client to decode.
 
 | Store | Role |
 |-------|------|
@@ -245,14 +245,14 @@ The browser holds only a **session id** (locker number). **Redis holds the full 
 Apps never scan Redis for “the latest session” or “sessions for this user.” They only look up **the exact id the client sent**:
 
 1. Collect candidates: `Bearer` → `X-Session-ID` → cookie (first valid wins).
-2. `GET exercises:session:{thatId}`.
+2. `GET webserver-benchmark:session:{thatId}`.
 3. Read `userId` from the JSON at that key.
 
 Multiple keys can exist (guest on `:8080`, guest on `:5000`, etc.) until TTL. Cross-app “same user” means **the same session id** in Redis (or separate logins per app). Logs correlate via `session_id`; tie users across apps with `userId > 0` after login on each session.
 
 ## Iframes and cookies
 
-| Embed | Same origin as parent? | Gets parent’s `exercises_session`? |
+| Embed | Same origin as parent? | Gets parent’s `webserver_benchmark_session`? |
 |-------|------------------------|--------------------------------------|
 | Swagger/OpenAPI (`/swagger-ui` on same port) | Yes | Yes |
 | Kafka UI embed (`:8091`), RedisInsight embed (`:5541`) | No (different port) | No |
@@ -328,7 +328,7 @@ Session **fixation** is mitigated by minting a **new** UUID on login (already th
 
 ## Summary
 
-- **Shared:** session **id** + **Redis JSON** at `exercises:session:{sessionId}` — works today across all apps on the Compose network.
+- **Shared:** session **id** + **Redis JSON** at `webserver-benchmark:session:{sessionId}` — works today across all apps on the Compose network.
 - **Per-origin today:** each port has its own HttpOnly cookie; not automatically shared between `:8080` and `:5000`.
 - **Same domain:** add reverse proxy + `Domain` cookie (and `Secure` in prod) so one browser cookie carries the same id to every app; Redis lookup logic stays the same.
 - **Security:** Redis server-side sessions; browser uses HttpOnly cookie only (no localStorage); UUID ids are not brute-forceable — protect against theft (HTTPS, XSS), rate-limit auth routes, lock down Redis in prod.

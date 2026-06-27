@@ -28,9 +28,9 @@
       "icon": "external link",
       "tags": [],
       "targetBlank": true,
-      "title": "Kibana (exercises-kafka logs)",
+      "title": "Kibana (webserver-benchmark-kafka logs)",
       "type": "link",
-      "url": "http://127.0.0.1:5601/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-6h,to:now))&_a=(columns:!(service,message,level),filters:!(),index:logstash-data-view,interval:auto,query:(language:kuery,query:'service:%22exercises-kafka%22'),sort:!(!('@timestamp',desc)))"
+      "url": "http://127.0.0.1:5601/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-6h,to:now))&_a=(columns:!(service,message,level),filters:!(),index:logstash-data-view,interval:auto,query:(language:kuery,query:'service:%22webserver-benchmark-kafka%22'),sort:!(!('@timestamp',desc)))"
     }
   ],
   "panels": [
@@ -80,7 +80,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "up{job=\"exercises-kafka\"}",
+          "expr": "up{job=\"webserver-benchmark-kafka\"}",
           "instant": true,
           "legendFormat": "__auto",
           "range": false,
@@ -198,7 +198,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "sum(kafka_consumergroup_lag{consumergroup=\"exercises-create-user\",topic=\"create-user\"})",
+          "expr": "sum(kafka_consumergroup_lag{consumergroup=\"webserver-benchmark-create-user\",topic=\"create-user\"})",
           "instant": true,
           "legendFormat": "lag",
           "range": false,
@@ -263,7 +263,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "sum(kafka_consumergroup_lag{consumergroup=\"exercises-create-user\",topic=\"create-user\"})",
+          "expr": "sum(kafka_consumergroup_lag{consumergroup=\"webserver-benchmark-create-user\",topic=\"create-user\"})",
           "legendFormat": "lag",
           "range": true,
           "refId": "A"
@@ -303,7 +303,7 @@
       },
       "targets": [
         {
-          "alias": "exercises-kafka",
+          "alias": "webserver-benchmark-kafka",
           "bucketAggs": [
             {
               "field": "@timestamp",
@@ -314,7 +314,7 @@
           ],
           "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
           "metrics": [{ "id": "1", "type": "count" }],
-          "query": "service:\"exercises-kafka\"",
+          "query": "service:\"webserver-benchmark-kafka\"",
           "refId": "A",
           "timeField": "@timestamp"
         }
@@ -352,7 +352,7 @@
           ],
           "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
           "metrics": [{ "id": "1", "type": "logs" }],
-          "query": "service:\"exercises-kafka\"",
+          "query": "service:\"webserver-benchmark-kafka\"",
           "refId": "A",
           "timeField": "@timestamp"
         }
@@ -363,12 +363,12 @@
   ],
   "refresh": "30s",
   "schemaVersion": 39,
-  "tags": ["exercises", "kafka"],
+  "tags": ["webserver-benchmark", "kafka"],
   "templating": { "list": [] },
   "time": { "from": "now-6h", "to": "now" },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Exercises — Kafka",
-  "uid": "exercises-kafka",
+  "title": "WebServer BenchMark — Kafka",
+  "uid": "webserver-benchmark-kafka",
   "version": 2
 }

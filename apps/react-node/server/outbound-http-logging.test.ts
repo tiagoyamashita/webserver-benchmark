@@ -8,7 +8,7 @@ import {
 
 describe("outbound-http-logging", () => {
   beforeEach(() => {
-    vi.stubEnv("EXERCISES_OBSERVABILITY", "true");
+    vi.stubEnv("WEBSERVER_BENCHMARK_OBSERVABILITY", "true");
     vi.stubEnv("LOG_PATH", "logs");
   });
 
@@ -34,7 +34,7 @@ describe("outbound-http-logging", () => {
         logOutboundRequest(
           "POST",
           "http://java:8080/api/items",
-          "exercises-java",
+          "webserver-benchmark-java",
           { name: "Widget" },
           "req-12345678",
         );
@@ -46,7 +46,7 @@ describe("outbound-http-logging", () => {
     expect(line.phase).toBe("outbound_request");
     expect(line.origin_path).toBe("/java/api/items");
     expect(line.origin_method).toBe("POST");
-    expect(line.relay_target).toBe("exercises-java");
+    expect(line.relay_target).toBe("webserver-benchmark-java");
     expect(line.request_id).toBe("req-12345678");
     infoSpy.mockRestore();
   });
@@ -58,7 +58,7 @@ describe("outbound-http-logging", () => {
       "http://java:8080/api/items",
       503,
       12,
-      "exercises-java",
+      "webserver-benchmark-java",
       new Headers({ "content-type": "application/json" }),
       '{"error":"Postgres not configured"}',
       "req-12345678",

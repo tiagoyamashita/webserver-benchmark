@@ -20,15 +20,15 @@ use tera::{Context, Tera};
 static HTTP_REQUESTS: LazyLock<prometheus::CounterVec> = LazyLock::new(|| {
     let cv = prometheus::CounterVec::new(
         Opts::new(
-            "exercises_http_requests_total",
+            "webserver_benchmark_http_requests_total",
             "HTTP requests handled by the exercises Axum app",
         ),
         &["method", "endpoint"],
     )
-    .expect("exercises_http_requests_total opts");
+    .expect("webserver_benchmark_http_requests_total opts");
     prometheus::default_registry()
         .register(Box::new(cv.clone()))
-        .expect("register exercises_http_requests_total");
+        .expect("register webserver_benchmark_http_requests_total");
     cv
 });
 
@@ -103,7 +103,7 @@ async fn record_http_request_metrics(req: Request, next: Next) -> Response {
         .unwrap_or(crate::request_id::RequestIdSource::Generated);
     let log_seq_counter = req.extensions().get::<crate::request_id::RequestLogSeq>().cloned();
     let cookie_name =
-        std::env::var("EXERCISES_SESSION_COOKIE").unwrap_or_else(|_| "exercises_session".to_string());
+        std::env::var("WEBSERVER_BENCHMARK_SESSION_COOKIE").unwrap_or_else(|_| "webserver_benchmark_session".to_string());
     let session_id = req
         .extensions()
         .get::<crate::auth::CurrentSession>()
@@ -173,7 +173,7 @@ async fn metrics() -> impl IntoResponse {
 }
 
 fn resolve_project_root() -> PathBuf {
-    if let Ok(root) = std::env::var("EXERCISES_RUST_ROOT") {
+    if let Ok(root) = std::env::var("WEBSERVER_BENCHMARK_RUST_ROOT") {
         let p = PathBuf::from(root.trim());
         if p.is_dir() {
             return p;
@@ -380,7 +380,7 @@ async fn observability_sample_log(
     tracing::info!(
         source = "src/app.rs",
         controller = "observability_sample_log",
-        service = "exercises-rust",
+        service = "webserver-benchmark-rust",
         "Observability sample event (JSON log file -> Filebeat -> Logstash -> Elasticsearch)"
     );
     tracing::info!(
@@ -476,9 +476,9 @@ async fn tests_dashboard(
 
 pub async fn serve() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let project_root = resolve_project_root();
-    eprintln!("exercises-web: project root {}", project_root.display());
+    eprintln!("webserver-benchmark-web: project root {}", project_root.display());
     eprintln!(
-        "exercises-web: loading templates from {}/templates/*.html",
+        "webserver-benchmark-web: loading templates from {}/templates/*.html",
         project_root.display()
     );
     let mut tera = load_tera(&project_root)?;
@@ -488,7 +488,7 @@ pub async fn serve() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let kafka_ready = match crate::kafka::ensure_kafka_admin(&kafka_config).await {
         Ok(()) => {
             eprintln!(
-                "exercises-web: Kafka topic `{}` ready (bootstrap={})",
+                "webserver-benchmark-web: Kafka topic `{}` ready (bootstrap={})",
                 kafka_config.create_user_topic, kafka_config.bootstrap_servers
             );
             true
@@ -497,7 +497,7 @@ pub async fn serve() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             if kafka_config.fail_fast {
                 return Err(e.into());
             }
-            eprintln!("exercises-web: Kafka admin skipped ({e}); create-user consumer disabled");
+            eprintln!("webserver-benchmark-web: Kafka admin skipped ({e}); create-user consumer disabled");
             false
         }
     };
@@ -510,14 +510,14 @@ pub async fn serve() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let pg_pool = match crate::db::connect_pool().await {
         Ok(pool) => {
-            eprintln!("exercises-web: connected to Postgres (items + users tables)");
+            eprintln!("webserver-benchmark-web: connected to Postgres (items + users tables)");
             if kafka_ready {
                 crate::kafka::spawn_create_user_consumer(pool.clone(), kafka_config);
             }
             Some(pool)
         }
         Err(e) => {
-            eprintln!("exercises-web: Postgres unavailable ({e}); POST /api/items will fail");
+            eprintln!("webserver-benchmark-web: Postgres unavailable ({e}); POST /api/items will fail");
             None
         }
     };
@@ -528,24 +528,24 @@ pub async fn serve() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 config: crate::auth::SessionConfig::from_env(),
             };
             crate::auth::verify_redis_startup(&auth_state).await;
-            eprintln!("exercises-web: connected to Redis (shared sessions)");
+            eprintln!("webserver-benchmark-web: connected to Redis (shared sessions)");
             Some(auth_state)
         }
         Err(e) => {
-            eprintln!("exercises-web: Redis unavailable ({e}); session auth disabled");
+            eprintln!("webserver-benchmark-web: Redis unavailable ({e}); session auth disabled");
             None
         }
     };
 
     let state = AppState::new(project_root, tera, pg_pool, kafka_publish_config, auth);
     let app = build_router(state);
-    let port: u16 = std::env::var("EXERCISES_WEB_PORT")
+    let port: u16 = std::env::var("WEBSERVER_BENCHMARK_WEB_PORT")
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(8082);
     // Default 0.0.0.0 so http://localhost:PORT works reliably (Docker sets this too). Binding only
     // 127.0.0.1 can fail when the browser resolves "localhost" to ::1 first (Windows / some IPv6 setups).
-    let bind_host: IpAddr = std::env::var("EXERCISES_WEB_HOST")
+    let bind_host: IpAddr = std::env::var("WEBSERVER_BENCHMARK_WEB_HOST")
         .ok()
         .and_then(|s| s.trim().parse().ok())
         .unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED));
@@ -554,10 +554,10 @@ pub async fn serve() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .await
         .map_err(|e| {
             format!(
-                "Failed to bind {addr}: {e}. Another process may be using port {port}. Try: set EXERCISES_WEB_PORT=8090 (PowerShell: $env:EXERCISES_WEB_PORT=8090)"
+                "Failed to bind {addr}: {e}. Another process may be using port {port}. Try: set WEBSERVER_BENCHMARK_WEB_PORT=8090 (PowerShell: $env:WEBSERVER_BENCHMARK_WEB_PORT=8090)"
             )
         })?;
-    eprintln!("exercises-web: listening at http://{addr}/  (Ctrl+C to stop)");
+    eprintln!("webserver-benchmark-web: listening at http://{addr}/  (Ctrl+C to stop)");
     tracing::info!("exercises-web listening on http://{}", addr);
     axum::serve(listener, app).await?;
     Ok(())

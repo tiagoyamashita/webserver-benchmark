@@ -4,4 +4,4 @@ set -e
 cd /app
 pip install -q -e . --no-deps
 pip install -q kafka-python bcrypt
-exec exercises-web
+exec webserver-benchmark-web

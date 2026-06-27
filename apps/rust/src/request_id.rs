@@ -12,7 +12,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 pub const ORIGIN_HEADER: &str = "x-request-origin";
 pub const REQUEST_ID_HEADER: &str = "x-request-id";
-pub const OUTBOUND_ORIGIN: &str = "exercises-rust";
+pub const OUTBOUND_ORIGIN: &str = "webserver-benchmark-rust";
 
 const MAX_BODY_LOG_BYTES: usize = 65_536;
 
@@ -225,7 +225,7 @@ fn incoming_request_id_header(headers: &HeaderMap) -> Option<&HeaderValue> {
 
 fn http_access_session_id(headers: &HeaderMap) -> Option<String> {
     let cookie_name =
-        std::env::var("EXERCISES_SESSION_COOKIE").unwrap_or_else(|_| "exercises_session".to_string());
+        std::env::var("WEBSERVER_BENCHMARK_SESSION_COOKIE").unwrap_or_else(|_| "webserver_benchmark_session".to_string());
     crate::auth::http_access_session_id(headers, &cookie_name)
 }
 

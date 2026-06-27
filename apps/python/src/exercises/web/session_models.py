@@ -73,12 +73,12 @@ class SessionConfig:
     def from_env(cls) -> SessionConfig:
         import os
 
-        prefix = os.environ.get("EXERCISES_SESSION_REDIS_PREFIX", "exercises:session:").strip()
-        cookie = os.environ.get("EXERCISES_SESSION_COOKIE", "exercises_session").strip()
+        prefix = os.environ.get("WEBSERVER_BENCHMARK_SESSION_REDIS_PREFIX", "webserver-benchmark:session:").strip()
+        cookie = os.environ.get("WEBSERVER_BENCHMARK_SESSION_COOKIE", "webserver_benchmark_session").strip()
         return cls(
-            redis_key_prefix=prefix or "exercises:session:",
+            redis_key_prefix=prefix or "webserver-benchmark:session:",
             ttl_secs=86_400,
-            cookie_name=cookie or "exercises_session",
+            cookie_name=cookie or "webserver_benchmark_session",
         )
 
     def redis_key(self, session_id: str) -> str:

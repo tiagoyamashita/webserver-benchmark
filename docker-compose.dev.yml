@@ -8,7 +8,7 @@
 # Observability only (leave running while restarting apps):
 #   podman compose -f docker-compose.observability.yml up -d
 #
-# Java: spring-boot:run without DevTools restart (excludeDevtools) so pom.xml dependency changes apply after container restart; re-runs go-offline + clean compile when pom.xml changes; if still broken: podman volume rm exercises_maven-cache and up again).
+# Java: spring-boot:run without DevTools restart (excludeDevtools) so pom.xml dependency changes apply after container restart; re-runs go-offline + clean compile when pom.xml changes; if still broken: podman volume rm wsbm_maven-cache and up again).
 # Python: FLASK_DEBUG=1 reloader when ./apps/python changes.
 # Rust: cargo-watch rebuilds on src/ and templates/ (first start compiles; can take a few minutes).
 # Zig: rebuilds on container start (zig build); restart container after src/ changes.
@@ -40,7 +40,7 @@ services:
     environment:
       FLASK_ENV: development
       FLASK_DEBUG: !override "1"
-      EXERCISES_OBSERVABILITY: "1"
+      WEBSERVER_BENCHMARK_OBSERVABILITY: "1"
       LOG_PATH: /app/logs
       APP_STACK_JAVA_BASE_URL: http://java:8080
       APP_STACK_RUST_BASE_URL: http://rust:8082
@@ -74,12 +74,12 @@ services:
       - rust-target:/app/target
     environment:
       RUST_LOG: info
-      EXERCISES_OBSERVABILITY: "1"
+      WEBSERVER_BENCHMARK_OBSERVABILITY: "1"
       LOG_PATH: /app/logs
-      EXERCISES_WEB_HOST: "0.0.0.0"
-      EXERCISES_WEB_PORT: "8082"
-      EXERCISES_RUST_ROOT: /app
-      EXERCISES_JAVA_BASE_URL: http://java:8080
+      WEBSERVER_BENCHMARK_WEB_HOST: "0.0.0.0"
+      WEBSERVER_BENCHMARK_WEB_PORT: "8082"
+      WEBSERVER_BENCHMARK_RUST_ROOT: /app
+      WEBSERVER_BENCHMARK_JAVA_BASE_URL: http://java:8080
       APP_STACK_JAVA_BASE_URL: http://java:8080
       APP_STACK_PYTHON_BASE_URL: http://python:5000
       APP_STACK_PROMETHEUS_BASE_URL: http://prometheus:9090
@@ -105,7 +105,7 @@ services:
     environment:
       NODE_ENV: !override development
       PORT: "5174"
-      EXERCISES_OBSERVABILITY: "1"
+      WEBSERVER_BENCHMARK_OBSERVABILITY: "1"
       LOG_PATH: /app/logs
       PROBE_JAVA_URL: http://java:8080
       PROBE_RUST_URL: http://rust:8082
@@ -143,9 +143,9 @@ services:
       - zig-global-cache:/root/.cache/zig
       - zig-out:/app/zig-out
     environment:
-      EXERCISES_WEB_HOST: "0.0.0.0"
-      EXERCISES_WEB_PORT: "8083"
-      EXERCISES_OBSERVABILITY: "1"
+      WEBSERVER_BENCHMARK_WEB_HOST: "0.0.0.0"
+      WEBSERVER_BENCHMARK_WEB_PORT: "8083"
+      WEBSERVER_BENCHMARK_OBSERVABILITY: "1"
       LOG_PATH: /app/logs
       APP_STACK_JAVA_BASE_URL: http://java:8080
       APP_STACK_PYTHON_BASE_URL: http://python:5000

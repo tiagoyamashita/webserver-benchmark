@@ -1,9 +1,9 @@
 # https://grafana.com/docs/grafana/latest/administration/provisioning/#dashboards
 apiVersion: 1
 providers:
-  - name: exercises
+  - name: webserver-benchmark
     orgId: 1
-    folder: Exercises
+    folder: WebServer BenchMark
     type: file
     disableDeletion: false
     editable: true

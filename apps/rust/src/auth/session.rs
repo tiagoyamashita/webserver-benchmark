@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// Session payload in Redis at `exercises:session:{sessionId}` (shared with Java).
+/// Session payload in Redis at `webserver-benchmark:session:{sessionId}` (shared with Java).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SharedSession {
@@ -32,11 +32,11 @@ impl SessionConfig {
     pub fn from_env() -> Self {
         Self {
             redis_key_prefix: read_env(
-                "EXERCISES_SESSION_REDIS_PREFIX",
-                "exercises:session:",
+                "WEBSERVER_BENCHMARK_SESSION_REDIS_PREFIX",
+                "webserver-benchmark:session:",
             ),
             ttl_secs: 86_400,
-            cookie_name: read_env("EXERCISES_SESSION_COOKIE", "exercises_session"),
+            cookie_name: read_env("WEBSERVER_BENCHMARK_SESSION_COOKIE", "webserver_benchmark_session"),
         }
     }
 

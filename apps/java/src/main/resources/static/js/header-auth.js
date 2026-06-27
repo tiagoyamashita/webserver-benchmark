@@ -73,7 +73,7 @@
     });
   }
 
-  global.exercisesHeaderAuth = {
+  global.webserverBenchmarkHeaderAuth = {
     isLoggedInSession: isLoggedInSession,
     updateHeaderAuthPanel: updateHeaderAuthPanel,
     setLoginError: setLoginError,

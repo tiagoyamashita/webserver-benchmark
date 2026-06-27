@@ -465,8 +465,8 @@
           <h2 class="form-heading">Shared Redis session</h2>
           <p class="form-hint">
             A guest session is created automatically when this page loads. Login replaces it with a user-bound session in
-            Redis at <code>exercises:session:{sessionId}</code>. Other apps authenticate with
-            <code>Authorization: Bearer …</code>, <code>X-Session-ID</code>, or the <code>exercises_session</code> cookie.
+            Redis at <code>webserver-benchmark:session:{sessionId}</code>. Other apps authenticate with
+            <code>Authorization: Bearer …</code>, <code>X-Session-ID</code>, or the <code>webserver_benchmark_session</code> cookie.
           </p>
           <p class="form-hint" id="session-status">No session.</p>
           <form id="session-login-form">
@@ -528,7 +528,7 @@
           <p class="form-hint">
             Publishes a <code>create-user</code> event to Kafka via
             <code>POST /api/users/publish-create-user</code>. Java and Rust share consumer group
-            <code>exercises-create-user</code> — only one app processes each message.
+            <code>webserver-benchmark-create-user</code> — only one app processes each message.
           </p>
           <form id="kafka-create-user-form">
             <div class="field-row">
@@ -580,7 +580,7 @@
 
     <script>
       (function (global) {
-        var LEGACY_STORAGE_KEY = "exercises_session_id";
+        var LEGACY_STORAGE_KEY = "webserver_benchmark_session_id";
         function clearLegacyStoredSessionId() {
           try { global.localStorage.removeItem(LEGACY_STORAGE_KEY); } catch (e) { /* ignore */ }
         }
@@ -618,7 +618,7 @@
           });
         }
         clearLegacyStoredSessionId();
-        global.exercisesSession = {
+        global.webserverBenchmarkSession = {
           withSessionHeaders: withSessionHeaders,
           ensureSession: ensureSession
         };
@@ -678,7 +678,7 @@
           if (!btn || typeof performLogout !== "function") return;
           btn.addEventListener("click", function () { performLogout(); });
         }
-        global.exercisesHeaderAuth = {
+        global.webserverBenchmarkHeaderAuth = {
           isLoggedInSession: isLoggedInSession,
           updateHeaderAuthPanel: updateHeaderAuthPanel,
           setLoginError: setLoginError,
@@ -723,7 +723,7 @@
           var loggedIn = isLoggedInSession(data);
           setVisible(gate, !loggedIn, "flex");
           setVisible(shell, loggedIn, "block");
-          if (loggedIn && global.exercisesHeaderAuth) global.exercisesHeaderAuth.updateHeaderAuthPanel(data);
+          if (loggedIn && global.webserverBenchmarkHeaderAuth) global.webserverBenchmarkHeaderAuth.updateHeaderAuthPanel(data);
         }
         function wireAuthGate(handlers) {
           document.querySelectorAll("[data-auth-tab]").forEach(function (btn) {
@@ -760,7 +760,7 @@
             });
           }
         }
-        global.exercisesAuthGate = {
+        global.webserverBenchmarkAuthGate = {
           isLoggedInSession: isLoggedInSession,
           applyAuthGate: applyAuthGate,
           setGateError: setGateError,
@@ -769,7 +769,7 @@
       })(window);
     </script>
     <script>
-      window.exercisesSession.ensureSession().then(function (session) {
+      window.webserverBenchmarkSession.ensureSession().then(function (session) {
       (function () {
         var navButtons = document.querySelectorAll(".sidebar-btn[data-view]");
         var viewPanels = document.querySelectorAll(".view-panel");
@@ -789,7 +789,7 @@
           if (pageRequestIdEl) {
             pageRequestIdEl.textContent = requestId;
           }
-          var headers = window.exercisesSession.withSessionHeaders({
+          var headers = window.webserverBenchmarkSession.withSessionHeaders({
             "X-Request-ID": requestId,
             "X-Dashboard-Page": currentView,
             Accept: "application/json"
@@ -811,7 +811,7 @@
         }
 
         function updateHeaderAuthButton(data) {
-          window.exercisesHeaderAuth.updateHeaderAuthPanel(data);
+          window.webserverBenchmarkHeaderAuth.updateHeaderAuthPanel(data);
         }
 
         function performGateLogin(email, password) {
@@ -831,14 +831,14 @@
             });
           }).then(function (r) {
             if (!r.ok) {
-              window.exercisesAuthGate.setGateError(
+              window.webserverBenchmarkAuthGate.setGateError(
                 "Sign in failed" + (r.data && r.data.error ? ": " + r.data.error : " (HTTP " + r.status + ")")
               );
               return;
             }
             renderSessionStatus(r.data);
           }).catch(function (err) {
-            window.exercisesAuthGate.setGateError(String(err.message || err));
+            window.webserverBenchmarkAuthGate.setGateError(String(err.message || err));
           });
         }
 
@@ -858,17 +858,17 @@
           }).then(function (r) {
             if (!r.ok) {
               var msg = r.data && r.data.error ? r.data.error : String(r.data || r.status);
-              window.exercisesAuthGate.setGateError("Create account failed: " + msg);
+              window.webserverBenchmarkAuthGate.setGateError("Create account failed: " + msg);
               return;
             }
             return performGateLogin(email, password);
           }).catch(function (err) {
-            window.exercisesAuthGate.setGateError(String(err.message || err));
+            window.webserverBenchmarkAuthGate.setGateError(String(err.message || err));
           });
         }
 
-        window.exercisesHeaderAuth.wireLogoutButton(performLogout);
-        window.exercisesAuthGate.wireAuthGate({
+        window.webserverBenchmarkHeaderAuth.wireLogoutButton(performLogout);
+        window.webserverBenchmarkAuthGate.wireAuthGate({
           onLogin: function (email, password) { performGateLogin(email, password); },
           onRegister: function (name, email, password) { performGateRegister(name, email, password); }
         });
@@ -889,12 +889,12 @@
               renderSessionStatus(r.data);
               return r.data;
             }
-            return window.exercisesSession.ensureSession().then(function (s) {
+            return window.webserverBenchmarkSession.ensureSession().then(function (s) {
               renderSessionStatus(s);
               return s;
             });
           }).catch(function () {
-            return window.exercisesSession.ensureSession().then(function (s) {
+            return window.webserverBenchmarkSession.ensureSession().then(function (s) {
               renderSessionStatus(s);
               return s;
             });
@@ -921,7 +921,7 @@
             if (pageSessionIdEl) pageSessionIdEl.textContent = "—";
             if (redisKeyEl) redisKeyEl.textContent = "—";
             updateHeaderAuthButton(null);
-            window.exercisesAuthGate.applyAuthGate(null);
+            window.webserverBenchmarkAuthGate.applyAuthGate(null);
             return;
           }
           var who = sessionWhoLabel(data);
@@ -931,7 +931,7 @@
           if (pageSessionIdEl) pageSessionIdEl.textContent = data.sessionId;
           if (redisKeyEl) redisKeyEl.textContent = data.redisKey || "—";
           updateHeaderAuthButton(data);
-          window.exercisesAuthGate.applyAuthGate(data);
+          window.webserverBenchmarkAuthGate.applyAuthGate(data);
         }
 
         function performLogout() {
@@ -951,7 +951,7 @@
               if (!res.ok) {
                 throw new Error("Logout failed (HTTP " + res.status + ")");
               }
-              return window.exercisesSession.ensureSession();
+              return window.webserverBenchmarkSession.ensureSession();
             });
           }).then(function (loggedOutSession) {
             renderSessionStatus(loggedOutSession);
@@ -979,7 +979,7 @@
           }).then(function (r) {
             if (!r.ok) {
               if (resultEl) resultEl.textContent = "HTTP " + r.status + "\n" + String(r.data);
-              return window.exercisesSession.ensureSession().then(function (s) {
+              return window.webserverBenchmarkSession.ensureSession().then(function (s) {
                 renderSessionStatus(s);
                 return s;
               });
@@ -1239,7 +1239,7 @@
                 if (d.topic) lines.push("topic=" + d.topic);
                 if (d.error) lines.push("Error: " + d.error);
                 if (r.httpOk && d.ok === true) {
-                  lines.push("Shared consumer group exercises-create-user — one app will insert the user.");
+                  lines.push("Shared consumer group webserver-benchmark-create-user — one app will insert the user.");
                   if (nameInput) nameInput.value = "";
                   if (emailInput) emailInput.value = "";
                   resultEl.className = "result-box";
@@ -1259,9 +1259,9 @@
       })();
       }).catch(function (err) {
         console.error("[dashboard] session bootstrap failed", err);
-        if (window.exercisesAuthGate) {
-          window.exercisesAuthGate.applyAuthGate(null);
-          window.exercisesAuthGate.setGateError("Session unavailable (is Redis up?)");
+        if (window.webserverBenchmarkAuthGate) {
+          window.webserverBenchmarkAuthGate.applyAuthGate(null);
+          window.webserverBenchmarkAuthGate.setGateError("Session unavailable (is Redis up?)");
         }
         var pageSessionIdEl = document.getElementById("page-session-id");
         if (pageSessionIdEl) pageSessionIdEl.textContent = "unavailable";

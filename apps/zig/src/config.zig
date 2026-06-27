@@ -19,9 +19,9 @@ pub const Config = struct {
     kibana_base_url: []const u8,
 
     pub fn fromEnv(allocator: std.mem.Allocator) !Config {
-        const host = try dupEnv(allocator, "EXERCISES_WEB_HOST", "0.0.0.0");
+        const host = try dupEnv(allocator, "WEBSERVER_BENCHMARK_WEB_HOST", "0.0.0.0");
         errdefer allocator.free(host);
-        const port = parseU16Env("EXERCISES_WEB_PORT", 8083);
+        const port = parseU16Env("WEBSERVER_BENCHMARK_WEB_PORT", 8083);
         const db_host_raw = std.posix.getenv("DB_HOST");
         const db_host: ?[]const u8 = if (db_host_raw) |h| blk: {
             const trimmed = trimEnv(h);

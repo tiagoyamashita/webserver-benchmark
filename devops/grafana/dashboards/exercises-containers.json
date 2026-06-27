@@ -22,7 +22,7 @@
       "targetBlank": true,
       "title": "Prometheus (podman job)",
       "type": "link",
-      "url": "http://127.0.0.1:9090/graph?g0.expr=up%7Bjob%3D%22exercises-podman%22%7D&g0.tab=0"
+      "url": "http://127.0.0.1:9090/graph?g0.expr=up%7Bjob%3D%22webserver-benchmark-podman%22%7D&g0.tab=0"
     },
     {
       "icon": "external link",
@@ -80,7 +80,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "up{job=\"exercises-podman\"}",
+          "expr": "up{job=\"webserver-benchmark-podman\"}",
           "instant": true,
           "legendFormat": "__auto",
           "range": false,
@@ -114,14 +114,14 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "sum( max by (name) ( ( podman_container_mem_usage_bytes and on(id) (podman_container_state == 2) ) * on(id) group_left(name) podman_container_info{name=~\".*exercises-.*\", name!~\"podman-exporter|.*-setup-.*\"} ) )",
+          "expr": "sum( max by (name) ( ( podman_container_mem_usage_bytes and on(id) (podman_container_state == 2) ) * on(id) group_left(name) podman_container_info{name=~\".*webserver-benchmark-.*\", name!~\"podman-exporter|.*-setup-.*\"} ) )",
           "instant": true,
           "legendFormat": "total",
           "range": false,
           "refId": "A"
         }
       ],
-      "title": "Exercises stack — total RAM (all containers)",
+      "title": "WebServer BenchMark stack — total RAM (all containers)",
       "type": "stat"
     },
     {
@@ -140,7 +140,7 @@
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
       "id": 101,
       "panels": [],
-      "title": "Memory by pod / container (exercises-*)",
+      "title": "Memory by pod / container (webserver-benchmark-*)",
       "type": "row"
     },
     {
@@ -193,7 +193,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "max by (name) ( ( podman_container_mem_usage_bytes and on(id) (podman_container_state == 2) ) * on(id) group_left(name) podman_container_info{name=~\".*exercises-.*\", name!~\"podman-exporter|.*-setup-.*\"} )",
+          "expr": "max by (name) ( ( podman_container_mem_usage_bytes and on(id) (podman_container_state == 2) ) * on(id) group_left(name) podman_container_info{name=~\".*webserver-benchmark-.*\", name!~\"podman-exporter|.*-setup-.*\"} )",
           "legendFormat": "{{name}}",
           "range": true,
           "refId": "A"
@@ -244,7 +244,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "max by (name) ( ( podman_container_mem_usage_bytes and on(id) (podman_container_state == 2) ) * on(id) group_left(name) podman_container_info{name=~\".*exercises-(java|python|rust|react-node).*\"} )",
+          "expr": "max by (name) ( ( podman_container_mem_usage_bytes and on(id) (podman_container_state == 2) ) * on(id) group_left(name) podman_container_info{name=~\".*webserver-benchmark-(java|python|rust|react-node).*\"} )",
           "legendFormat": "{{name}}",
           "range": true,
           "refId": "A"
@@ -281,7 +281,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "100 * ( max by (name) ( ( podman_container_mem_usage_bytes and on(id) (podman_container_state == 2) ) * on(id) group_left(name) podman_container_info{name=~\".*exercises-.*\", name!~\"podman-exporter|.*-setup-.*\"} ) ) / clamp_min( max by (name) ( ( podman_container_mem_limit_bytes and on(id) (podman_container_state == 2) ) * on(id) group_left(name) podman_container_info{name=~\".*exercises-.*\", name!~\"podman-exporter|.*-setup-.*\"} ), 1 )",
+          "expr": "100 * ( max by (name) ( ( podman_container_mem_usage_bytes and on(id) (podman_container_state == 2) ) * on(id) group_left(name) podman_container_info{name=~\".*webserver-benchmark-.*\", name!~\"podman-exporter|.*-setup-.*\"} ) ) / clamp_min( max by (name) ( ( podman_container_mem_limit_bytes and on(id) (podman_container_state == 2) ) * on(id) group_left(name) podman_container_info{name=~\".*webserver-benchmark-.*\", name!~\"podman-exporter|.*-setup-.*\"} ), 1 )",
           "instant": true,
           "legendFormat": "{{name}}",
           "range": false,
@@ -328,7 +328,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "max by (name) ( ( podman_container_mem_usage_bytes and on(id) (podman_container_state == 2) ) * on(id) group_left(name, image) podman_container_info{name=~\".*exercises-.*\", name!~\"podman-exporter|.*-setup-.*\"} )",
+          "expr": "max by (name) ( ( podman_container_mem_usage_bytes and on(id) (podman_container_state == 2) ) * on(id) group_left(name, image) podman_container_info{name=~\".*webserver-benchmark-.*\", name!~\"podman-exporter|.*-setup-.*\"} )",
           "format": "table",
           "instant": true,
           "legendFormat": "__auto",
@@ -338,7 +338,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "max by (name) ( ( podman_container_mem_limit_bytes and on(id) (podman_container_state == 2) ) * on(id) group_left(name) podman_container_info{name=~\".*exercises-.*\", name!~\"podman-exporter|.*-setup-.*\"} )",
+          "expr": "max by (name) ( ( podman_container_mem_limit_bytes and on(id) (podman_container_state == 2) ) * on(id) group_left(name) podman_container_info{name=~\".*webserver-benchmark-.*\", name!~\"podman-exporter|.*-setup-.*\"} )",
           "format": "table",
           "hide": false,
           "instant": true,
@@ -349,7 +349,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "max by (name) ( max_over_time( ( ( podman_container_mem_usage_bytes and on(id) (podman_container_state == 2) ) * on(id) group_left(name) podman_container_info{name=~\".*exercises-.*\", name!~\"podman-exporter|.*-setup-.*\"} )[$__range:15s] ) )",
+          "expr": "max by (name) ( max_over_time( ( ( podman_container_mem_usage_bytes and on(id) (podman_container_state == 2) ) * on(id) group_left(name) podman_container_info{name=~\".*webserver-benchmark-.*\", name!~\"podman-exporter|.*-setup-.*\"} )[$__range:15s] ) )",
           "format": "table",
           "hide": false,
           "instant": true,
@@ -403,7 +403,7 @@
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 37 },
       "id": 102,
       "panels": [],
-      "title": "CPU by pod / container (exercises-*)",
+      "title": "CPU by pod / container (webserver-benchmark-*)",
       "type": "row"
     },
     {
@@ -455,7 +455,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "rate(podman_container_cpu_seconds_total[5m]) * on(id) group_left(name) podman_container_info{name=~\".*exercises-.*\"}",
+          "expr": "rate(podman_container_cpu_seconds_total[5m]) * on(id) group_left(name) podman_container_info{name=~\".*webserver-benchmark-.*\"}",
           "legendFormat": "{{name}}",
           "range": true,
           "refId": "A"
@@ -505,7 +505,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "rate(podman_container_cpu_seconds_total[5m]) * on(id) group_left(name) podman_container_info{name=~\".*exercises-(java|python|rust|react-node).*\"}",
+          "expr": "rate(podman_container_cpu_seconds_total[5m]) * on(id) group_left(name) podman_container_info{name=~\".*webserver-benchmark-(java|python|rust|react-node).*\"}",
           "legendFormat": "{{name}}",
           "range": true,
           "refId": "A"
@@ -560,7 +560,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "up{job=\"exercises-gpu\"}",
+          "expr": "up{job=\"webserver-benchmark-gpu\"}",
           "instant": true,
           "legendFormat": "__auto",
           "range": false,
@@ -575,7 +575,7 @@
       "id": 31,
       "options": {
         "code": { "language": "markdown", "showLineNumbers": false },
-        "content": "Requires **NVIDIA GPU + nvidia-smi** on the Podman host. Not part of default compose — run **`devops/prometheus/start-gpu-exporter.ps1`**, reload Prometheus. Maps GPU processes → Podman container names (`exercises-*`). No GPU on this host = panels empty.",
+        "content": "Requires **NVIDIA GPU + nvidia-smi** on the Podman host. Not part of default compose — run **`devops/prometheus/start-gpu-exporter.ps1`**, reload Prometheus. Maps GPU processes → Podman container names (`webserver-benchmark-*`). No GPU on this host = panels empty.",
         "mode": "markdown"
       },
       "title": "GPU notes",
@@ -583,7 +583,7 @@
     },
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "description": "GPU framebuffer memory per exercises container (sum of compute processes in that container).",
+      "description": "GPU framebuffer memory per WebServer BenchMark container (sum of compute processes in that container).",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -631,7 +631,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "exercises_container_gpu_memory_bytes{name=~\".*exercises-.*\"}",
+          "expr": "webserver_benchmark_container_gpu_memory_bytes{name=~\".*webserver-benchmark-.*\"}",
           "legendFormat": "{{name}} (GPU {{gpu}})",
           "range": true,
           "refId": "A"
@@ -683,7 +683,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "exercises_container_gpu_utilization_percent{name=~\".*exercises-.*\"}",
+          "expr": "webserver_benchmark_container_gpu_utilization_percent{name=~\".*webserver-benchmark-.*\"}",
           "legendFormat": "{{name}} (GPU {{gpu}})",
           "range": true,
           "refId": "A"
@@ -737,7 +737,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "exercises_container_gpu_memory_bytes{name=~\".*exercises-.*\"}",
+          "expr": "webserver_benchmark_container_gpu_memory_bytes{name=~\".*webserver-benchmark-.*\"}",
           "format": "table",
           "instant": true,
           "legendFormat": "__auto",
@@ -747,7 +747,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "exercises_container_gpu_utilization_percent{name=~\".*exercises-.*\"}",
+          "expr": "webserver_benchmark_container_gpu_utilization_percent{name=~\".*webserver-benchmark-.*\"}",
           "format": "table",
           "instant": true,
           "legendFormat": "__auto",
@@ -757,7 +757,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "max by (name, gpu) ( max_over_time( exercises_container_gpu_memory_bytes{name=~\".*exercises-.*\"}[$__range:15s] ) )",
+          "expr": "max by (name, gpu) ( max_over_time( webserver_benchmark_container_gpu_memory_bytes{name=~\".*webserver-benchmark-.*\"}[$__range:15s] ) )",
           "format": "table",
           "instant": true,
           "legendFormat": "__auto",
@@ -767,7 +767,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "max by (name, gpu) ( max_over_time( exercises_container_gpu_utilization_percent{name=~\".*exercises-.*\"}[$__range:15s] ) )",
+          "expr": "max by (name, gpu) ( max_over_time( webserver_benchmark_container_gpu_utilization_percent{name=~\".*webserver-benchmark-.*\"}[$__range:15s] ) )",
           "format": "table",
           "instant": true,
           "legendFormat": "__auto",
@@ -815,13 +815,13 @@
   ],
   "refresh": "30s",
   "schemaVersion": 39,
-  "tags": ["exercises", "podman", "containers", "memory", "cpu", "gpu", "prometheus"],
+  "tags": ["webserver-benchmark", "podman", "containers", "memory", "cpu", "gpu", "prometheus"],
   "templating": { "list": [] },
   "time": { "from": "now-6h", "to": "now" },
   "timepicker": {},
   "timezone": "",
-  "title": "Exercises — Container resources (Podman)",
-  "uid": "exercises-containers",
+  "title": "WebServer BenchMark — Container resources (Podman)",
+  "uid": "webserver-benchmark-containers",
   "version": 6,
   "weekStart": ""
 }

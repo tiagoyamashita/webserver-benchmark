@@ -6,7 +6,7 @@ def test_openapi_json_spec(client):
     assert r.status_code == 200
     data = r.get_json()
     assert data["openapi"] == "3.0.3"
-    assert data["info"]["title"] == "Exercises Python API"
+    assert data["info"]["title"] == "WebServer BenchMark Python API"
     paths = data["paths"]
     assert "/api/items" in paths
     assert "get" in paths["/api/items"]

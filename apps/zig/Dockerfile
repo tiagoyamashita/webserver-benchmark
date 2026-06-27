@@ -23,12 +23,12 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl libpq5 \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
-COPY --from=build /build/zig-out/bin/exercises-zig /app/exercises-zig
+COPY --from=build /build/zig-out/bin/webserver-benchmark-zig /app/webserver-benchmark-zig
 RUN mkdir -p logs
-ENV EXERCISES_WEB_HOST=0.0.0.0
-ENV EXERCISES_WEB_PORT=8083
+ENV WEBSERVER_BENCHMARK_WEB_HOST=0.0.0.0
+ENV WEBSERVER_BENCHMARK_WEB_PORT=8083
 ENV LOG_PATH=/app/logs
 HEALTHCHECK --interval=15s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -fsS http://127.0.0.1:8083/health || exit 1
 EXPOSE 8083
-CMD ["/app/exercises-zig"]
+CMD ["/app/webserver-benchmark-zig"]

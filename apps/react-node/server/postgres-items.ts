@@ -16,8 +16,8 @@ function postgresConfigured(): boolean {
 
 function applicationName(requestId?: string): string {
   const value = requestId
-    ? `exercises-react-node;req=${requestId}`
-    : "exercises-react-node";
+    ? `webserver-benchmark-react-node;req=${requestId}`
+    : "webserver-benchmark-react-node";
   return value.length <= 63 ? value : value.slice(0, 63);
 }
 

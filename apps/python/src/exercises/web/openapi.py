@@ -70,7 +70,7 @@ def build_openapi_spec() -> dict:
     return {
         "openapi": "3.0.3",
         "info": {
-            "title": "Exercises Python API",
+            "title": "WebServer BenchMark Python API",
             "version": "1.0",
             "description": (
                 "REST CRUD for `/api/items`. Dashboard, observability, and stack-ping "

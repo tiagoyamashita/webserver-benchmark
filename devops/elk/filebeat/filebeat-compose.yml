@@ -3,7 +3,7 @@
 
 filebeat.inputs:
   - type: filestream
-    id: exercises-java-json
+    id: webserver-benchmark-java-json
     enabled: true
     paths:
       - /var/log/java/demo-app.json.log
@@ -12,11 +12,11 @@ filebeat.inputs:
           keys_under_root: true
           add_error_key: true
     fields:
-      service: exercises-java
+      service: webserver-benchmark-java
     fields_under_root: true
 
   - type: filestream
-    id: exercises-python-json
+    id: webserver-benchmark-python-json
     enabled: true
     paths:
       - /var/log/python/demo-app.json.log
@@ -25,11 +25,11 @@ filebeat.inputs:
           keys_under_root: true
           add_error_key: true
     fields:
-      service: exercises-python
+      service: webserver-benchmark-python
     fields_under_root: true
 
   - type: filestream
-    id: exercises-rust-json
+    id: webserver-benchmark-rust-json
     enabled: true
     paths:
       - /var/log/rust/demo-app.json.log
@@ -38,11 +38,11 @@ filebeat.inputs:
           keys_under_root: true
           add_error_key: true
     fields:
-      service: exercises-rust
+      service: webserver-benchmark-rust
     fields_under_root: true
 
   - type: filestream
-    id: exercises-react-node-json
+    id: webserver-benchmark-react-node-json
     enabled: true
     paths:
       - /var/log/react-node/demo-app.json.log
@@ -51,11 +51,11 @@ filebeat.inputs:
           keys_under_root: true
           add_error_key: true
     fields:
-      service: exercises-react-node
+      service: webserver-benchmark-react-node
     fields_under_root: true
 
   - type: filestream
-    id: exercises-zig-json
+    id: webserver-benchmark-zig-json
     enabled: true
     paths:
       - /var/log/zig/demo-app.json.log
@@ -64,11 +64,11 @@ filebeat.inputs:
           keys_under_root: true
           add_error_key: true
     fields:
-      service: exercises-zig
+      service: webserver-benchmark-zig
     fields_under_root: true
 
   - type: filestream
-    id: exercises-postgres-json
+    id: webserver-benchmark-postgres-json
     enabled: true
     paths:
       # jsonlog destination only — exclude postgresql-YYYY-MM-DD text stubs (startup hints).
@@ -78,11 +78,11 @@ filebeat.inputs:
           keys_under_root: true
           add_error_key: true
     fields:
-      service: exercises-postgres
+      service: webserver-benchmark-postgres
     fields_under_root: true
 
   - type: filestream
-    id: exercises-kafka-json
+    id: webserver-benchmark-kafka-json
     enabled: true
     paths:
       - /var/log/kafka/kafka*.json.log
@@ -91,7 +91,7 @@ filebeat.inputs:
           keys_under_root: true
           add_error_key: true
     fields:
-      service: exercises-kafka
+      service: webserver-benchmark-kafka
     fields_under_root: true
 
 processors:

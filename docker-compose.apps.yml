@@ -7,12 +7,12 @@
 #
 # Dev overlay: add -f docker-compose.dev.yml
 #
-# App JSON logging: EXERCISES_OBSERVABILITY=1 (Python/Rust/React Node) and Spring profile
+# App JSON logging: WEBSERVER_BENCHMARK_OBSERVABILITY=1 (Python/Rust/React Node) and Spring profile
 # observability (Java). Optional overrides in .env.apps (see .env.apps.example).
 services:
   postgres:
     image: docker.io/library/postgres:16
-    networks: [exercises]
+    networks: [webserver-benchmark]
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -40,17 +40,17 @@ services:
       - -c
       - log_duration=off
     volumes:
-      - exercises_pg_data:/var/lib/postgresql/data
+      - wsbm_pg_data:/var/lib/postgresql/data
       - ./apps/postgres/logs:/var/log/postgresql
 
   redis:
     image: docker.io/library/redis:7-alpine
-    networks: [exercises]
+    networks: [webserver-benchmark]
     ports:
       - "6379:6379"
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
-      - exercises_redis_data:/data
+      - wsbm_redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -60,7 +60,7 @@ services:
 
   redisinsight:
     image: docker.io/redis/redisinsight:2.70.1
-    networks: [exercises]
+    networks: [webserver-benchmark]
     ports:
       - "5540:5540"
     environment:
@@ -69,9 +69,9 @@ services:
       RI_EXTERNAL_URL: http://127.0.0.1:5540
       RI_REDIS_HOST: redis
       RI_REDIS_PORT: "6379"
-      RI_REDIS_ALIAS: exercises
+      RI_REDIS_ALIAS: webserver-benchmark
     volumes:
-      - exercises_redisinsight_data:/data
+      - wsbm_redisinsight_data:/data
     depends_on:
       redis:
         condition: service_healthy
@@ -84,7 +84,7 @@ services:
 
   redisinsight-embed:
     image: docker.io/library/nginx:1.27-alpine
-    networks: [exercises]
+    networks: [webserver-benchmark]
     ports:
       - "5541:80"
     volumes:
@@ -95,7 +95,7 @@ services:
   kafka:
     image: docker.io/apache/kafka:3.9.1
     hostname: kafka
-    networks: [exercises]
+    networks: [webserver-benchmark]
     ports:
       - "9092:9092"
     environment:
@@ -113,7 +113,7 @@ services:
       KAFKA_LOG_DIRS: /var/lib/kafka/data
       KAFKA_LOG4J_ROOT_LOGLEVEL: INFO
     volumes:
-      - exercises_kafka_data:/var/lib/kafka/data
+      - wsbm_kafka_data:/var/lib/kafka/data
       - ./apps/kafka/config/log4j2.yaml:/opt/kafka/config/log4j2.yaml:ro
       - ./apps/kafka/logs:/var/log/kafka
     healthcheck:
@@ -131,11 +131,11 @@ services:
 
   kafka-ui:
     image: docker.io/provectuslabs/kafka-ui:v0.7.2
-    networks: [exercises]
+    networks: [webserver-benchmark]
     ports:
       - "8090:8080"
     environment:
-      KAFKA_CLUSTERS_0_NAME: exercises
+      KAFKA_CLUSTERS_0_NAME: webserver-benchmark
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
     depends_on:
       kafka:
@@ -143,7 +143,7 @@ services:
 
   kafka-ui-embed:
     image: docker.io/library/nginx:1.27-alpine
-    networks: [exercises]
+    networks: [webserver-benchmark]
     ports:
       - "8091:80"
     volumes:
@@ -153,7 +153,7 @@ services:
 
   kafka-exporter:
     image: docker.io/danielqsj/kafka-exporter:v1.9.0
-    networks: [exercises]
+    networks: [webserver-benchmark]
     depends_on:
       kafka:
         condition: service_healthy
@@ -170,7 +170,7 @@ services:
       args:
         SKIP_TESTS: "true"
         CACHE_BUST: ${CACHE_BUST:-1}
-    networks: [exercises]
+    networks: [webserver-benchmark]
     env_file:
       - path: .env.apps
         required: false
@@ -185,7 +185,7 @@ services:
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      APP_KAFKA_CREATE_USER_CONSUMER_GROUP: exercises-create-user
+      APP_KAFKA_CREATE_USER_CONSUMER_GROUP: webserver-benchmark-create-user
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       REDIS_URL: redis://redis:6379
@@ -206,7 +206,7 @@ services:
     build:
       context: ./apps/python
       dockerfile: Dockerfile
-    networks: [exercises]
+    networks: [webserver-benchmark]
     env_file:
       - path: .env.apps
         required: false
@@ -215,8 +215,8 @@ services:
     environment:
       FLASK_RUN_HOST: "0.0.0.0"
       FLASK_RUN_PORT: "5000"
-      EXERCISES_PROJECT_ROOT: /app
-      EXERCISES_OBSERVABILITY: "1"
+      WEBSERVER_BENCHMARK_PROJECT_ROOT: /app
+      WEBSERVER_BENCHMARK_OBSERVABILITY: "1"
       LOG_PATH: /app/logs
       APP_STACK_JAVA_BASE_URL: http://java:8080
       APP_STACK_RUST_BASE_URL: http://rust:8082
@@ -232,7 +232,7 @@ services:
       DB_PASSWORD: postgres
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       KAFKA_CREATE_ITEM_TOPIC: create-item
-      KAFKA_CREATE_ITEM_CONSUMER_GROUP: exercises-create-item-python
+      KAFKA_CREATE_ITEM_CONSUMER_GROUP: webserver-benchmark-create-item-python
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       REDIS_URL: redis://redis:6379
@@ -250,19 +250,19 @@ services:
     build:
       context: ./apps/rust
       dockerfile: Dockerfile
-    networks: [exercises]
+    networks: [webserver-benchmark]
     env_file:
       - path: .env.apps
         required: false
     ports:
       - "8082:8082"
     environment:
-      EXERCISES_WEB_HOST: "0.0.0.0"
-      EXERCISES_WEB_PORT: "8082"
-      EXERCISES_RUST_ROOT: /app
-      EXERCISES_OBSERVABILITY: "1"
+      WEBSERVER_BENCHMARK_WEB_HOST: "0.0.0.0"
+      WEBSERVER_BENCHMARK_WEB_PORT: "8082"
+      WEBSERVER_BENCHMARK_RUST_ROOT: /app
+      WEBSERVER_BENCHMARK_OBSERVABILITY: "1"
       LOG_PATH: /app/logs
-      EXERCISES_JAVA_BASE_URL: http://java:8080
+      WEBSERVER_BENCHMARK_JAVA_BASE_URL: http://java:8080
       DB_HOST: postgres
       DB_PORT: "5432"
       DB_NAME: demo
@@ -270,7 +270,7 @@ services:
       DB_PASSWORD: postgres
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       KAFKA_CREATE_USER_TOPIC: create-user
-      KAFKA_CREATE_USER_CONSUMER_GROUP: exercises-create-user
+      KAFKA_CREATE_USER_CONSUMER_GROUP: webserver-benchmark-create-user
       KAFKA_CREATE_USER_PARTITIONS: "1"
       KAFKA_CREATE_USER_REPLICAS: "1"
       KAFKA_ADMIN_FAIL_FAST: "true"
@@ -300,16 +300,16 @@ services:
     build:
       context: ./apps/zig
       dockerfile: Dockerfile
-    networks: [exercises]
+    networks: [webserver-benchmark]
     env_file:
       - path: .env.apps
         required: false
     ports:
       - "8083:8083"
     environment:
-      EXERCISES_WEB_HOST: "0.0.0.0"
-      EXERCISES_WEB_PORT: "8083"
-      EXERCISES_OBSERVABILITY: "1"
+      WEBSERVER_BENCHMARK_WEB_HOST: "0.0.0.0"
+      WEBSERVER_BENCHMARK_WEB_PORT: "8083"
+      WEBSERVER_BENCHMARK_OBSERVABILITY: "1"
       LOG_PATH: /app/logs
       APP_STACK_JAVA_BASE_URL: http://java:8080
       APP_STACK_PYTHON_BASE_URL: http://python:5000
@@ -348,7 +348,7 @@ services:
     build:
       context: ./apps/react-node
       dockerfile: Dockerfile
-    networks: [exercises]
+    networks: [webserver-benchmark]
     env_file:
       - path: .env.apps
         required: false
@@ -357,7 +357,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: "5174"
-      EXERCISES_OBSERVABILITY: "1"
+      WEBSERVER_BENCHMARK_OBSERVABILITY: "1"
       LOG_PATH: /app/logs
       PROBE_JAVA_URL: http://java:8080
       PROBE_RUST_URL: http://rust:8082
@@ -392,12 +392,12 @@ services:
     restart: unless-stopped
 
 networks:
-  exercises:
-    name: exercises
+  webserver-benchmark:
+    name: webserver-benchmark
     driver: bridge
 
 volumes:
-  exercises_pg_data:
-  exercises_redis_data:
-  exercises_redisinsight_data:
-  exercises_kafka_data:
+  wsbm_pg_data:
+  wsbm_redis_data:
+  wsbm_redisinsight_data:
+  wsbm_kafka_data:

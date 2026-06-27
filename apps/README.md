@@ -1,6 +1,6 @@
 # Applications (`apps/`)
 
-This folder holds the **exercise dashboards** and backing services. Each dashboard is a separate process and port, but they share **one Postgres database**, **one Redis instance**, and the **same session contract** — so a single login can be recognized everywhere once the browser carries the same session id.
+This folder holds the **WebServer BenchMark dashboards** and backing services. Each dashboard is a separate process and port, but they share **one Postgres database**, **one Redis instance**, and the **same session contract** — so a single login can be recognized everywhere once the browser carries the same session id.
 
 ## Dashboard apps (local Compose)
 
@@ -29,8 +29,8 @@ Per-app details: see each folder’s `README.md`.
 The stack does **not** give each app its own user database or its own session silo. Login is **centralized in Redis**:
 
 1. You sign in on any dashboard (`POST /api/auth/login`).
-2. That app writes a **session record** to Redis at `exercises:session:{sessionId}`.
-3. The browser stores only the opaque **`sessionId`** in an HttpOnly cookie named `exercises_session`.
+2. That app writes a **session record** to Redis at `webserver-benchmark:session:{sessionId}`.
+3. The browser stores only the opaque **`sessionId`** in an HttpOnly cookie named `webserver_benchmark_session`.
 4. Every other app, when it receives that same `sessionId`, loads the **same JSON** from Redis and shows the same `name`, `email`, and `userId`.
 
 ```mermaid
@@ -41,13 +41,13 @@ sequenceDiagram
     participant Python as Python :5000
 
     Browser->>Java: POST /api/auth/login (email, password)
-    Java->>Redis: SET exercises:session:{uuid} JSON userId, email, name…
-    Java-->>Browser: Set-Cookie exercises_session={uuid}
+    Java->>Redis: SET webserver-benchmark:session:{uuid} JSON userId, email, name…
+    Java-->>Browser: Set-Cookie webserver_benchmark_session={uuid}
 
     Note over Browser,Python: Later: open Python in another tab
 
     Browser->>Python: POST /api/auth/ensure (cookie sent if same origin)
-    Python->>Redis: GET exercises:session:{uuid}
+    Python->>Redis: GET webserver-benchmark:session:{uuid}
     Redis-->>Python: same user JSON
     Python-->>Browser: session JSON + Set-Cookie (same id on this origin)
     Browser->>Python: GET /api/auth/session
@@ -76,7 +76,7 @@ sequenceDiagram
 | `issuer` | Last app that wrote the session (`java`, `python`, `rust`, `zig`, `react-node`) |
 | `expiresAt` | Checked on every request; expired keys are deleted |
 
-Inspect live keys in **RedisInsight**: http://127.0.0.1:5540/ — pattern `exercises:session:*`.
+Inspect live keys in **RedisInsight**: http://127.0.0.1:5540/ — pattern `webserver-benchmark:session:*`.
 
 ---
 
@@ -84,7 +84,7 @@ Inspect live keys in **RedisInsight**: http://127.0.0.1:5540/ — pattern `exerc
 
 Every app follows the same bootstrap pattern (see `session-bootstrap.js` or equivalent in each UI):
 
-1. **`POST /api/auth/ensure`** — If the browser already has a valid `exercises_session` cookie, reuse that session from Redis; otherwise create a **guest** session (`userId: 0`).
+1. **`POST /api/auth/ensure`** — If the browser already has a valid `webserver_benchmark_session` cookie, reuse that session from Redis; otherwise create a **guest** session (`userId: 0`).
 2. **`GET /api/auth/session`** — Refresh the header / auth gate with the current user.
 3. **Auth gate** — Dashboard content stays hidden until `userId > 0` and `email` are set (registered user, not guest).
 4. **`POST /api/auth/login`** — Verify password against Postgres, write a new session to Redis, set the cookie.
@@ -111,9 +111,9 @@ Default Compose publishes each app on a **different port**. Browsers treat that 
 
 | Layer | Shared across ports? |
 |-------|----------------------|
-| **Redis** (`exercises:session:{id}`) | **Yes** — one cluster, all apps on the Compose network |
+| **Redis** (`webserver-benchmark:session:{id}`) | **Yes** — one cluster, all apps on the Compose network |
 | **Postgres** (`users` table) | **Yes** — same email/password on every app |
-| **HttpOnly cookie** (`exercises_session`) | **No** — each port has its own cookie jar |
+| **HttpOnly cookie** (`webserver_benchmark_session`) | **No** — each port has its own cookie jar |
 
 So:
 
@@ -142,7 +142,7 @@ That needs **one browser origin** for every dashboard, for example:
 - Production: reverse proxy + `Domain=.yourdomain.com` on the cookie (see checklist in [`redis/SHARED-SESSION-PLAN.md`](redis/SHARED-SESSION-PLAN.md)).
 - Local dev: a single host that path-routes to each app (e.g. `http://localhost:9000/java`, `http://localhost:9000/python`).
 
-Then one `exercises_session` cookie is sent to every path, every app reads the same Redis key, and opening a second app **automatically** loads the same user with no extra steps.
+Then one `webserver_benchmark_session` cookie is sent to every path, every app reads the same Redis key, and opening a second app **automatically** loads the same user with no extra steps.
 
 ---
 
@@ -152,13 +152,13 @@ Then one `exercises_session` cookie is sent to every path, every app reads the s
 |----------|---------|---------|
 | `REDIS_URL` | `redis://redis:6379` | Redis connection in Compose |
 | `REDIS_HOST` / `REDIS_PORT` | `redis` / `6379` | Fallback if URL unset |
-| `EXERCISES_SESSION_REDIS_PREFIX` | `exercises:session:` | Key prefix |
-| `EXERCISES_SESSION_COOKIE` | `exercises_session` | Cookie name |
+| `WEBSERVER_BENCHMARK_SESSION_REDIS_PREFIX` | `webserver-benchmark:session:` | Key prefix |
+| `WEBSERVER_BENCHMARK_SESSION_COOKIE` | `webserver_benchmark_session` | Cookie name |
 
 Cookie set on login/ensure (all apps):
 
 ```
-exercises_session={sessionId}; HttpOnly; Path=/; Max-Age=86400; SameSite=Lax
+webserver_benchmark_session={sessionId}; HttpOnly; Path=/; Max-Age=86400; SameSite=Lax
 ```
 
 Dashboard JavaScript uses `fetch(..., { credentials: "same-origin" })` only — it does **not** read the cookie or use `localStorage` for the session id.
@@ -182,6 +182,6 @@ Dashboard JavaScript uses `fetch(..., { credentials: "same-origin" })` only — 
 
 1. Start the stack: `podman compose -f docker-compose.apps.yml up -d` (add `-f docker-compose.dev.yml` for hot reload).
 2. Log in on Java (http://127.0.0.1:8080/).
-3. In RedisInsight, open key `exercises:session:{your-sessionId}` — note `userId` and `email`.
+3. In RedisInsight, open key `webserver-benchmark:session:{your-sessionId}` — note `userId` and `email`.
 4. Open Rust (http://127.0.0.1:8082/) — guest until you log in or hand off the session id (see above).
 5. After hand-off or same-origin setup, `GET /api/auth/session` on the second app should return the same `userId` and `email`.

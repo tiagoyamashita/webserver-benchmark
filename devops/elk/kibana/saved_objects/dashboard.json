@@ -1,6 +1,6 @@
 {
   "attributes": {
-    "title": "Exercises \u2014 Log pipeline (Kibana)",
+    "title": "WebServer BenchMark \u2014 Log pipeline (Kibana)",
     "description": "Ingest health for Filebeat \u2192 Logstash \u2192 Elasticsearch (logstash-* data view).",
     "panelsJSON": "[{\"version\":\"8.15.5\",\"type\":\"search\",\"gridData\":{\"x\":0,\"y\":0,\"w\":24,\"h\":20,\"i\":\"1\"},\"panelIndex\":\"1\",\"panelRefName\":\"panel_1\",\"embeddableConfig\":{\"savedObjectId\":\"log-pipeline-all-search\",\"enhancements\":{}}},{\"version\":\"8.15.5\",\"type\":\"search\",\"gridData\":{\"x\":24,\"y\":0,\"w\":24,\"h\":20,\"i\":\"2\"},\"panelIndex\":\"2\",\"panelRefName\":\"panel_2\",\"embeddableConfig\":{\"savedObjectId\":\"log-pipeline-errors-search\",\"enhancements\":{}}}]",
     "optionsJSON": "{\"useMargins\":true,\"syncColors\":false,\"syncCursor\":true,\"syncTooltips\":false,\"hidePanelTitles\":false}",

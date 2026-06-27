@@ -15,7 +15,7 @@ _UUID_REQUEST_ID = re.compile(
 )
 _HEADER = "X-Request-ID"
 _ORIGIN_HEADER = "X-Request-Origin"
-_SERVICE = "exercises-python"
+_SERVICE = "webserver-benchmark-python"
 
 
 def is_acceptable_request_id(value: str) -> bool:

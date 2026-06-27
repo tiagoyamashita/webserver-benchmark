@@ -11,7 +11,7 @@ export type SessionData = {
   redisKey: string;
 };
 
-const LEGACY_STORAGE_KEY = "exercises_session_id";
+const LEGACY_STORAGE_KEY = "webserver_benchmark_session_id";
 
 function clearLegacyStoredSessionId(): void {
   try {

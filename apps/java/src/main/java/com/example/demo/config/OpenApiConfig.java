@@ -13,10 +13,10 @@ public class OpenApiConfig {
     return new OpenAPI()
         .info(
             new Info()
-                .title("Exercises Java API")
+                .title("WebServer BenchMark Java API")
                 .version("1.0")
                 .description(
                     "REST CRUD for users and items (`/api/users`, `/api/items`). "
-                        + "Shared Redis sessions at `/api/auth` (key `exercises:session:{sessionId}`)."));
+                        + "Shared Redis sessions at `/api/auth` (key `webserver-benchmark:session:{sessionId}`)."));
   }
 }

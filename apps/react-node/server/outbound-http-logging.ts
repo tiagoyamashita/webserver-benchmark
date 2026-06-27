@@ -8,7 +8,7 @@ import {
 import { outboundRequestHeaders, resolveOutboundRequestId } from "./request-id.js";
 
 const LOGGER = "http.client";
-const RELAY_ORIGIN = "exercises-react-node";
+const RELAY_ORIGIN = "webserver-benchmark-react-node";
 
 const HEADER_ALLOW = new Set([
   "x-request-id",

@@ -6,7 +6,7 @@ global:
   region: ""
   platform: ""
   cluster: ""
-  # Optional: all images use registry.example.com/exercises/... if set (no trailing slash).
+  # Optional: all images use registry.example.com/webserver-benchmark/... if set (no trailing slash).
   imageRegistry: ""
 
 nameOverride: ""
@@ -15,7 +15,7 @@ fullnameOverride: ""
 java:
   replicaCount: 1
   image:
-    repository: exercises-java
+    repository: webserver-benchmark-java
     tag: latest
     pullPolicy: IfNotPresent
   service:
@@ -29,7 +29,7 @@ java:
 python:
   replicaCount: 1
   image:
-    repository: exercises-python
+    repository: webserver-benchmark-python
     tag: latest
     pullPolicy: IfNotPresent
   service:
@@ -43,7 +43,7 @@ python:
 rust:
   replicaCount: 1
   image:
-    repository: exercises-rust
+    repository: webserver-benchmark-rust
     tag: latest
     pullPolicy: IfNotPresent
   service:

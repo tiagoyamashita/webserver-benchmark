@@ -33,4 +33,4 @@ try {
 Write-Host ""
 Write-Host "Check: curl.exe http://127.0.0.1:9882/metrics" -ForegroundColor Green
 Write-Host "Prometheus: curl.exe -X POST http://127.0.0.1:9090/-/reload" -ForegroundColor Green
-Write-Host "Grafana: Dashboards -> Exercises -> Exercises - Container memory (Podman)" -ForegroundColor Green
+Write-Host "Grafana: Dashboards -> WebServer BenchMark -> WebServer BenchMark — Container resources (Podman)" -ForegroundColor Green

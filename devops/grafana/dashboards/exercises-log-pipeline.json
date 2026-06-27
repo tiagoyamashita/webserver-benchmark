@@ -57,7 +57,7 @@
       },
       "targets": [
         {
-          "alias": "exercises-java",
+          "alias": "webserver-benchmark-java",
           "bucketAggs": [
             {
               "field": "@timestamp",
@@ -68,12 +68,12 @@
           ],
           "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
           "metrics": [{ "id": "1", "type": "count" }],
-          "query": "service:\"exercises-java\"",
+          "query": "service:\"webserver-benchmark-java\"",
           "refId": "A",
           "timeField": "@timestamp"
         },
         {
-          "alias": "exercises-python",
+          "alias": "webserver-benchmark-python",
           "bucketAggs": [
             {
               "field": "@timestamp",
@@ -84,12 +84,12 @@
           ],
           "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
           "metrics": [{ "id": "1", "type": "count" }],
-          "query": "service:\"exercises-python\"",
+          "query": "service:\"webserver-benchmark-python\"",
           "refId": "B",
           "timeField": "@timestamp"
         },
         {
-          "alias": "exercises-rust",
+          "alias": "webserver-benchmark-rust",
           "bucketAggs": [
             {
               "field": "@timestamp",
@@ -100,12 +100,12 @@
           ],
           "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
           "metrics": [{ "id": "1", "type": "count" }],
-          "query": "service:\"exercises-rust\"",
+          "query": "service:\"webserver-benchmark-rust\"",
           "refId": "C",
           "timeField": "@timestamp"
         },
         {
-          "alias": "exercises-react-node",
+          "alias": "webserver-benchmark-react-node",
           "bucketAggs": [
             {
               "field": "@timestamp",
@@ -116,12 +116,12 @@
           ],
           "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
           "metrics": [{ "id": "1", "type": "count" }],
-          "query": "service:\"exercises-react-node\"",
+          "query": "service:\"webserver-benchmark-react-node\"",
           "refId": "D",
           "timeField": "@timestamp"
         },
         {
-          "alias": "exercises-zig",
+          "alias": "webserver-benchmark-zig",
           "bucketAggs": [
             {
               "field": "@timestamp",
@@ -132,12 +132,12 @@
           ],
           "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
           "metrics": [{ "id": "1", "type": "count" }],
-          "query": "service:\"exercises-zig\"",
+          "query": "service:\"webserver-benchmark-zig\"",
           "refId": "G",
           "timeField": "@timestamp"
         },
         {
-          "alias": "exercises-postgres",
+          "alias": "webserver-benchmark-postgres",
           "bucketAggs": [
             {
               "field": "@timestamp",
@@ -148,12 +148,12 @@
           ],
           "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
           "metrics": [{ "id": "1", "type": "count" }],
-          "query": "service:\"exercises-postgres\"",
+          "query": "service:\"webserver-benchmark-postgres\"",
           "refId": "E",
           "timeField": "@timestamp"
         },
         {
-          "alias": "exercises-kafka",
+          "alias": "webserver-benchmark-kafka",
           "bucketAggs": [
             {
               "field": "@timestamp",
@@ -164,7 +164,7 @@
           ],
           "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
           "metrics": [{ "id": "1", "type": "count" }],
-          "query": "service:\"exercises-kafka\"",
+          "query": "service:\"webserver-benchmark-kafka\"",
           "refId": "F",
           "timeField": "@timestamp"
         }
@@ -319,13 +319,13 @@
   ],
   "refresh": "30s",
   "schemaVersion": 39,
-  "tags": ["exercises", "filebeat", "logstash", "elasticsearch", "kibana"],
+  "tags": ["webserver-benchmark", "filebeat", "logstash", "elasticsearch", "kibana"],
   "templating": { "list": [] },
   "time": { "from": "now-6h", "to": "now" },
   "timepicker": {},
   "timezone": "",
-  "title": "Exercises — Log pipeline",
-  "uid": "exercises-log-pipeline",
+  "title": "WebServer BenchMark — Log pipeline",
+  "uid": "webserver-benchmark-log-pipeline",
   "version": 1,
   "weekStart": ""
 }

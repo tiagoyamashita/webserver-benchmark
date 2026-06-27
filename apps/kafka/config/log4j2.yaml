@@ -1,4 +1,4 @@
-# Broker logs for Filebeat → Logstash → Elasticsearch (service: exercises-kafka).
+# Broker logs for Filebeat → Logstash → Elasticsearch (service: webserver-benchmark-kafka).
 # Mounted over /opt/kafka/config/log4j2.yaml in Compose.
 Configuration:
   status: WARN
@@ -12,7 +12,7 @@ Configuration:
         pattern: "%d{yyyy-MM-dd HH:mm:ss} %p %m (%c)%n"
 
     RollingFile:
-      name: EXERCISES_JSON
+      name: WEBSERVER_BENCHMARK_JSON
       fileName: /var/log/kafka/kafka.json.log
       filePattern: /var/log/kafka/kafka-%d{yyyy-MM-dd}.json.log
       JsonLayout:
@@ -36,4 +36,4 @@ Configuration:
       level: info
       AppenderRef:
         - ref: STDOUT
-        - ref: EXERCISES_JSON
+        - ref: WEBSERVER_BENCHMARK_JSON

@@ -3,7 +3,7 @@ import type { NextFunction, Request, Response } from "express";
 
 const HEADER = "x-request-id";
 const ORIGIN_HEADER = "x-request-origin";
-const OUTBOUND_ORIGIN = "exercises-react-node";
+const OUTBOUND_ORIGIN = "webserver-benchmark-react-node";
 const SAFE = /^[a-zA-Z0-9._-]{8,64}$/;
 
 declare module "express-serve-static-core" {

@@ -10,7 +10,7 @@ public final class RequestIdRelay {
   public static final String REQUEST_ID_HEADER = "X-Request-ID";
   public static final String SESSION_ID_HEADER = "X-Session-ID";
   public static final String ORIGIN_HEADER = "X-Request-Origin";
-  public static final String SERVICE = "exercises-java";
+  public static final String SERVICE = "webserver-benchmark-java";
   private static final Pattern SAFE = Pattern.compile("^[a-zA-Z0-9._-]{8,64}$");
 
   private RequestIdRelay() {}

@@ -94,7 +94,7 @@ def main() -> None:
     write_dashboard(
         requests_dir / "dashboard.json",
         dashboard_id="exercises-requests-logs-kibana",
-        title="Exercises — HTTP & Postgres logs",
+        title="WebServer BenchMark — HTTP & Postgres logs",
         description=(
             "All logs in the logstash-* data view (last 24h by default). "
             "session_id_resolved fills session from headers when needed; "
@@ -123,7 +123,7 @@ def main() -> None:
     write_dashboard(
         ROOT / "dashboard.json",
         dashboard_id="exercises-log-pipeline-kibana",
-        title="Exercises — Log pipeline (Kibana)",
+        title="WebServer BenchMark — Log pipeline (Kibana)",
         description=(
             "Ingest health for Filebeat → Logstash → Elasticsearch (logstash-* data view)."
         ),
@@ -151,7 +151,7 @@ def main() -> None:
     write_dashboard(
         kafka_dir / "dashboard.json",
         dashboard_id="exercises-kafka-logs-kibana",
-        title="Exercises — Kafka logs",
+        title="WebServer BenchMark — Kafka logs",
         description=(
             "Broker logs (exercises-kafka) plus Java/Python/Rust publish and consume lines. "
             "Use the bottom panel and filter request_id to stack-trace one dashboard Kafka action."

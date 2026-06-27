@@ -20,7 +20,7 @@ export async function findUserAuthByEmail(
   const pg = await import("pg");
   const client = new pg.default.Client({
     ...config,
-    application_name: requestId ? `exercises-react-node:${requestId}` : "exercises-react-node",
+    application_name: requestId ? `webserver-benchmark-react-node:${requestId}` : "webserver-benchmark-react-node",
     connectionTimeoutMillis: 15_000,
   });
   try {
@@ -59,7 +59,7 @@ export async function createUser(
   const pg = await import("pg");
   const client = new pg.default.Client({
     ...config,
-    application_name: requestId ? `exercises-react-node:${requestId}` : "exercises-react-node",
+    application_name: requestId ? `webserver-benchmark-react-node:${requestId}` : "webserver-benchmark-react-node",
     connectionTimeoutMillis: 15_000,
   });
   const passwordHash = await bcrypt.hash(password, 10);
@@ -94,7 +94,7 @@ export async function findUserByEmail(
   const pg = await import("pg");
   const client = new pg.default.Client({
     ...config,
-    application_name: requestId ? `exercises-react-node:${requestId}` : "exercises-react-node",
+    application_name: requestId ? `webserver-benchmark-react-node:${requestId}` : "webserver-benchmark-react-node",
     connectionTimeoutMillis: 15_000,
   });
   try {
@@ -118,7 +118,7 @@ export async function findUserById(userId: number, requestId?: string): Promise<
   const pg = await import("pg");
   const client = new pg.default.Client({
     ...config,
-    application_name: requestId ? `exercises-react-node:${requestId}` : "exercises-react-node",
+    application_name: requestId ? `webserver-benchmark-react-node:${requestId}` : "webserver-benchmark-react-node",
     connectionTimeoutMillis: 15_000,
   });
   try {

@@ -17,7 +17,7 @@ pub struct ApiError {
     tag = "Items",
     params(
         ("X-Request-ID" = Option<String>, Header, description = "Correlation id for logs and Postgres trace; generated if omitted; echoed in response"),
-        ("X-Request-Origin" = Option<String>, Header, description = "Upstream service when relayed (e.g. exercises-java); logged as request_origin for tracing")
+        ("X-Request-Origin" = Option<String>, Header, description = "Upstream service when relayed (e.g. webserver-benchmark-java); logged as request_origin for tracing")
     ),
     responses(
         (status = 200, description = "All items", body = [ItemResponse]),
@@ -36,7 +36,7 @@ fn items_list() {}
     request_body = CreateItemRequest,
     params(
         ("X-Request-ID" = Option<String>, Header, description = "Correlation id for logs and Postgres trace; generated if omitted; echoed in response"),
-        ("X-Request-Origin" = Option<String>, Header, description = "Upstream service when relayed (e.g. exercises-java); logged as request_origin for tracing")
+        ("X-Request-Origin" = Option<String>, Header, description = "Upstream service when relayed (e.g. webserver-benchmark-java); logged as request_origin for tracing")
     ),
     responses(
         (status = 201, description = "Created", body = CreateItemResponse),
@@ -55,7 +55,7 @@ fn items_create() {}
         (name = "Items", description = "Shared PostgreSQL `items` table (Flyway schema from Java)")
     ),
     info(
-        title = "Exercises Rust API",
+        title = "WebServer BenchMark Rust API",
         version = "1.0",
         description = "REST API under `/api/items`. Dashboard, observability, and stack-ping routes are excluded."
     )

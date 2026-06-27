@@ -27,7 +27,7 @@ public class ReactNodeItemRelayService {
   private static final String SOURCE =
       "src/main/java/com/example/demo/web/ReactNodeItemRelayService.java";
   private static final Logger log = LoggerFactory.getLogger(ReactNodeItemRelayService.class);
-  private static final String RELAY_TARGET = "exercises-react-node";
+  private static final String RELAY_TARGET = "webserver-benchmark-react-node";
 
   private final RestClient restClient;
   private final StackPingProperties properties;

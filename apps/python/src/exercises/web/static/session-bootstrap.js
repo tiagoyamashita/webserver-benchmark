@@ -1,9 +1,9 @@
 /**
  * Ensures a shared Redis session via HttpOnly cookie only (no localStorage).
- * Call exercisesSession.ensureSession() once when a dashboard page loads.
+ * Call webserverBenchmarkSession.ensureSession() once when a dashboard page loads.
  */
 (function (global) {
-  var LEGACY_STORAGE_KEY = "exercises_session_id";
+  var LEGACY_STORAGE_KEY = "webserver_benchmark_session_id";
 
   function clearLegacyStoredSessionId() {
     try {
@@ -61,7 +61,7 @@
 
   clearLegacyStoredSessionId();
 
-  global.exercisesSession = {
+  global.webserverBenchmarkSession = {
     withSessionHeaders: withSessionHeaders,
     ensureSession: ensureSession
   };

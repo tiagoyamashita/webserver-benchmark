@@ -49,8 +49,8 @@ pub async fn stamp_application_name(
     request_id: Option<&str>,
 ) -> Result<(), sqlx::Error> {
     let app_name = match request_id {
-        Some(id) => crate::request_id::postgres_application_name("exercises-rust", id),
-        None => "exercises-rust".to_string(),
+        Some(id) => crate::request_id::postgres_application_name("webserver-benchmark-rust", id),
+        None => "webserver-benchmark-rust".to_string(),
     };
     sqlx::query("SELECT set_config('application_name', $1, false)")
         .bind(app_name)

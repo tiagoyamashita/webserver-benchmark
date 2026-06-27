@@ -552,9 +552,9 @@ export default function App() {
             <h2 className="form-heading">Shared Redis session</h2>
             <p className="form-hint">
               A guest session is created automatically when this page loads. Login replaces it with a user-bound session in
-              Redis at <code>exercises:session:{"{sessionId}"}</code>. Other apps authenticate with{" "}
+              Redis at <code>webserver-benchmark:session:{"{sessionId}"}</code>. Other apps authenticate with{" "}
               <code>Authorization: Bearer …</code>, <code>X-Session-ID</code>, or the{" "}
-              <code>exercises_session</code> cookie.
+              <code>webserver_benchmark_session</code> cookie.
             </p>
             <p className="form-hint">{sessionStatus}</p>
             <form

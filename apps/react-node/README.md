@@ -27,7 +27,7 @@ Open **http://127.0.0.1:5174/**.
 
 Set **`PROBE_*_URL`** env vars (see `.env.example`). Root **`docker-compose.yml`** sets these to Compose service names for the **`react-node`** container.
 
-**Postgres items (dashboard + API):** **`GET /api/items`** and **`POST /api/items`** persist directly to the shared `items` table (same env as probes: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`). When Redis session auth is configured, these routes require an active session (browser cookie / `X-Session-ID`); stack relays may call with `X-Request-Origin: exercises-java` (etc.) without a session.
+**Postgres items (dashboard + API):** **`GET /api/items`** and **`POST /api/items`** persist directly to the shared `items` table (same env as probes: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`). When Redis session auth is configured, these routes require an active session (browser cookie / `X-Session-ID`); stack relays may call with `X-Request-Origin: webserver-benchmark-java` (etc.) without a session.
 
 **Java items proxy (legacy):** **`GET /java/api/items`** and **`POST /java/api/items`** still proxy to Java **`/api/items`**. Override upstream Java with **`ITEMS_BASE_URL`** if needed.
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Expose NVIDIA GPU usage per Podman container (exercises-* names) for Prometheus."""
+"""Expose NVIDIA GPU usage per Podman container (webserver-benchmark-* names) for Prometheus."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ from prometheus_client import CONTENT_TYPE_LATEST, REGISTRY, generate_latest
 from prometheus_client.core import GaugeMetricFamily
 
 LIBPOD_ID_RE = re.compile(r"libpod[-_]([a-f0-9]{64})", re.IGNORECASE)
-EXERCISES_NAME_RE = re.compile(r"exercises", re.IGNORECASE)
+WEBSERVER_BENCHMARK_NAME_RE = re.compile(r"webserver-benchmark", re.IGNORECASE)
 
 
 class ExercisesGpuCollector:
@@ -31,7 +31,7 @@ class ExercisesGpuCollector:
 
     def collect(self):
         nvidia_ok = GaugeMetricFamily(
-            "exercises_gpu_exporter_nvidia_smi_available",
+            "webserver_benchmark_gpu_exporter_nvidia_smi_available",
             "1 when nvidia-smi is available on this host",
         )
         if shutil.which("nvidia-smi") is None:
@@ -43,17 +43,17 @@ class ExercisesGpuCollector:
 
         self._container_names = self._load_container_names()
         mem = GaugeMetricFamily(
-            "exercises_container_gpu_memory_bytes",
+            "webserver_benchmark_container_gpu_memory_bytes",
             "GPU framebuffer memory attributed to a Podman container process",
             labels=["name", "gpu"],
         )
         util = GaugeMetricFamily(
-            "exercises_container_gpu_utilization_percent",
+            "webserver_benchmark_container_gpu_utilization_percent",
             "GPU SM utilization percent attributed to a Podman container process",
             labels=["name", "gpu"],
         )
         procs = GaugeMetricFamily(
-            "exercises_container_gpu_processes",
+            "webserver_benchmark_container_gpu_processes",
             "GPU compute processes counted for the container on this GPU",
             labels=["name", "gpu"],
         )
@@ -61,7 +61,7 @@ class ExercisesGpuCollector:
         usage: dict[tuple[str, str], dict[str, float]] = {}
         for gpu, pid, memory_mib in self._gpu_process_memory():
             name = self._container_name_for_pid(pid)
-            if not name or not EXERCISES_NAME_RE.search(name):
+            if not name or not WEBSERVER_BENCHMARK_NAME_RE.search(name):
                 continue
             key = (name, gpu)
             bucket = usage.setdefault(key, {"memory_mib": 0.0, "util": 0.0, "count": 0})
@@ -70,7 +70,7 @@ class ExercisesGpuCollector:
 
         for gpu, pid, sm_util in self._gpu_process_utilization():
             name = self._container_name_for_pid(pid)
-            if not name or not EXERCISES_NAME_RE.search(name):
+            if not name or not WEBSERVER_BENCHMARK_NAME_RE.search(name):
                 continue
             key = (name, gpu)
             bucket = usage.setdefault(key, {"memory_mib": 0.0, "util": 0.0, "count": 0})
@@ -276,7 +276,7 @@ class MetricsHandler(BaseHTTPRequestHandler):
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Exercises GPU exporter for Prometheus")
+    parser = argparse.ArgumentParser(description="WebServer BenchMark GPU exporter for Prometheus")
     parser.add_argument("--listen", default="0.0.0.0:9066", help="host:port to bind")
     parser.add_argument(
         "--podman-socket",
@@ -304,7 +304,7 @@ def main() -> int:
 
     REGISTRY.register(ExercisesGpuCollector(socket_path, Path(args.proc_root)))
     server = HTTPServer((host, port), MetricsHandler)
-    print(f"exercises-gpu-exporter listening on http://{host}:{port}/metrics", flush=True)
+    print(f"webserver-benchmark-gpu-exporter listening on http://{host}:{port}/metrics", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

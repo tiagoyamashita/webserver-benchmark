@@ -12,7 +12,7 @@ pub fn run(app: *App) !void {
     const address = try net.Address.parseIp4(app.config.host, app.config.port);
     var server = try address.listen(.{ .reuse_address = true });
     defer server.deinit();
-    std.log.info("exercises-zig listening on {s}:{d}", .{ app.config.host, app.config.port });
+    std.log.info("webserver-benchmark-zig listening on {s}:{d}", .{ app.config.host, app.config.port });
 
     while (true) {
         const connection = try server.accept();

@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(
     name = "Auth",
     description =
-        "Shared Redis sessions for cross-app authentication (key exercises:session:{sessionId})")
+        "Shared Redis sessions for cross-app authentication (key webserver-benchmark:session:{sessionId})")
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {

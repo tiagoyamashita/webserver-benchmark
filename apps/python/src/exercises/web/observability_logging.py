@@ -38,7 +38,7 @@ class _JsonLineFormatter(logging.Formatter):
 
 
 def observability_enabled() -> bool:
-    return os.environ.get("EXERCISES_OBSERVABILITY", "").strip().lower() in (
+    return os.environ.get("WEBSERVER_BENCHMARK_OBSERVABILITY", "").strip().lower() in (
         "1",
         "true",
         "yes",
@@ -63,7 +63,7 @@ def configure_observability_logging() -> None:
 
     handler = WatchedFileHandler(log_file, encoding="utf-8")
     handler.addFilter(CorrelationFilter())
-    handler.setFormatter(_JsonLineFormatter(service="exercises-python"))
+    handler.setFormatter(_JsonLineFormatter(service="webserver-benchmark-python"))
     handler.setLevel(logging.INFO)
     root.addHandler(handler)
     if root.level == logging.WARNING:

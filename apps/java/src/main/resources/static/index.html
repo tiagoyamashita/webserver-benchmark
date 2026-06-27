@@ -419,8 +419,8 @@
           <h2 class="form-heading">Shared Redis session</h2>
           <p class="form-hint">
             A guest session is created automatically when this page loads. Login replaces it with a user-bound session in
-            Redis at <code>exercises:session:{sessionId}</code>. Other apps authenticate with
-            <code>Authorization: Bearer …</code>, <code>X-Session-ID</code>, or the <code>exercises_session</code> cookie.
+            Redis at <code>webserver-benchmark:session:{sessionId}</code>. Other apps authenticate with
+            <code>Authorization: Bearer …</code>, <code>X-Session-ID</code>, or the <code>webserver_benchmark_session</code> cookie.
           </p>
           <p class="form-hint" id="session-status">Not logged in.</p>
           <form id="session-login-form">
@@ -531,7 +531,7 @@
           <h2 class="form-heading">Item relay</h2>
           <p class="form-hint">
             Insert into the shared PostgreSQL <code>items</code> table via another stack service.
-            Java forwards <code>X-Request-ID</code> and <code>X-Request-Origin: exercises-java</code> on each relay.
+            Java forwards <code>X-Request-ID</code> and <code>X-Request-Origin: webserver-benchmark-java</code> on each relay.
           </p>
           <h3 class="form-heading" style="font-size: 0.95rem; margin-top: 1rem;">Rust</h3>
           <p class="form-hint">Calls Rust <code>POST /api/items</code> with JSON <code>{"name": "…"}</code>.</p>
@@ -563,7 +563,7 @@
           <h2 class="form-heading">Stack relays</h2>
           <p class="form-hint">
             Multi-hop relays across stack services. Java forwards <code>X-Request-ID</code> and
-            <code>X-Request-Origin: exercises-java</code>; each hop logs with the same request id.
+            <code>X-Request-Origin: webserver-benchmark-java</code>; each hop logs with the same request id.
           </p>
           <h3 class="form-heading" style="font-size: 0.95rem; margin-top: 1.25rem;">Java → Python → React Node</h3>
           <p class="form-hint">
@@ -582,7 +582,7 @@
           <h2 class="form-heading">Kafka create user</h2>
           <p class="form-hint">
             Publishes a <code>create-user</code> event to Kafka. Java and Rust share consumer group
-            <code>exercises-create-user</code> — only one app processes each message and inserts into
+            <code>webserver-benchmark-create-user</code> — only one app processes each message and inserts into
             PostgreSQL <code>users</code>. Use <strong>List users</strong> after a few seconds to confirm.
           </p>
           <div class="field-row">
@@ -601,7 +601,7 @@
           <h2 class="form-heading">Kafka create item (Python)</h2>
           <p class="form-hint">
             Publishes a <code>create-item</code> event to Kafka. Only the Python consumer
-            (<code>exercises-create-item-python</code>) processes each message and inserts into
+            (<code>webserver-benchmark-create-item-python</code>) processes each message and inserts into
             PostgreSQL <code>items</code>. The dashboard <code>request_id</code> is stored in the
             message JSON and <code>X-Request-ID</code> header for log correlation. Use
             <strong>List items</strong> after a few seconds to confirm.
@@ -669,7 +669,7 @@
     <script src="/js/auth-gate.js"></script>
     <script src="/js/reachability-parent.js"></script>
     <script>
-      window.exercisesSession.ensureSession().then(function (session) {
+      window.webserverBenchmarkSession.ensureSession().then(function (session) {
       (function () {
         var navButtons = document.querySelectorAll(".sidebar-btn[data-view]");
         var viewPanels = document.querySelectorAll(".view-panel");
@@ -689,7 +689,7 @@
         }
 
         function updateHeaderAuthButton(data) {
-          window.exercisesHeaderAuth.updateHeaderAuthPanel(data);
+          window.webserverBenchmarkHeaderAuth.updateHeaderAuthPanel(data);
         }
 
         function performGateLogin(email, password) {
@@ -711,7 +711,7 @@
             })
             .then(function (r) {
               if (!r.ok) {
-                window.exercisesAuthGate.setGateError(
+                window.webserverBenchmarkAuthGate.setGateError(
                   "Sign in failed" + (r.data && r.data.error ? ": " + r.data.error : " (HTTP " + r.status + ")")
                 );
                 return;
@@ -719,7 +719,7 @@
               renderSessionStatus(r.data);
             })
             .catch(function (err) {
-              window.exercisesAuthGate.setGateError(String(err.message || err));
+              window.webserverBenchmarkAuthGate.setGateError(String(err.message || err));
             });
         }
 
@@ -741,18 +741,18 @@
             .then(function (r) {
               if (!r.ok) {
                 var msg = r.data && r.data.message ? r.data.message : (r.data && r.data.error ? r.data.error : String(r.data || r.status));
-                window.exercisesAuthGate.setGateError("Create account failed: " + msg);
+                window.webserverBenchmarkAuthGate.setGateError("Create account failed: " + msg);
                 return;
               }
               return performGateLogin(email, password);
             })
             .catch(function (err) {
-              window.exercisesAuthGate.setGateError(String(err.message || err));
+              window.webserverBenchmarkAuthGate.setGateError(String(err.message || err));
             });
         }
 
-        window.exercisesHeaderAuth.wireLogoutButton(performLogout);
-        window.exercisesAuthGate.wireAuthGate({
+        window.webserverBenchmarkHeaderAuth.wireLogoutButton(performLogout);
+        window.webserverBenchmarkAuthGate.wireAuthGate({
           onLogin: function (email, password) { performGateLogin(email, password); },
           onRegister: function (name, email, password) { performGateRegister(name, email, password); }
         });
@@ -776,13 +776,13 @@
                 renderSessionStatus(r.data);
                 return r.data;
               }
-              return window.exercisesSession.ensureSession().then(function (s) {
+              return window.webserverBenchmarkSession.ensureSession().then(function (s) {
                 renderSessionStatus(s);
                 return s;
               });
             })
             .catch(function () {
-              return window.exercisesSession.ensureSession().then(function (s) {
+              return window.webserverBenchmarkSession.ensureSession().then(function (s) {
                 renderSessionStatus(s);
                 return s;
               });
@@ -795,7 +795,7 @@
           if (pageRequestIdEl) {
             pageRequestIdEl.textContent = requestId;
           }
-          var headers = window.exercisesSession.withSessionHeaders({
+          var headers = window.webserverBenchmarkSession.withSessionHeaders({
             "X-Request-ID": requestId,
             "X-Dashboard-Page": currentView
           });
@@ -827,7 +827,7 @@
             if (pageSessionIdEl) pageSessionIdEl.textContent = "—";
             if (redisKeyEl) redisKeyEl.textContent = "—";
             updateHeaderAuthButton(null);
-            window.exercisesAuthGate.applyAuthGate(null);
+            window.webserverBenchmarkAuthGate.applyAuthGate(null);
             return;
           }
           var who = sessionWhoLabel(data);
@@ -838,7 +838,7 @@
           if (pageSessionIdEl) pageSessionIdEl.textContent = data.sessionId;
           if (redisKeyEl) redisKeyEl.textContent = data.redisKey || "—";
           updateHeaderAuthButton(data);
-          window.exercisesAuthGate.applyAuthGate(data);
+          window.webserverBenchmarkAuthGate.applyAuthGate(data);
         }
 
         function performLogout() {
@@ -860,7 +860,7 @@
                 if (!res.ok) {
                   throw new Error("Logout failed (HTTP " + res.status + ")");
                 }
-                return window.exercisesSession.ensureSession();
+                return window.webserverBenchmarkSession.ensureSession();
               });
             })
             .then(function (session) {
@@ -897,7 +897,7 @@
             .then(function (r) {
               if (!r.ok) {
                 if (resultEl) resultEl.textContent = "HTTP " + r.status + "\n" + String(r.data);
-                return window.exercisesSession.ensureSession().then(function (s) {
+                return window.webserverBenchmarkSession.ensureSession().then(function (s) {
                   renderSessionStatus(s);
                   return s;
                 });
@@ -1372,7 +1372,7 @@
                 if (d.topic) lines.push("topic=" + d.topic);
                 if (d.error) lines.push("Error: " + d.error);
                 if (r.httpOk && d.ok === true) {
-                  lines.push("Shared consumer group exercises-create-user — one app will insert the user.");
+                  lines.push("Shared consumer group webserver-benchmark-create-user — one app will insert the user.");
                   kafkaUserName.value = "";
                   kafkaUserEmail.value = "";
                 }
@@ -1419,7 +1419,7 @@
                 if (d.error) lines.push("Error: " + d.error);
                 if (r.httpOk && d.ok === true) {
                   lines.push(
-                    "Python consumer group exercises-create-item-python will insert the item."
+                    "Python consumer group webserver-benchmark-create-item-python will insert the item."
                   );
                   kafkaItemName.value = "";
                 }
@@ -1572,9 +1572,9 @@
       })();
       }).catch(function (err) {
         console.error("[dashboard] session bootstrap failed", err);
-        if (window.exercisesAuthGate) {
-          window.exercisesAuthGate.applyAuthGate(null);
-          window.exercisesAuthGate.setGateError("Session unavailable (is Redis up?)");
+        if (window.webserverBenchmarkAuthGate) {
+          window.webserverBenchmarkAuthGate.applyAuthGate(null);
+          window.webserverBenchmarkAuthGate.setGateError("Session unavailable (is Redis up?)");
         }
         var pageSessionIdEl = document.getElementById("page-session-id");
         if (pageSessionIdEl) pageSessionIdEl.textContent = "unavailable";

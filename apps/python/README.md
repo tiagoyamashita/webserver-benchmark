@@ -27,15 +27,15 @@ From `python/` with the venv activated:
 exercises-web
 ```
 
-Open `http://127.0.0.1:5000/` for **stack connectivity** (GET probes to Java, Rust, Prometheus, Grafana, ELK, React Node). The **pytest dashboard** is at `http://127.0.0.1:5000/tests` — it loads `reports/junit.xml`, lists pytest results, and **Run all tests** / **Re-run** invoke pytest on the server (for local development). **`GET /metrics`** exposes **Prometheus** text format (`prometheus-client`); the root **`docker-compose.yml`** **`prometheus`** service scrapes it, and **Grafana** is provisioned against Prometheus. Optional: `EXERCISES_PROJECT_ROOT` points at another checkout; default is the directory that contains `pyproject.toml`.
+Open `http://127.0.0.1:5000/` for **stack connectivity** (GET probes to Java, Rust, Prometheus, Grafana, ELK, React Node). The **pytest dashboard** is at `http://127.0.0.1:5000/tests` — it loads `reports/junit.xml`, lists pytest results, and **Run all tests** / **Re-run** invoke pytest on the server (for local development). **`GET /metrics`** exposes **Prometheus** text format (`prometheus-client`); the root **`docker-compose.yml`** **`prometheus`** service scrapes it, and **Grafana** is provisioned against Prometheus. Optional: `WEBSERVER_BENCHMARK_PROJECT_ROOT` points at another checkout; default is the directory that contains `pyproject.toml`.
 
 **Postgres items API:** with `DB_HOST` set (root Compose), Flask exposes **`/api/items`** CRUD against the shared `items` table (Flyway schema + seed from Java). Without `DB_*` env vars the routes return **503**.
 
-**Outbound relays:** **`GET /api/relay`** lists registered targets. **`GET|POST /api/relay/<id>`** forwards to another stack service (e.g. **`/api/relay/react`** → React Node **`/api/items`** direct Postgres). Add targets in `src/exercises/web/relay_registry.py`. Python forwards **`X-Request-ID`** and **`X-Request-Origin: exercises-python`**; outbound lines use logger **`http.client`**.
+**Outbound relays:** **`GET /api/relay`** lists registered targets. **`GET|POST /api/relay/<id>`** forwards to another stack service (e.g. **`/api/relay/react`** → React Node **`/api/items`** direct Postgres). Add targets in `src/exercises/web/relay_registry.py`. Python forwards **`X-Request-ID`** and **`X-Request-Origin: webserver-benchmark-python`**; outbound lines use logger **`http.client`**.
 
 ## Observability and logging
 
-When **`EXERCISES_OBSERVABILITY=1`** (set in root Compose), the app appends JSON lines to **`${LOG_PATH}/demo-app.json.log`** (default `logs/demo-app.json.log`) for Filebeat → Logstash → Elasticsearch. Console logging is unchanged.
+When **`WEBSERVER_BENCHMARK_OBSERVABILITY=1`** (set in root Compose), the app appends JSON lines to **`${LOG_PATH}/demo-app.json.log`** (default `logs/demo-app.json.log`) for Filebeat → Logstash → Elasticsearch. Console logging is unchanged.
 
 ### Correlation: `request_id` and `session_id`
 
@@ -44,7 +44,7 @@ Every log line inside an HTTP request should carry the same correlation fields a
 | Field | Source |
 |-------|--------|
 | **`request_id`** | `X-Request-ID` on the inbound request, or a new UUID (`app.py` `before_request` → `g.request_id`) |
-| **`session_id`** | Shared Redis session from `Authorization: Bearer …`, `X-Session-ID`, or the `exercises_session` cookie (`g.shared_session`) |
+| **`session_id`** | Shared Redis session from `Authorization: Bearer …`, `X-Session-ID`, or the `webserver_benchmark_session` cookie (`g.shared_session`) |
 
 Central pieces (mirror Java `ObservabilityJsonProvider`):
 
@@ -64,7 +64,7 @@ Postgres does not receive `X-Request-ID` as a header. Python stamps the active r
 
 | App | Mechanism |
 |-----|-----------|
-| **Java** | `RequestIdDataSource` → `SET application_name TO 'exercises-java;req=<uuid>'` |
+| **Java** | `RequestIdDataSource` → `SET application_name TO 'webserver-benchmark-java;req=<uuid>'` |
 | **Rust** | `stamp_application_name` → `set_config('application_name', …)` |
 | **Python** | `db.connection()` → `psycopg.connect(..., application_name=…)` plus `set_config` |
 

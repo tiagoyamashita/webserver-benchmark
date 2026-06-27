@@ -110,7 +110,7 @@
     <main class="login-card">
       <h1>Sign in</h1>
       <p class="lead">
-        Uses Postgres credentials and stores your session in Redis (<code>exercises_session</code> HttpOnly cookie).
+        Uses Postgres credentials and stores your session in Redis (<code>webserver_benchmark_session</code> HttpOnly cookie).
       </p>
       <form id="login-form">
         <div class="field-row">
@@ -153,7 +153,7 @@
           resultEl.className = "result-box" + (ok ? " ok" : " err");
         }
 
-        window.exercisesSession.ensureSession().catch(function () {
+        window.webserverBenchmarkSession.ensureSession().catch(function () {
           showResult("Could not start guest session. Is Redis up?", false);
           submitBtn.disabled = true;
         });

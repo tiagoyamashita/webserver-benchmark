@@ -1,5 +1,5 @@
 //! Kafka admin (create `create-user` topic on startup), producer (dashboard publish), and consumer.
-//! Java and Rust share consumer group `exercises-create-user` (one app processes each message).
+//! Java and Rust share consumer group `webserver-benchmark-create-user` (one app processes each message).
 
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Json, Response};
@@ -19,7 +19,7 @@ use std::time::Duration;
 
 const SOURCE: &str = "src/kafka.rs";
 pub const CREATE_USER_TOPIC: &str = "create-user";
-pub const CREATE_USER_CONSUMER_GROUP: &str = "exercises-create-user";
+pub const CREATE_USER_CONSUMER_GROUP: &str = "webserver-benchmark-create-user";
 
 /// Mirrors Java `app.kafka.*` / `spring.kafka.admin.fail-fast`.
 #[derive(Clone, Debug)]

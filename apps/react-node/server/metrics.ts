@@ -1,10 +1,10 @@
-/** Prometheus scrape endpoint — same series as Python / Rust (`exercises_http_requests_total`). */
+/** Prometheus scrape endpoint — same series as Python / Rust (`webserver_benchmark_http_requests_total`). */
 
 import client from "prom-client";
 import type { NextFunction, Request, Response } from "express";
 
 export const httpRequestsTotal = new client.Counter({
-  name: "exercises_http_requests_total",
+  name: "webserver_benchmark_http_requests_total",
   help: "HTTP requests handled by the exercises Express app",
   labelNames: ["method", "endpoint"],
 });

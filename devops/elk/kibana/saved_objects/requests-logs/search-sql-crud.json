@@ -1,7 +1,7 @@
 {
   "attributes": {
     "title": "PostgreSQL — SQL CRUD by origin",
-    "description": "Stamped Postgres statements (application_name exercises-*;req=...). Click correlation.request_id to open HTTP handler logs.",
+    "description": "Stamped Postgres statements (application_name webserver-benchmark-*;req=...). Click correlation.request_id to open HTTP handler logs.",
     "columns": [
       "@timestamp",
       "correlation.origin",
@@ -12,7 +12,7 @@
     ],
     "sort": [["@timestamp", "desc"]],
     "kibanaSavedObjectMeta": {
-      "searchSourceJSON": "{\"query\":{\"query\":\"service: exercises-postgres and (message: *execute* or message: *statement: SELECT* or message: *statement: INSERT* or message: *statement: UPDATE* or message: *statement: DELETE*) and not message: duration* and not message: *SELECT 1* and not message: *connection* and not message: *disconnection* and not message: *set_config*\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
+      "searchSourceJSON": "{\"query\":{\"query\":\"service: webserver-benchmark-postgres and (message: *execute* or message: *statement: SELECT* or message: *statement: INSERT* or message: *statement: UPDATE* or message: *statement: DELETE*) and not message: duration* and not message: *SELECT 1* and not message: *connection* and not message: *disconnection* and not message: *set_config*\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
     }
   },
   "references": [

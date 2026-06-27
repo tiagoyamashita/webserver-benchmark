@@ -17,7 +17,7 @@
     ],
     "sort": [["@timestamp", "asc"]],
     "kibanaSavedObjectMeta": {
-      "searchSourceJSON": "{\"query\":{\"query\":\"(service: (exercises-java or exercises-python or exercises-rust)) and (kafka_event: * or message: (*Kafka* or *create-user* or *create-item* or *kafka message* or *create_user_consumer* or *create_item_consumer*) or controller: (*Kafka* or create_user_consumer or create_item_consumer or CreateUserEvent* or CreateItemEvent*))\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
+      "searchSourceJSON": "{\"query\":{\"query\":\"(service: (webserver-benchmark-java or webserver-benchmark-python or webserver-benchmark-rust)) and (kafka_event: * or message: (*Kafka* or *create-user* or *create-item* or *kafka message* or *create_user_consumer* or *create_item_consumer*) or controller: (*Kafka* or create_user_consumer or create_item_consumer or CreateUserEvent* or CreateItemEvent*))\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
     }
   },
   "references": [

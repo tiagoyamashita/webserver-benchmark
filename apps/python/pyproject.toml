@@ -1,7 +1,7 @@
 [project]
 name = "exercises"
 version = "0.1.0"
-description = "Python exercises"
+description = "WebServer BenchMark — Python dashboard"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -27,7 +27,7 @@ where = ["src"]
 "exercises.web" = ["templates/*.html", "static/*"]
 
 [project.scripts]
-exercises-web = "exercises.web.cli:main"
+webserver-benchmark-web = "exercises.web.cli:main"
 
 [tool.pytest.ini_options]
 addopts = "--junitxml=reports/junit.xml"

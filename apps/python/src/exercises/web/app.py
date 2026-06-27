@@ -40,7 +40,7 @@ from exercises.web.session_repository import connect_redis, SessionRepository
 
 # Module-level so repeated `create_app()` (e.g. pytest) does not re-register on the default registry.
 _HTTP_REQUESTS = Counter(
-    "exercises_http_requests_total",
+    "webserver_benchmark_http_requests_total",
     "HTTP requests handled by the exercises Flask app",
     ["method", "endpoint"],
 )
@@ -65,7 +65,7 @@ def _response_error(response: Response) -> str:
 
 
 def resolve_project_root() -> Path:
-    override = os.environ.get("EXERCISES_PROJECT_ROOT", "").strip()
+    override = os.environ.get("WEBSERVER_BENCHMARK_PROJECT_ROOT", "").strip()
     if override:
         return Path(override).expanduser().resolve()
     here = Path(__file__).resolve()

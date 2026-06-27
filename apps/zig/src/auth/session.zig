@@ -10,9 +10,9 @@ pub const SessionConfig = struct {
 
     pub fn fromEnv(allocator: std.mem.Allocator) SessionConfig {
         return .{
-            .redis_key_prefix = dupEnv(allocator, "EXERCISES_SESSION_REDIS_PREFIX", "exercises:session:"),
+            .redis_key_prefix = dupEnv(allocator, "WEBSERVER_BENCHMARK_SESSION_REDIS_PREFIX", "webserver-benchmark:session:"),
             .ttl_secs = DEFAULT_TTL_SECS,
-            .cookie_name = dupEnv(allocator, "EXERCISES_SESSION_COOKIE", "exercises_session"),
+            .cookie_name = dupEnv(allocator, "WEBSERVER_BENCHMARK_SESSION_COOKIE", "webserver_benchmark_session"),
         };
     }
 

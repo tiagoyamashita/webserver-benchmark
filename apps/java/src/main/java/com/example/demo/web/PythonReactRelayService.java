@@ -27,8 +27,8 @@ public class PythonReactRelayService {
   private static final String SOURCE =
       "src/main/java/com/example/demo/web/PythonReactRelayService.java";
   private static final Logger log = LoggerFactory.getLogger(PythonReactRelayService.class);
-  private static final String RELAY_TARGET = "exercises-python";
-  private static final String RELAY_CHAIN = "exercises-java → exercises-python → exercises-react-node";
+  private static final String RELAY_TARGET = "webserver-benchmark-python";
+  private static final String RELAY_CHAIN = "webserver-benchmark-java → webserver-benchmark-python → webserver-benchmark-react-node";
 
   private final RestClient restClient;
   private final StackPingProperties properties;

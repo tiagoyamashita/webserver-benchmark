@@ -1,7 +1,7 @@
 {
   "attributes": {
     "title": "Kafka — broker logs",
-    "description": "Apache Kafka broker JSON logs (service exercises-kafka). Topic create/consumer group join, controller events, etc.",
+    "description": "Apache Kafka broker JSON logs (service webserver-benchmark-kafka). Topic create/consumer group join, controller events, etc.",
     "columns": [
       "@timestamp",
       "service",
@@ -13,7 +13,7 @@
     ],
     "sort": [["@timestamp", "desc"]],
     "kibanaSavedObjectMeta": {
-      "searchSourceJSON": "{\"query\":{\"query\":\"service: exercises-kafka\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
+      "searchSourceJSON": "{\"query\":{\"query\":\"service: webserver-benchmark-kafka\",\"language\":\"kuery\"},\"filter\":[],\"indexRefName\":\"kibanaSavedObjectMeta.searchSourceJSON.index\"}"
     }
   },
   "references": [

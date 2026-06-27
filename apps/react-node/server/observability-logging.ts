@@ -1,14 +1,14 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const SERVICE = "exercises-react-node";
+const SERVICE = "webserver-benchmark-react-node";
 const LOG_FILE = "demo-app.json.log";
 
 let configured = false;
 let logStream: fs.WriteStream | null = null;
 
 export function observabilityEnabled(): boolean {
-  const value = (process.env.EXERCISES_OBSERVABILITY ?? "").trim().toLowerCase();
+  const value = (process.env.WEBSERVER_BENCHMARK_OBSERVABILITY ?? "").trim().toLowerCase();
   return value === "1" || value === "true" || value === "yes";
 }
 

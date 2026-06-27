@@ -30,7 +30,7 @@ def _relay_specs() -> dict[str, RelaySpec]:
     return {
         "react": RelaySpec(
             id="react",
-            relay_target="exercises-react-node",
+            relay_target="webserver-benchmark-react-node",
             stack_links_field="react_node_base_url",
             downstream_path="/api/items",
             methods=frozenset({"GET", "POST"}),

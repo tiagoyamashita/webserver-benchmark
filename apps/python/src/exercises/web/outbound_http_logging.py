@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 from exercises.web.correlation import merge_correlation
 
 _LOG = logging.getLogger("http.client")
-_RELAY_ORIGIN = "exercises-python"
+_RELAY_ORIGIN = "webserver-benchmark-python"
 _HEADER_ALLOW = frozenset(
     {
         "x-request-id",

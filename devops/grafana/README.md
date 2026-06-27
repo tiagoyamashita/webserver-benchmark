@@ -9,15 +9,15 @@ Optional **Grafana OSS** setup for dashboards (metrics, logs, or anything you wi
 | `docker-compose.yml` | Runs Grafana on port **3000** with provisioning mounts |
 | `provisioning/datasources/` | Data source definitions loaded at startup |
 | `provisioning/dashboards/` | Dashboard sidecar config (loads JSON from `dashboards/`) |
-| `dashboards/` | Dashboard JSON (e.g. **`exercises-java-python-rust.json`**, **`exercises-kafka.json`**, **`exercises-log-pipeline.json`**, **`exercises-postgres.json`**, **`exercises-containers.json`**). HTTP/SQL correlation lives in **Kibana** — **`devops/elk/kibana/import-requests-logs.ps1`** → **Exercises — HTTP & Postgres logs** |
+| `dashboards/` | Dashboard JSON (e.g. **`exercises-java-python-rust.json`**, **`exercises-kafka.json`**, **`exercises-log-pipeline.json`**, **`exercises-postgres.json`**, **`exercises-containers.json`**). HTTP/SQL correlation lives in **Kibana** — **`devops/elk/kibana/import-requests-logs.ps1`** → **WebServer BenchMark — HTTP & Postgres logs** |
 
 ### Dashboard JSON not updating in the UI?
 
-Grafana copies provisioned dashboards into its **`exercises_grafana_data`** volume. On **Windows**, the 10s file scan often **does not see** edits to bind-mounted `dashboards/*.json`.
+Grafana copies provisioned dashboards into its **`wsbm_grafana_data`** volume. On **Windows**, the 10s file scan often **does not see** edits to bind-mounted `dashboards/*.json`.
 
 1. Edit JSON under **`devops/grafana/dashboards/`** (save as UTF-8 **without** BOM).
 2. Restart Grafana: `podman compose -f docker-compose.observability.yml restart grafana` (from repo root).
-3. Hard-refresh the browser (**Ctrl+Shift+R**). Open **Dashboards → Exercises → Exercises — Apps & Postgres** (uid `exercises-java-python-rust`).
+3. Hard-refresh the browser (**Ctrl+Shift+R**). Open **Dashboards → WebServer BenchMark → WebServer BenchMark — Apps & Postgres** (uid `exercises-java-python-rust`).
 4. If it still looks old: open the dashboard → **Settings (gear) → Delete**, wait ~10s or restart Grafana again (file provisioning re-imports it).
 
 `provisioning/dashboards/dashboards.yml` sets **`allowUiUpdates: false`** so saves in the Grafana UI do not replace the JSON on disk.
@@ -25,7 +25,7 @@ Grafana copies provisioned dashboards into its **`exercises_grafana_data`** volu
 
 ## Bundled dashboard (root compose)
 
-With the **repository root** `docker-compose.yml`, Grafana loads **`dashboards/exercises-java-python-rust.json`** (**Exercises — Apps & Postgres**) into the **Exercises** folder. It expects Prometheus jobs **`exercises-java`**, **`exercises-python`**, **`exercises-rust`**, and **`exercises-react-node`** (see **`prometheus/prometheus.yml`**) plus the **`postgres-demo`** datasource (`postgres:5432`, database **`demo`**). After changing the JSON file, restart Grafana or wait for the file provider to rescan (if configured).
+With the **repository root** `docker-compose.yml`, Grafana loads **`dashboards/exercises-java-python-rust.json`** (**WebServer BenchMark — Apps & Postgres**) into the **WebServer BenchMark** folder. It expects Prometheus jobs **`webserver-benchmark-java`**, **`webserver-benchmark-python`**, **`webserver-benchmark-rust`**, and **`webserver-benchmark-react-node`** (see **`prometheus/prometheus.yml`**) plus the **`postgres-demo`** datasource (`postgres:5432`, database **`demo`**). After changing the JSON file, restart Grafana or wait for the file provider to rescan (if configured).
 
 ## Run locally
 
@@ -59,7 +59,7 @@ Grafana does **not** auto-discover your Java/Python/Rust HTTP ports. “Servers�
 
 1. Edit **`provisioning/datasources/datasources.yml`** (or add more `*.yml` files in that folder).
 2. Set each **`url`** to something Grafana’s container can reach:
-   - **Same Compose project:** use the **service name** and internal port, e.g. `http://prometheus:9090`, `http://elasticsearch:9200` (only when that service exists), `postgres:5432` (when **`docker-compose.apps.yml`** is up on network **`exercises`**).
+   - **Same Compose project:** use the **service name** and internal port, e.g. `http://prometheus:9090`, `http://elasticsearch:9200` (only when that service exists), `postgres:5432` (when **`docker-compose.apps.yml`** is up on network **`webserver-benchmark`**).
 3. **`isDefault: true`** — exactly one default; root compose ships **Prometheus** as default (see **`datasources.yml`**).
 4. Restart Grafana: `podman compose restart grafana` (from repo root) or recreate the stack.
 
@@ -68,7 +68,7 @@ Grafana does **not** auto-discover your Java/Python/Rust HTTP ports. “Servers�
 - Edit **`provisioning/datasources/datasources.yml`** to add Loki, extra Prometheus targets, etc. ([Grafana provisioning](https://grafana.com/docs/grafana/latest/administration/provisioning/)).
 - Drop dashboard JSON under **`dashboards/`**; Grafana picks them up via **`provisioning/dashboards/dashboards.yml`**.
 
-The shipped **`datasources.yml`** provisions **Prometheus** (default), **PostgreSQL** (**`postgres:5432`**, database **`demo`**), **Elasticsearch** (**`http://elasticsearch:9200`**, index **`logstash-*`** — requires **`docker-compose.observability.yml`** + Filebeat), and **TestData**. Dashboards: **`exercises-java-python-rust.json`**, **`exercises-kafka.json`**, **`exercises-log-pipeline.json`**, **`exercises-postgres.json`**, **`exercises-containers.json`**. HTTP/SQL log correlation: **Kibana** (`exercises-requests-logs-kibana`). Alert rules: **`provisioning/alerting/log-pipeline.yaml`** (review under **Alerting → Alert rules → Exercises**). Restart Grafana after edits.
+The shipped **`datasources.yml`** provisions **Prometheus** (default), **PostgreSQL** (**`postgres:5432`**, database **`demo`**), **Elasticsearch** (**`http://elasticsearch:9200`**, index **`logstash-*`** — requires **`docker-compose.observability.yml`** + Filebeat), and **TestData**. Dashboards: **`exercises-java-python-rust.json`**, **`exercises-kafka.json`**, **`exercises-log-pipeline.json`**, **`exercises-postgres.json`**, **`exercises-containers.json`**. HTTP/SQL log correlation: **Kibana** (`exercises-requests-logs-kibana`). Alert rules: **`provisioning/alerting/log-pipeline.yaml`** (review under **Alerting → Alert rules → WebServer BenchMark**). Restart Grafana after edits.
 
 ## Embedding in an `<iframe>`
 

@@ -46,7 +46,7 @@ pub fn fetch(
     var extra_headers_buf: [4]http.Header = undefined;
     var extra_count: usize = 2;
     extra_headers_buf[0] = .{ .name = "x-request-id", .value = request_id };
-    extra_headers_buf[1] = .{ .name = "x-request-origin", .value = "exercises-zig" };
+    extra_headers_buf[1] = .{ .name = "x-request-origin", .value = "webserver-benchmark-zig" };
     if (options.content_type) |ct| {
         extra_headers_buf[extra_count] = .{ .name = "content-type", .value = ct };
         extra_count += 1;
@@ -132,13 +132,13 @@ fn outboundHeadersJson(allocator: std.mem.Allocator, request_id: []const u8, con
     if (content_type) |ct| {
         return std.fmt.allocPrint(
             allocator,
-            "{{\"x-request-id\":\"{s}\",\"x-request-origin\":\"exercises-zig\",\"content-type\":\"{s}\"}}",
+            "{{\"x-request-id\":\"{s}\",\"x-request-origin\":\"webserver-benchmark-zig\",\"content-type\":\"{s}\"}}",
             .{ request_id, ct },
         );
     }
     return std.fmt.allocPrint(
         allocator,
-        "{{\"x-request-id\":\"{s}\",\"x-request-origin\":\"exercises-zig\"}}",
+        "{{\"x-request-id\":\"{s}\",\"x-request-origin\":\"webserver-benchmark-zig\"}}",
         .{request_id},
     );
 }

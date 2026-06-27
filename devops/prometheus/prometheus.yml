@@ -1,60 +1,60 @@
-# Prometheus scrape config for the exercises Compose stack (service DNS on network `exercises`).
+# WebServer BenchMark Compose stack (service DNS on network `webserver-benchmark`).
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
 scrape_configs:
-  - job_name: exercises-java
+  - job_name: webserver-benchmark-java
     metrics_path: /actuator/prometheus
     static_configs:
       - targets: ["java:8080"]
 
-  - job_name: exercises-python
+  - job_name: webserver-benchmark-python
     metrics_path: /metrics
     static_configs:
       - targets: ["python:5000"]
 
-  - job_name: exercises-rust
+  - job_name: webserver-benchmark-rust
     metrics_path: /metrics
     static_configs:
       - targets: ["rust:8082"]
 
-  - job_name: exercises-zig
+  - job_name: webserver-benchmark-zig
     metrics_path: /metrics
     static_configs:
       - targets: ["zig:8083"]
 
-  - job_name: exercises-react-node
+  - job_name: webserver-benchmark-react-node
     metrics_path: /metrics
     static_configs:
       - targets: ["react-node:5174"]
 
   # beat-exporter scrapes Filebeat :5066/stats and exposes Prometheus metrics.
-  - job_name: exercises-filebeat
+  - job_name: webserver-benchmark-filebeat
     metrics_path: /metrics
     static_configs:
       - targets: ["beat-exporter:9479"]
 
   # SAP prometheus-logstash-exporter scrapes Logstash :9600/_node/stats.
-  - job_name: exercises-logstash
+  - job_name: webserver-benchmark-logstash
     metrics_path: /metrics
     static_configs:
       - targets: ["logstash-exporter:9304"]
 
   # danielqsj/kafka-exporter — broker / topic / consumer-group metrics.
-  - job_name: exercises-kafka
+  - job_name: webserver-benchmark-kafka
     metrics_path: /metrics
     static_configs:
       - targets: ["kafka-exporter:9308"]
 
   # prometheus-podman-exporter — per-container memory/CPU (Podman socket on host VM).
-  - job_name: exercises-podman
+  - job_name: webserver-benchmark-podman
     metrics_path: /metrics
     static_configs:
       - targets: ["podman-exporter:9882"]
 
-  # exercises-gpu-exporter — NVIDIA VRAM/util per Podman container (optional; start-gpu-exporter.ps1).
-  - job_name: exercises-gpu
+  # webserver-benchmark-gpu-exporter — NVIDIA VRAM/util per Podman container (optional; start-gpu-exporter.ps1).
+  - job_name: webserver-benchmark-gpu
     metrics_path: /metrics
     static_configs:
-      - targets: ["exercises-gpu-exporter:9066"]
+      - targets: ["webserver-benchmark-gpu-exporter:9066"]
