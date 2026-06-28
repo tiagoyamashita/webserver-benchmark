@@ -152,6 +152,7 @@ Kafka async flows also carry `requestId` in the message payload so consumer logs
 
 ### 3 — Outbound: apps → data stores
 
+
 Three layers: **database**, **cache**, and **messaging**.
 
 ```plantuml
@@ -240,7 +241,9 @@ end note
 @enduml
 ```
 
+
 ### 4 — Observability & admin UIs
+
 
 ```plantuml
 @startuml observability
