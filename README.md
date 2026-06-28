@@ -2,6 +2,92 @@
 
 WebServer BenchMark (tiagoyamashita.com)
 
+## How services connect
+
+All Compose services share the **`webserver-benchmark`** bridge network. **Inbound** means traffic **into** a service (browser hits, Prometheus scrapes, admin UIs). **Outbound** means a service **initiates** a connection (apps → Postgres / Redis / Kafka, probes between apps, log shipping).
+
+```mermaid
+flowchart TB
+  subgraph inbound_user["Inbound — browser / curl (published host ports)"]
+    U["User"]
+  end
+
+  subgraph apps["Application servers"]
+    direction LR
+    J["Java<br/>:8080"]
+    P["Python<br/>:5000"]
+    R["Rust<br/>:8082"]
+    Z["Zig<br/>:8083"]
+    RN["React Node<br/>:5174"]
+  end
+
+  subgraph outbound_data["Outbound — apps → data stores"]
+    PG[("PostgreSQL<br/>:5432")]
+    RD[("Redis<br/>:6379<br/>shared sessions")]
+    KF{{"Kafka<br/>:9092"}}
+  end
+
+  subgraph kafka_async["Outbound async — Kafka topics"]
+    direction TB
+    KU["create-user<br/>Java / Rust publish → Java or Rust consumes → users table"]
+    KI["create-item<br/>Java publishes → Python consumes → items table"]
+  end
+
+  subgraph inbound_obs["Inbound — observability pulls from stack"]
+    direction TB
+    PR["Prometheus :9090<br/>scrapes /metrics & /actuator/prometheus"]
+    FB["Filebeat<br/>tails host log files"]
+    LS["Logstash"]
+    ES[("Elasticsearch")]
+  end
+
+  subgraph admin["Inbound — admin / embed UIs (browser)"]
+    direction LR
+    KUI["Kafka UI :8090<br/>embed :8091"]
+    RUI["RedisInsight :5540<br/>embed :5541"]
+    GF["Grafana :3000"]
+    KB["Kibana :5601"]
+  end
+
+  U -->|"HTTP inbound"| J & P & R & Z & RN
+  U -->|"HTTP inbound"| KUI & RUI & GF & KB & PR
+
+  J & P & R & Z & RN -->|"TCP outbound"| PG
+  J & P & R & Z & RN -->|"TCP outbound"| RD
+  J & P & R & Z & RN -->|"TCP outbound"| KF
+
+  J & R -->|"publish"| KU
+  J -->|"publish"| KI
+  KU & KI --> KF
+  KF -->|"consume"| J & R & P
+
+  J & P & R -.->|"iframe embed"| KUI & RUI & GF & KB
+
+  PR -.->|"scrape inbound"| J & P & R & Z & RN
+  FB -->|"ship outbound"| LS
+  LS --> ES
+  KUI -->|"outbound"| KF
+  RUI -->|"outbound"| RD
+  GF -->|"query outbound"| PR
+  KB -->|"query outbound"| ES
+```
+
+| Direction | From | To | What |
+|-----------|------|-----|------|
+| **Inbound (user)** | Browser / `curl` | Java **8080**, Python **5000**, Rust **8082**, Zig **8083**, React Node **5174** | Dashboards, REST APIs, health checks |
+| **Outbound (data)** | All app servers | **PostgreSQL** `postgres:5432` | Users, items, shared `items` table |
+| **Outbound (data)** | Java, Python, Rust, Zig, React Node | **Redis** `redis:6379` | Shared session JSON (same key prefix across stacks) |
+| **Outbound (async)** | Java, Rust | **Kafka** `kafka:9092` topic `create-user` | Event published; Java **or** Rust consumer inserts into `users` (shared consumer group) |
+| **Outbound (async)** | Java | **Kafka** topic `create-item` | Event published; **Python-only** consumer inserts into `items` |
+| **Outbound (probe)** | Each app dashboard | Other apps + observability URLs | Stack connectivity cards (`APP_STACK_*` / `PROBE_*` env vars) |
+| **Inbound (metrics)** | **Prometheus** | App `/metrics` or `/actuator/prometheus` | Pull scrape every 15s; Grafana reads Prometheus |
+| **Outbound (logs)** | **Filebeat** | Host-mounted `apps/*/logs` → **Logstash** → **Elasticsearch** | JSON app logs, Postgres jsonlog, Kafka jsonlog |
+| **Inbound (admin)** | Browser | Kafka UI **8090**, RedisInsight **5540**, Grafana **3000**, Kibana **5601** | Ops GUIs; dashboards iframe **8091** / **5541** embed proxies |
+
+Start the full graph: `podman compose up -d --build`. Apps only: `podman compose -f docker-compose.apps.yml up -d --build`. Observability only: `podman compose -f docker-compose.observability.yml up -d`.
+
+_Diagrams use [Mermaid](https://mermaid.js.org/); they render on GitHub. In other viewers you may see the source block only._
+
 ## Application servers
 
 This repo ships **three separate web apps** under **`apps/`**, plus **Postgres**, **Redis**, **Kafka**, **React Node**, and optional **observability** under **`devops/`**:
@@ -22,23 +108,7 @@ This repo ships **three separate web apps** under **`apps/`**, plus **Postgres**
 
 **Rust on Windows:** If **`cargo`** fails with **`link.exe` not found**, the MSVC linker is missing — use **`podman compose up --build rust`** from this repo root, or fix the toolchain per [apps/rust/README.md — Troubleshooting](apps/rust/README.md#troubleshooting-rust-server-wont-build-or-wont-open).
 
-Illustration (same stacks; Postgres is used when the Java app is wired to a real database):
-
-```mermaid
-flowchart LR
-  subgraph apps["Three separate apps"]
-    direction TB
-    J["Java — Spring Boot"]
-    P["Python — Flask"]
-    R["Rust — Axum"]
-  end
-  DB[("PostgreSQL")]
-  J -->|Spring postgres profile| DB
-```
-
 They are independent benchmarks; you can build, run, and deploy **any subset**. **PostgreSQL** is used when you wire the Java app to a real database (for example via Compose or Kubernetes); see **`apps/postgres/`** and [DOCKER.md](DOCKER.md).
-
-_Diagrams use [Mermaid](https://mermaid.js.org/); they render on GitHub. In other viewers you may see the source block only._
 
 ## Compose stacks (apps, devops, dev)
 
