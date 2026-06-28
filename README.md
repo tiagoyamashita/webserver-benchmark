@@ -4,89 +4,306 @@ WebServer BenchMark (tiagoyamashita.com)
 
 ## How services connect
 
-All Compose services share the **`webserver-benchmark`** bridge network. **Inbound** means traffic **into** a service (browser hits, Prometheus scrapes, admin UIs). **Outbound** means a service **initiates** a connection (apps → Postgres / Redis / Kafka, probes between apps, log shipping).
+All Compose services share the **`webserver-benchmark`** bridge network.
 
-```mermaid
-flowchart TB
-  subgraph inbound_user["Inbound — browser / curl (published host ports)"]
-    U["User"]
-  end
+- **Inbound** — traffic **into** a service (browser, Prometheus scrape, admin UI).
+- **Outbound** — a service **starts** the connection (app → Postgres / Redis / Kafka, log shipping).
 
-  subgraph apps["Application servers"]
-    direction LR
-    J["Java<br/>:8080"]
-    P["Python<br/>:5000"]
-    R["Rust<br/>:8082"]
-    Z["Zig<br/>:8083"]
-    RN["React Node<br/>:5174"]
-  end
+### 1 — Inbound: browser → apps
 
-  subgraph outbound_data["Outbound — apps → data stores"]
-    PG[("PostgreSQL<br/>:5432")]
-    RD[("Redis<br/>:6379<br/>shared sessions")]
-    KF{{"Kafka<br/>:9092"}}
-  end
+```plantuml
+@startuml inbound-apps
+skinparam componentStyle rectangle
+skinparam linetype ortho
 
-  subgraph kafka_async["Outbound async — Kafka topics"]
-    direction TB
-    KU["create-user<br/>Java / Rust publish → Java or Rust consumes → users table"]
-    KI["create-item<br/>Java publishes → Python consumes → items table"]
-  end
+actor "Browser / curl" as User
 
-  subgraph inbound_obs["Inbound — observability pulls from stack"]
-    direction TB
-    PR["Prometheus :9090<br/>scrapes /metrics & /actuator/prometheus"]
-    FB["Filebeat<br/>tails host log files"]
-    LS["Logstash"]
-    ES[("Elasticsearch")]
-  end
+package "Inbound HTTP (host ports)" {
+  [Java\n:8080] as Java
+  [Python\n:5000] as Python
+  [Rust\n:8082] as Rust
+  [Zig\n:8083] as Zig
+  [React Node\n:5174] as RN
+}
 
-  subgraph admin["Inbound — admin / embed UIs (browser)"]
-    direction LR
-    KUI["Kafka UI :8090<br/>embed :8091"]
-    RUI["RedisInsight :5540<br/>embed :5541"]
-    GF["Grafana :3000"]
-    KB["Kibana :5601"]
-  end
+User --> Java : inbound
+User --> Python : inbound
+User --> Rust : inbound
+User --> Zig : inbound
+User --> RN : inbound
 
-  U -->|"HTTP inbound"| J & P & R & Z & RN
-  U -->|"HTTP inbound"| KUI & RUI & GF & KB & PR
-
-  J & P & R & Z & RN -->|"TCP outbound"| PG
-  J & P & R & Z & RN -->|"TCP outbound"| RD
-  J & P & R & Z & RN -->|"TCP outbound"| KF
-
-  J & R -->|"publish"| KU
-  J -->|"publish"| KI
-  KU & KI --> KF
-  KF -->|"consume"| J & R & P
-
-  J & P & R -.->|"iframe embed"| KUI & RUI & GF & KB
-
-  PR -.->|"scrape inbound"| J & P & R & Z & RN
-  FB -->|"ship outbound"| LS
-  LS --> ES
-  KUI -->|"outbound"| KF
-  RUI -->|"outbound"| RD
-  GF -->|"query outbound"| PR
-  KB -->|"query outbound"| ES
+@enduml
 ```
 
-| Direction | From | To | What |
-|-----------|------|-----|------|
-| **Inbound (user)** | Browser / `curl` | Java **8080**, Python **5000**, Rust **8082**, Zig **8083**, React Node **5174** | Dashboards, REST APIs, health checks |
-| **Outbound (data)** | All app servers | **PostgreSQL** `postgres:5432` | Users, items, shared `items` table |
-| **Outbound (data)** | Java, Python, Rust, Zig, React Node | **Redis** `redis:6379` | Shared session JSON (same key prefix across stacks) |
-| **Outbound (async)** | Java, Rust | **Kafka** `kafka:9092` topic `create-user` | Event published; Java **or** Rust consumer inserts into `users` (shared consumer group) |
-| **Outbound (async)** | Java | **Kafka** topic `create-item` | Event published; **Python-only** consumer inserts into `items` |
-| **Outbound (probe)** | Each app dashboard | Other apps + observability URLs | Stack connectivity cards (`APP_STACK_*` / `PROBE_*` env vars) |
-| **Inbound (metrics)** | **Prometheus** | App `/metrics` or `/actuator/prometheus` | Pull scrape every 15s; Grafana reads Prometheus |
-| **Outbound (logs)** | **Filebeat** | Host-mounted `apps/*/logs` → **Logstash** → **Elasticsearch** | JSON app logs, Postgres jsonlog, Kafka jsonlog |
-| **Inbound (admin)** | Browser | Kafka UI **8090**, RedisInsight **5540**, Grafana **3000**, Kibana **5601** | Ops GUIs; dashboards iframe **8091** / **5541** embed proxies |
+### 2 — App-to-app (linked logs across microservices)
+
+Dashboards **call each other over HTTP** so you can trace one user action across services in **Kibana** (`correlation.request_id` / `request_id`). Every hop forwards **`X-Request-ID`** (and **`X-Request-Origin`** on relays); JSON logs record `phase=outbound_request` / `outbound_response` with `origin_path` and `relay_target`.
+
+**Item relays** — multi-hop writes (trigger from Java or React Node dashboard):
+
+```plantuml
+@startuml item-relays
+skinparam componentStyle rectangle
+skinparam linetype ortho
+
+actor "Browser" as User
+
+[Java] as J
+[Python] as P
+[Rust] as R
+[React Node] as RN
+
+User --> J : inbound\n(dashboard AJAX)
+
+J -down-> R : outbound\nPOST /api/items
+J -down-> P : outbound\nPOST /api/items
+J -down-> RN : outbound\nPOST /api/items
+J -down-> P : outbound\nPOST /api/relay/react
+P -down-> RN : outbound\nPOST /api/items
+
+User --> RN : inbound\nGET/POST /java/api/items
+RN -down-> J : outbound\nPOST /api/items
+
+note bottom of J
+  Same request_id on every hop →
+  filter Kibana: correlation.request_id
+  Java dashboard: rust-item-relay,
+  python-item-relay, react-node-item-relay,
+  python-react-relay (3-hop chain)
+end note
+
+@enduml
+```
+
+**Stack probes** — connectivity GETs from each app to peers and observability (`APP_STACK_*` / `PROBE_*` env vars):
+
+```plantuml
+@startuml stack-probes
+skinparam componentStyle rectangle
+skinparam linetype ortho
+
+package "Probers (outbound GET)" {
+  [Java] as J
+  [Python] as P
+  [Rust] as R
+  [Zig] as Z
+  [React Node] as RN
+}
+
+package "Peer apps (inbound /health or /)" {
+  [Java peer] as Jp
+  [Python peer] as Pp
+  [Rust peer] as Rp
+  [React Node peer] as RNp
+}
+
+package "Observability targets" {
+  [Prometheus] as Prom
+  [Grafana] as Graf
+  [Elasticsearch] as ES
+  [Kibana] as Kib
+}
+
+J ..> Pp : /stack-ping
+J ..> Rp
+J ..> RNp
+J ..> Prom
+J ..> Graf
+J ..> ES
+J ..> Kib
+
+P ..> Jp : /stack-ping/<target>
+P ..> Rp
+P ..> RNp
+P ..> Prom
+P ..> Graf
+P ..> ES
+P ..> Kib
+
+R ..> Jp : /stack-ping/:target
+R ..> Pp
+R ..> RNp
+R ..> Prom
+R ..> Graf
+R ..> ES
+R ..> Kib
+
+Z ..> Jp
+Z ..> Pp
+Z ..> Rp
+Z ..> RNp
+Z ..> Prom
+Z ..> Graf
+Z ..> ES
+Z ..> Kib
+
+RN ..> Jp : PROBE_*
+RN ..> Pp
+RN ..> Rp
+RN ..> Prom
+RN ..> Graf
+RN ..> ES
+RN ..> Kib
+
+@enduml
+```
+
+Kafka async flows also carry `requestId` in the message payload so consumer logs stay on the same correlation id (see Kafka topics diagram below).
+
+### 3 — Outbound: apps → data stores
+
+Three layers: **database**, **cache**, and **messaging**.
+
+```plantuml
+@startuml data-layers
+skinparam componentStyle rectangle
+skinparam linetype ortho
+
+package "Apps (outbound clients)" {
+  [Java] as J
+  [Python] as P
+  [Rust] as R
+  [Zig] as Z
+  [React Node] as RN
+}
+
+together {
+  package "Database layer" {
+    database "PostgreSQL\npostgres:5432" as PG
+  }
+
+  package "Cache layer" {
+    database "Redis\nredis:6379\nshared sessions" as Redis
+    [RedisInsight\n:5540] as RI
+  }
+
+  package "Messaging layer" {
+    queue "Kafka\nkafka:9092" as Kafka
+    [Kafka UI\n:8090] as KUI
+  }
+}
+
+J --> PG
+P --> PG
+R --> PG
+Z --> PG
+RN --> PG
+
+J --> Redis
+P --> Redis
+R --> Redis
+Z --> Redis
+RN --> Redis
+
+J --> Kafka
+P --> Kafka
+R --> Kafka
+RN --> Kafka
+
+RI ..> Redis : outbound\n(admin)
+KUI ..> Kafka : outbound\n(admin)
+
+@enduml
+```
+
+**Kafka topics** (async, on top of the messaging layer):
+
+```plantuml
+@startuml kafka-topics
+skinparam componentStyle rectangle
+
+[Java] as J
+[Rust] as R
+[Python] as P
+queue "Kafka" as K
+database "PostgreSQL\nusers table" as PGU
+database "PostgreSQL\nitems table" as PGI
+
+J -right-> K : outbound\npublish create-user
+R -right-> K : outbound\npublish create-user
+J -right-> K : outbound\npublish create-item
+
+K -left-> J : inbound\nconsume create-user
+K -left-> R : inbound\nconsume create-user
+K -left-> P : inbound\nconsume create-item
+
+J ..> PGU : insert user
+R ..> PGU : insert user
+P ..> PGI : insert item
+
+note bottom of K
+  create-user: Java **or** Rust consumes
+  (shared consumer group)
+  create-item: Python only
+end note
+
+@enduml
+```
+
+### 4 — Observability & admin UIs
+
+```plantuml
+@startuml observability
+skinparam componentStyle rectangle
+skinparam linetype ortho
+
+actor "Browser" as User
+
+package "Apps" {
+  [Java] as J
+  [Python] as P
+  [Rust] as R
+  [Zig] as Z
+  [React Node] as RN
+}
+
+package "Metrics (Prometheus pulls inbound)" {
+  [Prometheus\n:9090] as Prom
+  [Grafana\n:3000] as Graf
+}
+
+package "Logs (Filebeat ships outbound)" {
+  folder "apps/*/logs\n(host mount)" as Logs
+  [Filebeat] as FB
+  [Logstash] as LS
+  database "Elasticsearch" as ES
+  [Kibana\n:5601] as Kib
+}
+
+Prom -down-> J : inbound scrape
+Prom -down-> P : inbound scrape
+Prom -down-> R : inbound scrape
+Prom -down-> Z : inbound scrape
+Prom -down-> RN : inbound scrape
+
+Graf --> Prom : outbound query
+User --> Graf : inbound
+User --> Kib : inbound
+
+Logs --> FB : read
+FB --> LS : outbound ship
+LS --> ES : outbound ship
+Kib --> ES : outbound query
+
+@enduml
+```
+
+| Layer | Direction | Connection |
+|-------|-----------|------------|
+| **Apps** | Inbound | Browser → **8080** Java, **5000** Python, **8082** Rust, **8083** Zig, **5174** React Node |
+| **App-to-app relays** | Outbound chain | Java → Rust / Python / React Node `POST /api/items`; Java → Python `POST /api/relay/react` → React Node; React Node → Java `POST /api/items` via `/java/api/items` proxy |
+| **App-to-app probes** | Outbound GET | Each dashboard probes peer apps + Prometheus / Grafana / Elasticsearch / Kibana (`/stack-ping`, `PROBE_*`) |
+| **Linked logs** | — | Shared **`X-Request-ID`** on HTTP hops and Kafka events; Kibana: `correlation.request_id` or `request_id` |
+| **Database** | Outbound | All apps → `postgres:5432` (users, items) |
+| **Cache** | Outbound | All apps → `redis:6379` (shared session keys) |
+| **Messaging** | Outbound / inbound | Apps publish & consume on `kafka:9092`; see Kafka topics diagram |
+| **Metrics** | Inbound to apps | Prometheus scrapes `/metrics` every 15s; Grafana queries Prometheus |
+| **Logs** | Outbound | Filebeat → Logstash → Elasticsearch; Kibana reads Elasticsearch |
+| **Admin** | Inbound | Kafka UI **8090**, RedisInsight **5540**; dashboards iframe embed **8091** / **5541** |
 
 Start the full graph: `podman compose up -d --build`. Apps only: `podman compose -f docker-compose.apps.yml up -d --build`. Observability only: `podman compose -f docker-compose.observability.yml up -d`.
 
-_Diagrams use [Mermaid](https://mermaid.js.org/); they render on GitHub. In other viewers you may see the source block only._
+_PlantUML blocks render in editors with a PlantUML extension, or paste into [plantuml.com](https://www.plantuml.com/plantuml). GitHub markdown preview does not render PlantUML natively (use Mermaid there, or export PNG/SVG)._
 
 ## Application servers
 
