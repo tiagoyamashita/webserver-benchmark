@@ -52,6 +52,7 @@ actor "Browser" as User
 [Python] as P
 [Rust] as R
 [React Node] as RN
+database "PostgreSQL\nitems table" as PG
 
 User --> J : inbound\n(dashboard AJAX)
 
@@ -64,7 +65,13 @@ P -down-> RN : outbound\nPOST /api/items
 User --> RN : inbound\nGET/POST /java/api/items
 RN -down-> J : outbound\nPOST /api/items
 
-note bottom of J
+R --> PG : outbound\nINSERT items
+P --> PG : outbound\nINSERT items
+RN --> PG : outbound\nINSERT items
+J --> PG : outbound\nINSERT items
+
+note bottom of PG
+  Final destination: shared items table.
   Same request_id on every hop →
   filter Kibana: correlation.request_id
   Java dashboard: rust-item-relay,
@@ -82,68 +89,19 @@ end note
 skinparam componentStyle rectangle
 skinparam linetype ortho
 
-package "Probers (outbound GET)" {
-  [Java] as J
-  [Python] as P
-  [Rust] as R
-  [Zig] as Z
-  [React Node] as RN
-}
+package "Probers (outbound GET)\nJava · Python · Rust · Zig · React Node" as Probers
 
-package "Peer apps (inbound /health or /)" {
-  [Java peer] as Jp
-  [Python peer] as Pp
-  [Rust peer] as Rp
-  [React Node peer] as RNp
-}
+package "Peer apps (inbound /health or /)\nJava · Python · Rust · React Node" as Peers
 
-package "Observability targets" {
-  [Prometheus] as Prom
-  [Grafana] as Graf
-  [Elasticsearch] as ES
-  [Kibana] as Kib
-}
+package "Observability targets\nPrometheus · Grafana · Elasticsearch · Kibana" as Obs
 
-J ..> Pp : /stack-ping
-J ..> Rp
-J ..> RNp
-J ..> Prom
-J ..> Graf
-J ..> ES
-J ..> Kib
+Probers ..> Peers : outbound GET\n/stack-ping · /stack-ping/<target>\n/stack-ping/:target · PROBE_*\n(each app → every peer except self)
 
-P ..> Jp : /stack-ping/<target>
-P ..> Rp
-P ..> RNp
-P ..> Prom
-P ..> Graf
-P ..> ES
-P ..> Kib
+Probers ..> Obs : outbound GET\n(each app → every target)
 
-R ..> Jp : /stack-ping/:target
-R ..> Pp
-R ..> RNp
-R ..> Prom
-R ..> Graf
-R ..> ES
-R ..> Kib
-
-Z ..> Jp
-Z ..> Pp
-Z ..> Rp
-Z ..> RNp
-Z ..> Prom
-Z ..> Graf
-Z ..> ES
-Z ..> Kib
-
-RN ..> Jp : PROBE_*
-RN ..> Pp
-RN ..> Rp
-RN ..> Prom
-RN ..> Graf
-RN ..> ES
-RN ..> Kib
+note bottom of Probers
+  Config: APP_STACK_* / PROBE_* env vars
+end note
 
 @enduml
 ```
